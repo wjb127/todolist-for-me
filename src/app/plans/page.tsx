@@ -233,9 +233,6 @@ export default function PlansPage() {
                         }`}>
                           {plan.title}
                         </h3>
-                        {plan.description && (
-                          <p className="text-sm text-gray-600 mt-1">{plan.description}</p>
-                        )}
                         <div className="flex items-center space-x-3 mt-2">
                           <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
                             {getPriorityIcon(plan.priority)}
