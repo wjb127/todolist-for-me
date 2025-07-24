@@ -7,6 +7,8 @@ CREATE TABLE templates (
   title VARCHAR(255) NOT NULL,
   description TEXT,
   items JSONB NOT NULL DEFAULT '[]',
+  is_active BOOLEAN DEFAULT FALSE,
+  applied_from_date DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

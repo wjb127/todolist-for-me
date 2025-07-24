@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Save, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 
@@ -38,6 +38,111 @@ export default function TemplatesPage() {
       console.error('Error fetching templates:', error)
     } else {
       setTemplates(data || [])
+    }
+  }
+
+  const handleApplyTemplate = async (template: Template) => {
+    if (confirm(`"${template.title}" 템플릿을 오늘부터 적용하시겠습니까? 기존 활성 템플릿은 비활성화됩니다.`)) {
+      try {
+        // 모든 템플릿을 비활성화
+        await supabase
+          .from('templates')
+          .update({ is_active: false, applied_from_date: null })
+          .neq('id', '')
+
+        // 선택한 템플릿을 활성화
+        const today = new Date().toISOString().split('T')[0]
+        const { error } = await supabase
+          .from('templates')
+          .update({ 
+            is_active: true, 
+            applied_from_date: today 
+          })
+          .eq('id', template.id)
+
+        if (error) throw error
+
+        // 오늘부터 앞으로 7일간의 todos를 생성
+        await createTodosFromTemplate(template, today)
+        
+        await fetchTemplates()
+        alert('템플릿이 성공적으로 적용되었습니다!')
+      } catch (error) {
+        console.error('Error applying template:', error)
+        alert('템플릿 적용 중 오류가 발생했습니다.')
+      }
+    }
+  }
+
+  const createTodosFromTemplate = async (template: Template, startDate: string) => {
+    const todos: Array<{
+      template_id: string
+      date: string
+      title: string
+      description: string | null
+      completed: boolean
+      order_index: number
+    }> = []
+    const start = new Date(startDate)
+    
+    // 앞으로 7일간 todos 생성
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(start)
+      currentDate.setDate(start.getDate() + i)
+      const dateString = currentDate.toISOString().split('T')[0]
+      
+      // 해당 날짜에 이미 todos가 있는지 확인
+      const { data: existingTodos } = await supabase
+        .from('todos')
+        .select('id')
+        .eq('date', dateString)
+        .eq('template_id', template.id)
+      
+      // 이미 해당 템플릿의 todos가 있으면 스킵
+      if (existingTodos && existingTodos.length > 0) continue
+      
+      template.items.forEach((item, index) => {
+        todos.push({
+          template_id: template.id,
+          date: dateString,
+          title: item.title,
+          description: item.description || null,
+          completed: false,
+          order_index: index
+        })
+      })
+    }
+    
+    if (todos.length > 0) {
+      const { error } = await supabase
+        .from('todos')
+        .insert(todos)
+      
+      if (error) {
+        console.error('Error creating todos from template:', error)
+      }
+    }
+  }
+
+  const handleDeactivateTemplate = async (template: Template) => {
+    if (confirm(`"${template.title}" 템플릿 적용을 중단하시겠습니까?`)) {
+      try {
+        const { error } = await supabase
+          .from('templates')
+          .update({ 
+            is_active: false, 
+            applied_from_date: null 
+          })
+          .eq('id', template.id)
+
+        if (error) throw error
+        
+        await fetchTemplates()
+        alert('템플릿 적용이 중단되었습니다.')
+      } catch (error) {
+        console.error('Error deactivating template:', error)
+        alert('템플릿 비활성화 중 오류가 발생했습니다.')
+      }
     }
   }
 
@@ -144,12 +249,25 @@ export default function TemplatesPage() {
 
         <div className="space-y-4">
           {templates.map((template) => (
-            <div key={template.id} className="bg-white rounded-lg shadow-sm p-4">
+            <div key={template.id} className={`rounded-lg shadow-sm p-4 ${template.is_active ? 'bg-green-50 border-2 border-green-200' : 'bg-white'}`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{template.title}</h3>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-semibold text-gray-900">{template.title}</h3>
+                    {template.is_active && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        활성
+                      </span>
+                    )}
+                  </div>
                   {template.description && (
                     <p className="text-sm text-gray-600 mt-1">{template.description}</p>
+                  )}
+                  {template.is_active && template.applied_from_date && (
+                    <p className="text-sm text-green-600 mt-1">
+                      {new Date(template.applied_from_date).toLocaleDateString('ko-KR')}부터 적용 중
+                    </p>
                   )}
                   <div className="mt-3 space-y-1">
                     {template.items.map((item, index) => (
@@ -171,6 +289,20 @@ export default function TemplatesPage() {
                     className="p-2 text-gray-400 hover:text-red-600"
                   >
                     <Trash2 className="h-4 w-4" />
+                  </button>
+                  {template.is_active && (
+                    <button
+                      onClick={() => handleDeactivateTemplate(template)}
+                      className="p-2 text-green-600 hover:text-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleApplyTemplate(template)}
+                    className="p-2 text-blue-600 hover:text-blue-700"
+                  >
+                    <Calendar className="h-4 w-4" />
                   </button>
                 </div>
               </div>
