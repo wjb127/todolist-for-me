@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Calendar, Plus, CheckSquare, Square, Clock, FileText } from 'lucide-react'
+import { Calendar, Plus, CheckSquare, Square, Clock, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
@@ -188,6 +188,18 @@ export default function TodosPage() {
     return format(date, 'M월 d일 (E)', { locale: ko })
   }
 
+  const goToPreviousDay = () => {
+    const currentDate = new Date(selectedDate)
+    currentDate.setDate(currentDate.getDate() - 1)
+    setSelectedDate(currentDate.toISOString().split('T')[0])
+  }
+
+  const goToNextDay = () => {
+    const currentDate = new Date(selectedDate)
+    currentDate.setDate(currentDate.getDate() + 1)
+    setSelectedDate(currentDate.toISOString().split('T')[0])
+  }
+
   const completedCount = todos.filter(todo => todo.completed).length
   const totalCount = todos.length
   const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
@@ -209,8 +221,24 @@ export default function TodosPage() {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <div className="mt-2 text-lg font-semibold text-gray-900">
-              {formatDate(selectedDate)}
+            <div className="mt-3 flex items-center justify-between">
+              <button
+                onClick={goToPreviousDay}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="이전 날"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <div className="text-lg font-semibold text-gray-900 flex-1 text-center">
+                {formatDate(selectedDate)}
+              </div>
+              <button
+                onClick={goToNextDay}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="다음 날"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
             </div>
           </div>
 
