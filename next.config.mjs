@@ -1,15 +1,13 @@
-import withPWA from 'next-pwa';
-
 /** @type {import('next').NextConfig} */
-const nextConfig = withPWA({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-})({
-  experimental: {
-    appDir: true,
+const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: false,
   },
-});
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  poweredByHeader: false,
+  reactStrictMode: true,
+};
 
 export default nextConfig;
