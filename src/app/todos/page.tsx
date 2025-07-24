@@ -414,9 +414,9 @@ export default function TodosPage() {
                     }`}
                   >
                     {todo.completed ? (
-                      <CheckSquare className="h-5 w-5" />
+                      <CheckSquare className="h-6 w-6" />
                     ) : (
-                      <Square className="h-5 w-5" />
+                      <Square className="h-6 w-6" />
                     )}
                   </button>
                   <div className="flex-1">
@@ -430,13 +430,13 @@ export default function TodosPage() {
                     {todo.description && (
                       <p className="text-sm text-gray-600 mt-1">{todo.description}</p>
                     )}
-                    {todo.template_id && (
-                      <div className="flex items-center space-x-1 mt-2">
-                        <FileText className="h-3 w-3 text-blue-500" />
-                        <span className="text-xs text-blue-600">템플릿</span>
-                      </div>
-                    )}
                   </div>
+                  {todo.template_id && (
+                    <div className="flex items-center space-x-1 ml-2">
+                      <FileText className="h-3 w-3 text-blue-500" />
+                      <span className="text-xs text-blue-600">템플릿</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))

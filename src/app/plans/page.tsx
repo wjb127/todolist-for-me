@@ -223,7 +223,7 @@ export default function PlansPage() {
                             : 'text-gray-400 hover:text-gray-600'
                         }`}
                       >
-                        <CheckCircle2 className={`h-5 w-5 ${plan.completed ? 'fill-current' : ''}`} />
+                        <CheckCircle2 className={`h-6 w-6 ${plan.completed ? 'fill-current' : ''}`} />
                       </button>
                       <div className="flex-1">
                         <h3 className={`font-semibold ${
@@ -258,12 +258,6 @@ export default function PlansPage() {
                       className="p-2 text-gray-400 hover:text-blue-600"
                     >
                       <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeletePlan(plan.id)}
-                      className="p-2 text-gray-400 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -337,6 +331,18 @@ export default function PlansPage() {
                   <Save className="h-4 w-4" />
                   <span>저장</span>
                 </button>
+                {editingPlan && (
+                  <button
+                    onClick={() => {
+                      handleDeletePlan(editingPlan.id)
+                      closeModal()
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>삭제</span>
+                  </button>
+                )}
                 <button
                   onClick={closeModal}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
