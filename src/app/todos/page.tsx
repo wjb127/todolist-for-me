@@ -163,6 +163,84 @@ export default function TodosPage() {
     }
   }
 
+  const handleActivateTemplate = async (templateId: string) => {
+    const template = templates.find(t => t.id === templateId)
+    if (!template) return
+
+    if (confirm(`"${template.title}" 템플릿을 활성화하시겠습니까? 기존 활성 템플릿은 비활성화되고 오늘부터의 모든 할 일이 대체됩니다.`)) {
+      try {
+        // 모든 템플릿을 비활성화
+        await supabase
+          .from('templates')
+          .update({ is_active: false, applied_from_date: null })
+          .neq('id', '')
+
+        // 오늘부터 3개월 후까지의 모든 기존 todo들을 삭제
+        const today = new Date().toISOString().split('T')[0]
+        const endDate = new Date()
+        endDate.setMonth(endDate.getMonth() + 3)
+        const endDateString = endDate.toISOString().split('T')[0]
+        
+        await supabase
+          .from('todos')
+          .delete()
+          .gte('date', today)
+          .lte('date', endDateString)
+
+        // 선택한 템플릿을 활성화
+        const { error } = await supabase
+          .from('templates')
+          .update({ 
+            is_active: true, 
+            applied_from_date: today 
+          })
+          .eq('id', templateId)
+
+        if (error) throw error
+
+        // 오늘부터 앞으로 3개월간의 todos를 생성
+        const createTodos: Array<{
+          template_id: string
+          date: string
+          title: string
+          description: string | null
+          completed: boolean
+          order_index: number
+        }> = []
+        
+        for (let i = 0; i < 90; i++) {
+          const currentDate = new Date(today)
+          currentDate.setDate(currentDate.getDate() + i)
+          const dateString = currentDate.toISOString().split('T')[0]
+          
+          template.items.forEach((item, index) => {
+            createTodos.push({
+              template_id: template.id,
+              date: dateString,
+              title: item.title,
+              description: item.description || null,
+              completed: false,
+              order_index: index
+            })
+          })
+        }
+        
+        if (createTodos.length > 0) {
+          await supabase
+            .from('todos')
+            .insert(createTodos)
+        }
+        
+        await fetchTemplates()
+        await fetchTodos()
+        alert('템플릿이 성공적으로 활성화되었습니다!')
+      } catch (error) {
+        console.error('Error activating template:', error)
+        alert('템플릿 활성화 중 오류가 발생했습니다.')
+      }
+    }
+  }
+
   const handleAddSingleTodo = async () => {
     if (!newTodoTitle.trim()) return
 
@@ -383,12 +461,37 @@ export default function TodosPage() {
                       }`}
                       onClick={() => setSelectedTemplate(template.id)}
                     >
-                      <h3 className="font-medium">{template.title}</h3>
-                      {template.description && (
-                        <p className="text-sm text-gray-600">{template.description}</p>
-                      )}
-                      <div className="text-xs text-gray-500 mt-1">
-                        {template.items.length}개 항목
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-medium">{template.title}</h3>
+                            {template.is_active && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                활성
+                              </span>
+                            )}
+                          </div>
+                          {template.description && (
+                            <p className="text-sm text-gray-600">{template.description}</p>
+                          )}
+                          <div className="text-xs text-gray-500 mt-1">
+                            {template.items.length}개 항목
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleActivateTemplate(template.id)
+                          }}
+                          disabled={template.is_active}
+                          className={`ml-2 px-3 py-1 text-xs rounded-lg ${
+                            template.is_active 
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          }`}
+                        >
+                          {template.is_active ? '활성화됨' : '활성화'}
+                        </button>
                       </div>
                     </div>
                   ))}

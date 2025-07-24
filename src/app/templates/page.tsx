@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar, Zap } from 'lucide-react'
+import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
@@ -45,7 +45,7 @@ export default function TemplatesPage() {
   }
 
   const handleApplyTemplate = async (template: Template) => {
-    if (confirm(`"${template.title}" 템플릿을 오늘부터 적용하시겠습니까? 기존 활성 템플릿은 비활성화됩니다.`)) {
+    if (confirm(`"${template.title}" 템플릿을 오늘부터 적용하시겠습니까? 기존 활성 템플릿은 비활성화되고 오늘부터의 모든 할 일이 대체됩니다.`)) {
       setIsApplying(true)
       try {
         // 모든 템플릿을 비활성화
@@ -54,8 +54,19 @@ export default function TemplatesPage() {
           .update({ is_active: false, applied_from_date: null })
           .neq('id', '')
 
-        // 선택한 템플릿을 활성화
+        // 오늘부터 3개월 후까지의 모든 기존 todo들을 삭제
         const today = new Date().toISOString().split('T')[0]
+        const endDate = new Date()
+        endDate.setMonth(endDate.getMonth() + 3)
+        const endDateString = endDate.toISOString().split('T')[0]
+        
+        await supabase
+          .from('todos')
+          .delete()
+          .gte('date', today)
+          .lte('date', endDateString)
+
+        // 선택한 템플릿을 활성화
         const { error } = await supabase
           .from('templates')
           .update({ 
@@ -66,13 +77,14 @@ export default function TemplatesPage() {
 
         if (error) throw error
 
-        // 오늘부터 앞으로 30일간의 todos를 생성
-        await createTodosFromTemplate(template, today)
+        // 오늘부터 앞으로 3개월간의 todos를 생성
+        await createTodosFromTemplate(template, today, true)
         
         await fetchTemplates()
         
-        // Todo 페이지로 리다이렉트 (조용히)
+        // Todo 페이지로 리다이렉트
         router.push('/todos')
+        alert('템플릿이 성공적으로 적용되었습니다!')
       } catch (error) {
         console.error('Error applying template:', error)
         alert('템플릿 적용 중 오류가 발생했습니다.')
@@ -82,44 +94,7 @@ export default function TemplatesPage() {
     }
   }
 
-  const handleBulkApplyTemplates = async () => {
-    const activeTemplates = templates.filter(t => t.is_active)
-    if (activeTemplates.length === 0) {
-      alert('활성화된 템플릿이 없습니다.')
-      return
-    }
 
-    if (confirm(`활성화된 ${activeTemplates.length}개 템플릿을 일괄 적용하시겠습니까? 오늘부터 향후 3개월간 기존 할 일이 모두 대체됩니다.`)) {
-      setIsApplying(true)
-      try {
-        const today = new Date().toISOString().split('T')[0]
-        const endDate = new Date()
-        endDate.setMonth(endDate.getMonth() + 3)
-        const endDateString = endDate.toISOString().split('T')[0]
-        
-        // 먼저 해당 기간의 모든 기존 todo들을 삭제
-        await supabase
-          .from('todos')
-          .delete()
-          .gte('date', today)
-          .lte('date', endDateString)
-        
-        // 그 다음 템플릿들을 적용
-        for (const template of activeTemplates) {
-          await createTodosFromTemplate(template, today, true)
-        }
-        
-        // Todo 페이지로 리다이렉트
-        router.push('/todos')
-        alert('템플릿이 성공적으로 일괄 적용되었습니다!')
-      } catch (error) {
-        console.error('Error bulk applying templates:', error)
-        alert('템플릿 일괄 적용 중 오류가 발생했습니다.')
-      } finally {
-        setIsApplying(false)
-      }
-    }
-  }
 
   const createTodosFromTemplate = async (template: Template, startDate: string, replaceAll: boolean = false) => {
     const todos: Array<{
@@ -285,32 +260,20 @@ export default function TemplatesPage() {
     setFormData({ ...formData, items: updatedItems })
   }
 
-  const activeTemplatesCount = templates.filter(t => t.is_active).length
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">템플릿</h1>
-          <div className="flex space-x-2">
-            {activeTemplatesCount > 0 && (
-              <button
-                onClick={handleBulkApplyTemplates}
-                disabled={isApplying}
-                className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                <Zap className="h-4 w-4" />
-                <span>{isApplying ? '적용 중...' : '템플릿 일괄 적용'}</span>
-              </button>
-            )}
-            <button
-              onClick={() => openModal()}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" />
-              <span>새 템플릿</span>
-            </button>
-          </div>
+          <button
+            onClick={() => openModal()}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4" />
+            <span>새 템플릿</span>
+          </button>
         </div>
 
         <div className="space-y-4">
