@@ -67,8 +67,8 @@ export default function TodosPage() {
       const today = new Date().toISOString().split('T')[0]
       const start = new Date(Math.max(new Date(startDate).getTime(), new Date(today).getTime()))
       
-      // 오늘부터 앞으로 30일간 확인
-      for (let i = 0; i < 30; i++) {
+      // 오늘부터 앞으로 3개월간 확인
+      for (let i = 0; i < 90; i++) {
         const currentDate = new Date(start)
         currentDate.setDate(start.getDate() + i)
         const dateString = currentDate.toISOString().split('T')[0]
@@ -247,13 +247,13 @@ export default function TodosPage() {
                   const formatDate = new Date(appliedDate).toLocaleDateString('ko-KR')
                   return (
                     <p className="text-xs text-green-600">
-                      {formatDate}부터 적용 중 - 매일 자동으로 할 일이 추가됩니다
+                      {formatDate}부터 적용 중 - 매일 자동으로 할 일이 추가됩니다 (3개월간)
                     </p>
                   )
                 }
                 return (
                   <p className="text-xs text-green-600">
-                    오늘부터 향후 날짜들에 자동으로 적용됩니다
+                    오늘부터 향후 3개월간 자동으로 적용됩니다
                   </p>
                 )
               })()}

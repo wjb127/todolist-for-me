@@ -89,17 +89,29 @@ export default function TemplatesPage() {
       return
     }
 
-    if (confirm(`활성화된 ${activeTemplates.length}개 템플릿을 일괄 적용하시겠습니까? 오늘부터 향후 30일간 할 일이 생성됩니다.`)) {
+    if (confirm(`활성화된 ${activeTemplates.length}개 템플릿을 일괄 적용하시겠습니까? 오늘부터 향후 3개월간 기존 할 일이 모두 대체됩니다.`)) {
       setIsApplying(true)
       try {
         const today = new Date().toISOString().split('T')[0]
+        const endDate = new Date()
+        endDate.setMonth(endDate.getMonth() + 3)
+        const endDateString = endDate.toISOString().split('T')[0]
         
+        // 먼저 해당 기간의 모든 기존 todo들을 삭제
+        await supabase
+          .from('todos')
+          .delete()
+          .gte('date', today)
+          .lte('date', endDateString)
+        
+        // 그 다음 템플릿들을 적용
         for (const template of activeTemplates) {
-          await createTodosFromTemplate(template, today)
+          await createTodosFromTemplate(template, today, true)
         }
         
         // Todo 페이지로 리다이렉트
         router.push('/todos')
+        alert('템플릿이 성공적으로 일괄 적용되었습니다!')
       } catch (error) {
         console.error('Error bulk applying templates:', error)
         alert('템플릿 일괄 적용 중 오류가 발생했습니다.')
@@ -109,7 +121,7 @@ export default function TemplatesPage() {
     }
   }
 
-  const createTodosFromTemplate = async (template: Template, startDate: string) => {
+  const createTodosFromTemplate = async (template: Template, startDate: string, replaceAll: boolean = false) => {
     const todos: Array<{
       template_id: string
       date: string
@@ -120,21 +132,26 @@ export default function TemplatesPage() {
     }> = []
     const start = new Date(startDate)
     
-    // 앞으로 30일간 todos 생성
-    for (let i = 0; i < 30; i++) {
+    // 일괄 적용인 경우 3개월(90일), 개별 적용인 경우 30일
+    const dayCount = replaceAll ? 90 : 30
+    
+    for (let i = 0; i < dayCount; i++) {
       const currentDate = new Date(start)
       currentDate.setDate(start.getDate() + i)
       const dateString = currentDate.toISOString().split('T')[0]
       
-      // 해당 날짜에 이미 todos가 있는지 확인
-      const { data: existingTodos } = await supabase
-        .from('todos')
-        .select('id')
-        .eq('date', dateString)
-        .eq('template_id', template.id)
-      
-      // 이미 해당 템플릿의 todos가 있으면 스킵
-      if (existingTodos && existingTodos.length > 0) continue
+      // 일괄 적용이 아닌 경우에만 기존 todos 확인
+      if (!replaceAll) {
+        // 해당 날짜에 이미 todos가 있는지 확인
+        const { data: existingTodos } = await supabase
+          .from('todos')
+          .select('id')
+          .eq('date', dateString)
+          .eq('template_id', template.id)
+        
+        // 이미 해당 템플릿의 todos가 있으면 스킵
+        if (existingTodos && existingTodos.length > 0) continue
+      }
       
       template.items.forEach((item, index) => {
         todos.push({
@@ -283,7 +300,7 @@ export default function TemplatesPage() {
                 className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
                 <Zap className="h-4 w-4" />
-                <span>{isApplying ? '적용 중...' : '일괄 적용'}</span>
+                <span>{isApplying ? '적용 중...' : '템플릿 일괄 적용'}</span>
               </button>
             )}
             <button
@@ -319,7 +336,7 @@ export default function TemplatesPage() {
                         📅 {new Date(template.applied_from_date).toLocaleDateString('ko-KR')}부터 적용 중
                       </p>
                       <p className="text-xs text-green-600 mt-1">
-                        매일 자동으로 할 일이 생성됩니다 (향후 30일간)
+                        매일 자동으로 할 일이 생성됩니다 (향후 3개월간)
                       </p>
                     </div>
                   )}
