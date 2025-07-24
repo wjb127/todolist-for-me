@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar, Zap } from 'lucide-react'
+import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
@@ -45,7 +45,7 @@ export default function TemplatesPage() {
   }
 
   const handleApplyTemplate = async (template: Template) => {
-    if (confirm(`"${template.title}" 템플릿을 오늘부터 적용하시겠습니까? 기존 활성 템플릿은 비활성화됩니다.`)) {
+    if (confirm(`"${template.title}" 템플릿을 오늘부터 적용하시겠습니까? 기존 활성 템플릿은 비활성화되고 오늘부터의 모든 할 일이 대체됩니다.`)) {
       setIsApplying(true)
       try {
         // 모든 템플릿을 비활성화
@@ -54,8 +54,19 @@ export default function TemplatesPage() {
           .update({ is_active: false, applied_from_date: null })
           .neq('id', '')
 
-        // 선택한 템플릿을 활성화
+        // 오늘부터 3개월 후까지의 모든 기존 todo들을 삭제
         const today = new Date().toISOString().split('T')[0]
+        const endDate = new Date()
+        endDate.setMonth(endDate.getMonth() + 3)
+        const endDateString = endDate.toISOString().split('T')[0]
+        
+        await supabase
+          .from('todos')
+          .delete()
+          .gte('date', today)
+          .lte('date', endDateString)
+
+        // 선택한 템플릿을 활성화
         const { error } = await supabase
           .from('templates')
           .update({ 
@@ -66,13 +77,14 @@ export default function TemplatesPage() {
 
         if (error) throw error
 
-        // 오늘부터 앞으로 30일간의 todos를 생성
-        await createTodosFromTemplate(template, today)
+        // 오늘부터 앞으로 3개월간의 todos를 생성
+        await createTodosFromTemplate(template, today, true)
         
         await fetchTemplates()
         
-        // Todo 페이지로 리다이렉트 (조용히)
+        // Todo 페이지로 리다이렉트
         router.push('/todos')
+        alert('템플릿이 성공적으로 적용되었습니다!')
       } catch (error) {
         console.error('Error applying template:', error)
         alert('템플릿 적용 중 오류가 발생했습니다.')
@@ -82,34 +94,9 @@ export default function TemplatesPage() {
     }
   }
 
-  const handleBulkApplyTemplates = async () => {
-    const activeTemplates = templates.filter(t => t.is_active)
-    if (activeTemplates.length === 0) {
-      alert('활성화된 템플릿이 없습니다.')
-      return
-    }
 
-    if (confirm(`활성화된 ${activeTemplates.length}개 템플릿을 일괄 적용하시겠습니까? 오늘부터 향후 30일간 할 일이 생성됩니다.`)) {
-      setIsApplying(true)
-      try {
-        const today = new Date().toISOString().split('T')[0]
-        
-        for (const template of activeTemplates) {
-          await createTodosFromTemplate(template, today)
-        }
-        
-        // Todo 페이지로 리다이렉트
-        router.push('/todos')
-      } catch (error) {
-        console.error('Error bulk applying templates:', error)
-        alert('템플릿 일괄 적용 중 오류가 발생했습니다.')
-      } finally {
-        setIsApplying(false)
-      }
-    }
-  }
 
-  const createTodosFromTemplate = async (template: Template, startDate: string) => {
+  const createTodosFromTemplate = async (template: Template, startDate: string, replaceAll: boolean = false) => {
     const todos: Array<{
       template_id: string
       date: string
@@ -120,21 +107,26 @@ export default function TemplatesPage() {
     }> = []
     const start = new Date(startDate)
     
-    // 앞으로 30일간 todos 생성
-    for (let i = 0; i < 30; i++) {
+    // 일괄 적용인 경우 3개월(90일), 개별 적용인 경우 30일
+    const dayCount = replaceAll ? 90 : 30
+    
+    for (let i = 0; i < dayCount; i++) {
       const currentDate = new Date(start)
       currentDate.setDate(start.getDate() + i)
       const dateString = currentDate.toISOString().split('T')[0]
       
-      // 해당 날짜에 이미 todos가 있는지 확인
-      const { data: existingTodos } = await supabase
-        .from('todos')
-        .select('id')
-        .eq('date', dateString)
-        .eq('template_id', template.id)
-      
-      // 이미 해당 템플릿의 todos가 있으면 스킵
-      if (existingTodos && existingTodos.length > 0) continue
+      // 일괄 적용이 아닌 경우에만 기존 todos 확인
+      if (!replaceAll) {
+        // 해당 날짜에 이미 todos가 있는지 확인
+        const { data: existingTodos } = await supabase
+          .from('todos')
+          .select('id')
+          .eq('date', dateString)
+          .eq('template_id', template.id)
+        
+        // 이미 해당 템플릿의 todos가 있으면 스킵
+        if (existingTodos && existingTodos.length > 0) continue
+      }
       
       template.items.forEach((item, index) => {
         todos.push({
@@ -268,32 +260,20 @@ export default function TemplatesPage() {
     setFormData({ ...formData, items: updatedItems })
   }
 
-  const activeTemplatesCount = templates.filter(t => t.is_active).length
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">템플릿</h1>
-          <div className="flex space-x-2">
-            {activeTemplatesCount > 0 && (
-              <button
-                onClick={handleBulkApplyTemplates}
-                disabled={isApplying}
-                className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                <Zap className="h-4 w-4" />
-                <span>{isApplying ? '적용 중...' : '일괄 적용'}</span>
-              </button>
-            )}
-            <button
-              onClick={() => openModal()}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" />
-              <span>새 템플릿</span>
-            </button>
-          </div>
+          <button
+            onClick={() => openModal()}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4" />
+            <span>새 템플릿</span>
+          </button>
         </div>
 
         <div className="space-y-4">
@@ -319,7 +299,7 @@ export default function TemplatesPage() {
                         📅 {new Date(template.applied_from_date).toLocaleDateString('ko-KR')}부터 적용 중
                       </p>
                       <p className="text-xs text-green-600 mt-1">
-                        매일 자동으로 할 일이 생성됩니다 (향후 30일간)
+                        매일 자동으로 할 일이 생성됩니다 (향후 3개월간)
                       </p>
                     </div>
                   )}
