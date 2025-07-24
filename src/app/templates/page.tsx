@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 
@@ -15,6 +16,7 @@ type TemplateItem = {
 }
 
 export default function TemplatesPage() {
+  const router = useRouter()
   const [templates, setTemplates] = useState<Template[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
@@ -62,11 +64,14 @@ export default function TemplatesPage() {
 
         if (error) throw error
 
-        // 오늘부터 앞으로 7일간의 todos를 생성
+        // 오늘부터 앞으로 30일간의 todos를 생성 (더 많은 날수)
         await createTodosFromTemplate(template, today)
         
         await fetchTemplates()
-        alert('템플릿이 성공적으로 적용되었습니다!')
+        alert('템플릿이 성공적으로 적용되었습니다! Todo 페이지로 이동합니다.')
+        
+        // Todo 페이지로 리다이렉트
+        router.push('/todos')
       } catch (error) {
         console.error('Error applying template:', error)
         alert('템플릿 적용 중 오류가 발생했습니다.')
@@ -85,8 +90,8 @@ export default function TemplatesPage() {
     }> = []
     const start = new Date(startDate)
     
-    // 앞으로 7일간 todos 생성
-    for (let i = 0; i < 7; i++) {
+    // 앞으로 30일간 todos 생성 (7일 -> 30일로 증가)
+    for (let i = 0; i < 30; i++) {
       const currentDate = new Date(start)
       currentDate.setDate(start.getDate() + i)
       const dateString = currentDate.toISOString().split('T')[0]
@@ -265,9 +270,21 @@ export default function TemplatesPage() {
                     <p className="text-sm text-gray-600 mt-1">{template.description}</p>
                   )}
                   {template.is_active && template.applied_from_date && (
-                    <p className="text-sm text-green-600 mt-1">
-                      {new Date(template.applied_from_date).toLocaleDateString('ko-KR')}부터 적용 중
-                    </p>
+                    <div className="mt-2 p-2 bg-green-100 rounded-lg">
+                      <p className="text-sm text-green-700 font-medium">
+                        📅 {new Date(template.applied_from_date).toLocaleDateString('ko-KR')}부터 적용 중
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        매일 자동으로 할 일이 생성됩니다 (향후 30일간)
+                      </p>
+                    </div>
+                  )}
+                  {template.is_active && !template.applied_from_date && (
+                    <div className="mt-2 p-2 bg-yellow-100 rounded-lg">
+                      <p className="text-sm text-yellow-700 font-medium">
+                        ⚠️ 활성화되었지만 적용 날짜가 설정되지 않음
+                      </p>
+                    </div>
                   )}
                   <div className="mt-3 space-y-1">
                     {template.items.map((item, index) => (

@@ -62,22 +62,31 @@ export default function TodosPage() {
 
       if (error || !activeTemplate) return
 
-      // 선택된 날짜가 템플릿 적용 날짜 이후인지 확인
-      if (activeTemplate.applied_from_date && selectedDate >= activeTemplate.applied_from_date) {
+      // 템플릿 적용 시작 날짜부터 미래 30일까지 확인하여 자동 생성
+      const startDate = activeTemplate.applied_from_date || new Date().toISOString().split('T')[0]
+      const today = new Date().toISOString().split('T')[0]
+      const start = new Date(Math.max(new Date(startDate).getTime(), new Date(today).getTime()))
+      
+      // 오늘부터 앞으로 30일간 확인
+      for (let i = 0; i < 30; i++) {
+        const currentDate = new Date(start)
+        currentDate.setDate(start.getDate() + i)
+        const dateString = currentDate.toISOString().split('T')[0]
+        
         // 해당 날짜에 이미 해당 템플릿의 todos가 있는지 확인
         const { data: existingTodos } = await supabase
           .from('todos')
           .select('id')
-          .eq('date', selectedDate)
+          .eq('date', dateString)
           .eq('template_id', activeTemplate.id)
 
-        // 이미 todos가 있으면 자동 생성하지 않음
-        if (existingTodos && existingTodos.length > 0) return
+        // 이미 todos가 있으면 스킵
+        if (existingTodos && existingTodos.length > 0) continue
 
         // 템플릿으로부터 todos 자동 생성
         const newTodos = activeTemplate.items.map((item: TemplateItem, index: number) => ({
           template_id: activeTemplate.id,
-          date: selectedDate,
+          date: dateString,
           title: item.title,
           description: item.description || null,
           completed: false,
@@ -91,11 +100,13 @@ export default function TodosPage() {
 
           if (insertError) {
             console.error('Error auto-creating todos from template:', insertError)
-          } else {
-            // todos가 자동 생성되었으면 다시 fetch
-            fetchTodos()
           }
         }
+      }
+      
+      // 현재 선택된 날짜에 대한 todos를 다시 fetch
+      if (selectedDate >= startDate) {
+        fetchTodos()
       }
     } catch (error) {
       console.error('Error checking active template:', error)
@@ -223,15 +234,29 @@ export default function TodosPage() {
 
           {templates.some(t => t.is_active) && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mb-1">
                 <CheckSquare className="h-4 w-4 text-green-600" />
                 <span className="text-sm font-medium text-green-800">
                   활성 템플릿: {templates.find(t => t.is_active)?.title}
                 </span>
               </div>
-              <p className="text-xs text-green-600 mt-1">
-                오늘부터 향후 날짜들에 자동으로 적용됩니다.
-              </p>
+              {(() => {
+                const activeTemplate = templates.find(t => t.is_active)
+                const appliedDate = activeTemplate?.applied_from_date
+                if (appliedDate) {
+                  const formatDate = new Date(appliedDate).toLocaleDateString('ko-KR')
+                  return (
+                    <p className="text-xs text-green-600">
+                      {formatDate}부터 적용 중 - 매일 자동으로 할 일이 추가됩니다
+                    </p>
+                  )
+                }
+                return (
+                  <p className="text-xs text-green-600">
+                    오늘부터 향후 날짜들에 자동으로 적용됩니다
+                  </p>
+                )
+              })()}
             </div>
           )}
 
