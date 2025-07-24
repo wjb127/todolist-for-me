@@ -21,6 +21,7 @@ export default function TodosPage() {
   useEffect(() => {
     fetchTodos()
     fetchTemplates()
+    checkAndApplyActiveTemplate()
   }, [selectedDate])
 
   const fetchTodos = async () => {
@@ -47,6 +48,57 @@ export default function TodosPage() {
       console.error('Error fetching templates:', error)
     } else {
       setTemplates(data || [])
+    }
+  }
+
+  const checkAndApplyActiveTemplate = async () => {
+    try {
+      // 활성화된 템플릿 찾기
+      const { data: activeTemplate, error } = await supabase
+        .from('templates')
+        .select('*')
+        .eq('is_active', true)
+        .single()
+
+      if (error || !activeTemplate) return
+
+      // 선택된 날짜가 템플릿 적용 날짜 이후인지 확인
+      if (activeTemplate.applied_from_date && selectedDate >= activeTemplate.applied_from_date) {
+        // 해당 날짜에 이미 해당 템플릿의 todos가 있는지 확인
+        const { data: existingTodos } = await supabase
+          .from('todos')
+          .select('id')
+          .eq('date', selectedDate)
+          .eq('template_id', activeTemplate.id)
+
+        // 이미 todos가 있으면 자동 생성하지 않음
+        if (existingTodos && existingTodos.length > 0) return
+
+        // 템플릿으로부터 todos 자동 생성
+        const newTodos = activeTemplate.items.map((item, index) => ({
+          template_id: activeTemplate.id,
+          date: selectedDate,
+          title: item.title,
+          description: item.description || null,
+          completed: false,
+          order_index: index
+        }))
+
+        if (newTodos.length > 0) {
+          const { error: insertError } = await supabase
+            .from('todos')
+            .insert(newTodos)
+
+          if (insertError) {
+            console.error('Error auto-creating todos from template:', insertError)
+          } else {
+            // todos가 자동 생성되었으면 다시 fetch
+            fetchTodos()
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking active template:', error)
     }
   }
 
@@ -157,6 +209,20 @@ export default function TodosPage() {
               <div className="text-right text-sm text-gray-600 mt-1">
                 {completionPercentage}%
               </div>
+            </div>
+          )}
+
+          {templates.some(t => t.is_active) && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center space-x-2">
+                <CheckSquare className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-800">
+                  활성 템플릿: {templates.find(t => t.is_active)?.title}
+                </span>
+              </div>
+              <p className="text-xs text-green-600 mt-1">
+                오늘부터 향후 날짜들에 자동으로 적용됩니다.
+              </p>
             </div>
           )}
 

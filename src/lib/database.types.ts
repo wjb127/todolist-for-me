@@ -7,6 +7,8 @@ export interface Database {
           title: string
           description: string | null
           items: TemplateItem[]
+          is_active: boolean
+          applied_from_date: string | null
           created_at: string
           updated_at: string
         }
@@ -15,6 +17,8 @@ export interface Database {
           title: string
           description?: string | null
           items: TemplateItem[]
+          is_active?: boolean
+          applied_from_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -23,6 +27,8 @@ export interface Database {
           title?: string
           description?: string | null
           items?: TemplateItem[]
+          is_active?: boolean
+          applied_from_date?: string | null
           created_at?: string
           updated_at?: string
         }
