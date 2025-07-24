@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, Save, X, Calendar, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
+
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 

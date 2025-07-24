@@ -75,7 +75,14 @@ export default function TemplatesPage() {
   }
 
   const createTodosFromTemplate = async (template: Template, startDate: string) => {
-    const todos = []
+    const todos: Array<{
+      template_id: string
+      date: string
+      title: string
+      description: string | null
+      completed: boolean
+      order_index: number
+    }> = []
     const start = new Date(startDate)
     
     // 앞으로 7일간 todos 생성

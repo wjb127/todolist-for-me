@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Calendar, Plus, CheckSquare, Square, Clock, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -9,6 +9,12 @@ import { Database } from '@/lib/database.types'
 
 type Todo = Database['public']['Tables']['todos']['Row']
 type Template = Database['public']['Tables']['templates']['Row']
+type TemplateItem = {
+  id: string
+  title: string
+  description?: string
+  order_index: number
+}
 
 export default function TodosPage() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -18,13 +24,7 @@ export default function TodosPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [newTodoTitle, setNewTodoTitle] = useState('')
 
-  useEffect(() => {
-    fetchTodos()
-    fetchTemplates()
-    checkAndApplyActiveTemplate()
-  }, [selectedDate])
-
-  const fetchTodos = async () => {
+  const fetchTodos = useCallback(async () => {
     const { data, error } = await supabase
       .from('todos')
       .select('*')
@@ -36,9 +36,9 @@ export default function TodosPage() {
     } else {
       setTodos(data || [])
     }
-  }
+  }, [selectedDate])
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     const { data, error } = await supabase
       .from('templates')
       .select('*')
@@ -49,9 +49,9 @@ export default function TodosPage() {
     } else {
       setTemplates(data || [])
     }
-  }
+  }, [])
 
-  const checkAndApplyActiveTemplate = async () => {
+  const checkAndApplyActiveTemplate = useCallback(async () => {
     try {
       // 활성화된 템플릿 찾기
       const { data: activeTemplate, error } = await supabase
@@ -75,7 +75,7 @@ export default function TodosPage() {
         if (existingTodos && existingTodos.length > 0) return
 
         // 템플릿으로부터 todos 자동 생성
-        const newTodos = activeTemplate.items.map((item, index) => ({
+        const newTodos = activeTemplate.items.map((item: TemplateItem, index: number) => ({
           template_id: activeTemplate.id,
           date: selectedDate,
           title: item.title,
@@ -100,7 +100,16 @@ export default function TodosPage() {
     } catch (error) {
       console.error('Error checking active template:', error)
     }
-  }
+  }, [selectedDate, fetchTodos])
+
+  useEffect(() => {
+    const loadData = async () => {
+      await fetchTodos()
+      await fetchTemplates()
+      await checkAndApplyActiveTemplate()
+    }
+    loadData()
+  }, [selectedDate, fetchTodos, fetchTemplates, checkAndApplyActiveTemplate])
 
   const handleToggleComplete = async (id: string, completed: boolean) => {
     const { error } = await supabase

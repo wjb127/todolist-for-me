@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Calendar, TrendingUp, CheckCircle2, Target, BarChart3, Clock, Award } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { TrendingUp, CheckCircle2, Target, BarChart3, Award } from 'lucide-react'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
@@ -27,16 +27,11 @@ interface WeeklyStats {
 }
 
 export default function DashboardPage() {
-  const [todos, setTodos] = useState<Todo[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null)
   const [selectedWeek, setSelectedWeek] = useState(new Date())
 
-  useEffect(() => {
-    fetchData()
-  }, [selectedWeek])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 1 })
     const weekEnd = endOfWeek(selectedWeek, { weekStartsOn: 1 })
 
@@ -54,7 +49,6 @@ export default function DashboardPage() {
     if (todosResponse.error) {
       console.error('Error fetching todos:', todosResponse.error)
     } else {
-      setTodos(todosResponse.data || [])
       calculateWeeklyStats(todosResponse.data || [], weekStart, weekEnd)
     }
 
@@ -63,7 +57,7 @@ export default function DashboardPage() {
     } else {
       setPlans(plansResponse.data || [])
     }
-  }
+  }, [selectedWeek])
 
   const calculateWeeklyStats = (todoData: Todo[], weekStart: Date, weekEnd: Date) => {
     const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
@@ -97,6 +91,10 @@ export default function DashboardPage() {
       dailyStats
     })
   }
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const goToPreviousWeek = () => {
     setSelectedWeek(prev => subDays(prev, 7))
@@ -179,7 +177,7 @@ export default function DashboardPage() {
 
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-gray-700">일별 완료율</h3>
-                {weeklyStats.dailyStats.map((day, index) => (
+                {weeklyStats.dailyStats.map((day) => (
                   <div key={day.date} className="flex items-center space-x-3">
                     <div className="w-8 text-xs text-gray-600">
                       {format(new Date(day.date), 'E', { locale: ko })}
