@@ -1,13 +1,130 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Save, X, Calendar, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
+import { Plus, Edit, Trash2, Save, X, Calendar, AlertCircle, CheckCircle2, Clock, GripVertical } from 'lucide-react'
+import { 
+  DndContext, 
+  closestCenter, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core'
+import { 
+  arrayMove, 
+  SortableContext, 
+  sortableKeyboardCoordinates, 
+  verticalListSortingStrategy 
+} from '@dnd-kit/sortable'
+import { 
+  useSortable 
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 
 type Plan = Database['public']['Tables']['plans']['Row']
 type PlanInsert = Database['public']['Tables']['plans']['Insert']
+
+interface SortableItemProps {
+  plan: Plan
+  onToggleComplete: (id: string, completed: boolean) => void
+  onEdit: (plan: Plan) => void
+  getPriorityColor: (priority: string) => string
+  getPriorityIcon: (priority: string) => React.ReactNode
+  formatDueDate: (dateString: string | null) => string | null
+}
+
+function SortableItem({ 
+  plan, 
+  onToggleComplete, 
+  onEdit, 
+  getPriorityColor, 
+  getPriorityIcon, 
+  formatDueDate 
+}: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: plan.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`bg-white rounded-lg shadow-sm p-4 ${isDragging ? 'z-50' : ''}`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-start space-x-3">
+            <div 
+              {...attributes} 
+              {...listeners}
+              className="p-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-1"
+            >
+              <GripVertical className="h-4 w-4" />
+            </div>
+            <button
+              onClick={() => onToggleComplete(plan.id, plan.completed)}
+              className={`p-1 rounded mt-1 ${
+                plan.completed
+                  ? 'text-green-600 hover:text-green-700'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <CheckCircle2 className={`h-6 w-6 ${plan.completed ? 'fill-current' : ''}`} />
+            </button>
+            <div className="flex-1">
+              <h3 className={`font-semibold ${
+                plan.completed
+                  ? 'text-gray-500 line-through'
+                  : 'text-gray-900'
+              }`}>
+                {plan.title}
+              </h3>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2 ml-4">
+          <div className="flex items-center space-x-2">
+            <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
+              {getPriorityIcon(plan.priority)}
+              <span>
+                {plan.priority === 'high' && '높음'}
+                {plan.priority === 'medium' && '보통'}
+                {plan.priority === 'low' && '낮음'}
+              </span>
+            </div>
+            {plan.due_date && (
+              <div className="flex items-center space-x-1 px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
+                <Calendar className="h-3 w-3" />
+                <span>{formatDueDate(plan.due_date)}</span>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => onEdit(plan)}
+            className="p-2 text-gray-400 hover:text-blue-600"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([])
@@ -20,6 +137,13 @@ export default function PlansPage() {
     priority: 'medium' as 'low' | 'medium' | 'high'
   })
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
   useEffect(() => {
     fetchPlans()
   }, [])
@@ -28,12 +152,45 @@ export default function PlansPage() {
     const { data, error } = await supabase
       .from('plans')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('order_index', { ascending: true })
 
     if (error) {
       console.error('Error fetching plans:', error)
     } else {
       setPlans(data || [])
+    }
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over || active.id === over.id) {
+      return
+    }
+
+    const oldIndex = plans.findIndex((plan) => plan.id === active.id)
+    const newIndex = plans.findIndex((plan) => plan.id === over.id)
+
+    const newPlans = arrayMove(plans, oldIndex, newIndex)
+    setPlans(newPlans)
+
+    // Update order_index in database
+    try {
+      const updates = newPlans.map((plan, index) => ({
+        id: plan.id,
+        order_index: index
+      }))
+
+      for (const update of updates) {
+        await supabase
+          .from('plans')
+          .update({ order_index: update.order_index })
+          .eq('id', update.id)
+      }
+    } catch (error) {
+      console.error('Error updating plan order:', error)
+      // Revert on error
+      fetchPlans()
     }
   }
 
@@ -43,7 +200,8 @@ export default function PlansPage() {
         title: formData.description, // 설명을 제목으로 저장
         description: formData.description || null,
         due_date: formData.due_date || null,
-        priority: formData.priority
+        priority: formData.priority,
+        order_index: editingPlan ? editingPlan.order_index : plans.length
       }
 
       if (editingPlan) {
@@ -202,69 +360,37 @@ export default function PlansPage() {
           ))}
         </div>
 
-        <div className="space-y-4">
-          {filteredPlans.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>계획이 없습니다.</p>
-              <p className="text-sm">새로운 계획을 추가해보세요.</p>
-            </div>
-          ) : (
-            filteredPlans.map((plan) => (
-              <div key={plan.id} className="bg-white rounded-lg shadow-sm p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-start space-x-3">
-                      <button
-                        onClick={() => handleToggleComplete(plan.id, plan.completed)}
-                        className={`p-1 rounded mt-1 ${
-                          plan.completed
-                            ? 'text-green-600 hover:text-green-700'
-                            : 'text-gray-400 hover:text-gray-600'
-                        }`}
-                      >
-                        <CheckCircle2 className={`h-6 w-6 ${plan.completed ? 'fill-current' : ''}`} />
-                      </button>
-                      <div className="flex-1">
-                        <h3 className={`font-semibold ${
-                          plan.completed
-                            ? 'text-gray-500 line-through'
-                            : 'text-gray-900'
-                        }`}>
-                          {plan.title}
-                        </h3>
-                        <div className="flex items-center space-x-3 mt-2">
-                          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
-                            {getPriorityIcon(plan.priority)}
-                            <span>
-                              {plan.priority === 'high' && '높음'}
-                              {plan.priority === 'medium' && '보통'}
-                              {plan.priority === 'low' && '낮음'}
-                            </span>
-                          </div>
-                          {plan.due_date && (
-                            <div className="flex items-center space-x-1 text-xs text-gray-500">
-                              <Calendar className="h-3 w-3" />
-                              <span>{formatDueDate(plan.due_date)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2 ml-4">
-                    <button
-                      onClick={() => openModal(plan)}
-                      className="p-2 text-gray-400 hover:text-blue-600"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="space-y-4">
+            {filteredPlans.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>계획이 없습니다.</p>
+                <p className="text-sm">새로운 계획을 추가해보세요.</p>
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              <SortableContext items={filteredPlans.map(plan => plan.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-4">
+                  {filteredPlans.map((plan) => (
+                    <SortableItem
+                      key={plan.id}
+                      plan={plan}
+                      onToggleComplete={handleToggleComplete}
+                      onEdit={openModal}
+                      getPriorityColor={getPriorityColor}
+                      getPriorityIcon={getPriorityIcon}
+                      formatDueDate={formatDueDate}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            )}
+          </div>
+        </DndContext>
 
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">

@@ -76,6 +76,7 @@ export interface Database {
           due_date: string | null
           completed: boolean
           priority: 'low' | 'medium' | 'high'
+          order_index: number
           created_at: string
           updated_at: string
         }
@@ -86,6 +87,7 @@ export interface Database {
           due_date?: string | null
           completed?: boolean
           priority?: 'low' | 'medium' | 'high'
+          order_index?: number
           created_at?: string
           updated_at?: string
         }
@@ -96,6 +98,7 @@ export interface Database {
           due_date?: string | null
           completed?: boolean
           priority?: 'low' | 'medium' | 'high'
+          order_index?: number
           created_at?: string
           updated_at?: string
         }
