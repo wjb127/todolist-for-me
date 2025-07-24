@@ -130,7 +130,7 @@ export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
-  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
+  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending')
   const [formData, setFormData] = useState({
     description: '',
     due_date: new Date().toISOString().split('T')[0], // 오늘 날짜로 기본 설정
