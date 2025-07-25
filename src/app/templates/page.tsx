@@ -1,10 +1,29 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar } from 'lucide-react'
+import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar, GripVertical } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 type Template = Database['public']['Tables']['templates']['Row']
 type TemplateInsert = Database['public']['Tables']['templates']['Insert']
@@ -13,6 +32,62 @@ type TemplateItem = {
   title: string
   description?: string
   order_index: number
+}
+
+interface SortableItemProps {
+  item: TemplateItem
+  index: number
+  updateItem: (index: number, field: keyof TemplateItem, value: string) => void
+  removeItem: (index: number) => void
+}
+
+function SortableItem({ item, index, updateItem, removeItem }: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center space-x-2 bg-white border rounded-lg p-2 ${
+        isDragging ? 'shadow-lg z-10' : ''
+      }`}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600"
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+      <span className="text-sm text-gray-500 w-6">{index + 1}.</span>
+      <input
+        type="text"
+        value={item.title}
+        onChange={(e) => updateItem(index, 'title', e.target.value)}
+        className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        placeholder="할 일 제목"
+      />
+      <button
+        onClick={() => removeItem(index)}
+        className="p-1 text-red-500 hover:text-red-700"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  )
 }
 
 export default function TemplatesPage() {
@@ -26,6 +101,13 @@ export default function TemplatesPage() {
     description: '',
     items: [] as TemplateItem[]
   })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   useEffect(() => {
     fetchTemplates()
@@ -128,16 +210,18 @@ export default function TemplatesPage() {
         if (existingTodos && existingTodos.length > 0) continue
       }
       
-      template.items.forEach((item, index) => {
-        todos.push({
-          template_id: template.id,
-          date: dateString,
-          title: item.title,
-          description: item.description || null,
-          completed: false,
-          order_index: index
+      template.items
+        .sort((a, b) => a.order_index - b.order_index)
+        .forEach((item) => {
+          todos.push({
+            template_id: template.id,
+            date: dateString,
+            title: item.title,
+            description: item.description || null,
+            completed: false,
+            order_index: item.order_index
+          })
         })
-      })
     }
     
     if (todos.length > 0) {
@@ -186,6 +270,31 @@ export default function TemplatesPage() {
           .eq('id', editingTemplate.id)
 
         if (error) throw error
+
+        // 만약 수정된 템플릿이 활성 상태라면, 오늘부터의 todos를 다시 생성
+        if (editingTemplate.is_active && editingTemplate.applied_from_date) {
+          const today = new Date().toISOString().split('T')[0]
+          const endDate = new Date()
+          endDate.setMonth(endDate.getMonth() + 3)
+          const endDateString = endDate.toISOString().split('T')[0]
+          
+          // 오늘부터 미래의 todos 삭제
+          await supabase
+            .from('todos')
+            .delete()
+            .eq('template_id', editingTemplate.id)
+            .gte('date', today)
+            .lte('date', endDateString)
+          
+          // 업데이트된 템플릿으로 다시 생성
+          const updatedTemplate = {
+            ...editingTemplate,
+            title: formData.title,
+            description: formData.description,
+            items: formData.items
+          }
+          await createTodosFromTemplate(updatedTemplate, today, true)
+        }
       } else {
         const { error } = await supabase
           .from('templates')
@@ -257,7 +366,34 @@ export default function TemplatesPage() {
 
   const removeItem = (index: number) => {
     const updatedItems = formData.items.filter((_, i) => i !== index)
-    setFormData({ ...formData, items: updatedItems })
+    // order_index 재조정
+    const reorderedItems = updatedItems.map((item, i) => ({
+      ...item,
+      order_index: i
+    }))
+    setFormData({ ...formData, items: reorderedItems })
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over || active.id === over.id) return
+
+    const oldIndex = formData.items.findIndex((item) => item.id === active.id)
+    const newIndex = formData.items.findIndex((item) => item.id === over.id)
+
+    const newItems = arrayMove(formData.items, oldIndex, newIndex)
+    
+    // order_index 재조정
+    const reorderedItems = newItems.map((item, index) => ({
+      ...item,
+      order_index: index
+    }))
+
+    setFormData({
+      ...formData,
+      items: reorderedItems
+    })
   }
 
 
@@ -311,11 +447,13 @@ export default function TemplatesPage() {
                     </div>
                   )}
                   <div className="mt-3 space-y-1">
-                    {template.items.map((item, index) => (
-                      <div key={item.id} className="text-sm text-gray-700">
-                        {index + 1}. {item.title}
-                      </div>
-                    ))}
+                    {template.items
+                      .sort((a, b) => a.order_index - b.order_index)
+                      .map((item, index) => (
+                        <div key={item.id} className="text-sm text-gray-700">
+                          {index + 1}. {item.title}
+                        </div>
+                      ))}
                   </div>
                 </div>
                 <div className="flex space-x-2 ml-4">
@@ -405,26 +543,30 @@ export default function TemplatesPage() {
                       + 추가
                     </button>
                   </div>
-                  <div className="space-y-2">
-                    {formData.items.map((item, index) => (
-                      <div key={item.id} className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-500 w-6">{index + 1}.</span>
-                        <input
-                          type="text"
-                          value={item.title}
-                          onChange={(e) => updateItem(index, 'title', e.target.value)}
-                          className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          placeholder="할 일 제목"
-                        />
-                        <button
-                          onClick={() => removeItem(index)}
-                          className="p-1 text-red-500 hover:text-red-700"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                  <DndContext 
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext 
+                      items={formData.items.map(item => item.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-2">
+                        {formData.items
+                          .sort((a, b) => a.order_index - b.order_index)
+                          .map((item, index) => (
+                            <SortableItem
+                              key={item.id}
+                              item={item}
+                              index={index}
+                              updateItem={updateItem}
+                              removeItem={removeItem}
+                            />
+                          ))}
                       </div>
-                    ))}
-                  </div>
+                    </SortableContext>
+                  </DndContext>
                 </div>
               </div>
 
