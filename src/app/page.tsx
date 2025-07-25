@@ -12,7 +12,7 @@ export default function Home() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 pb-24">
       <div className="max-w-md mx-auto text-center">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Personal Todo</h1>

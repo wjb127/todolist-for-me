@@ -322,7 +322,7 @@ export default function DashboardPage() {
   const todayStats = getTodayStats()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-24">
       <div className="max-w-md mx-auto">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
