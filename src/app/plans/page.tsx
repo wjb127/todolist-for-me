@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Save, X, Calendar, AlertCircle, CheckCircle2, Clock, GripVertical } from 'lucide-react'
+import { Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle2, Clock, GripVertical } from 'lucide-react'
 import { 
   DndContext, 
   closestCenter, 
@@ -34,7 +34,6 @@ interface SortableItemProps {
   onEdit: (plan: Plan) => void
   getPriorityColor: (priority: string) => string
   getPriorityIcon: (priority: string) => React.ReactNode
-  formatDueDate: (dateString: string | null) => string | null
 }
 
 function SortableItem({ 
@@ -42,8 +41,7 @@ function SortableItem({
   onToggleComplete, 
   onEdit, 
   getPriorityColor, 
-  getPriorityIcon, 
-  formatDueDate 
+  getPriorityIcon
 }: SortableItemProps) {
   const {
     attributes,
@@ -98,21 +96,13 @@ function SortableItem({
           </div>
         </div>
         <div className="flex items-center space-x-2 ml-4">
-          <div className="flex items-center space-x-2">
-            <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
-              {getPriorityIcon(plan.priority)}
-              <span>
-                {plan.priority === 'high' && '높음'}
-                {plan.priority === 'medium' && '보통'}
-                {plan.priority === 'low' && '낮음'}
-              </span>
-            </div>
-            {plan.due_date && (
-              <div className="flex items-center space-x-1 px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
-                <Calendar className="h-3 w-3" />
-                <span>{formatDueDate(plan.due_date)}</span>
-              </div>
-            )}
+          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
+            {getPriorityIcon(plan.priority)}
+            <span>
+              {plan.priority === 'high' && '높음'}
+              {plan.priority === 'medium' && '보통'}
+              {plan.priority === 'low' && '낮음'}
+            </span>
           </div>
           <button
             onClick={() => onEdit(plan)}
@@ -294,23 +284,6 @@ export default function PlansPage() {
     }
   }
 
-  const formatDueDate = (dateString: string | null) => {
-    if (!dateString) return null
-    const date = new Date(dateString)
-    const today = new Date()
-    const diffTime = date.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays < 0) {
-      return `${Math.abs(diffDays)}일 지남`
-    } else if (diffDays === 0) {
-      return '오늘'
-    } else if (diffDays === 1) {
-      return '내일'
-    } else {
-      return `${diffDays}일 후`
-    }
-  }
 
   const completedCount = plans.filter(plan => plan.completed).length
   const totalCount = plans.length
@@ -383,7 +356,6 @@ export default function PlansPage() {
                       onEdit={openModal}
                       getPriorityColor={getPriorityColor}
                       getPriorityIcon={getPriorityIcon}
-                      formatDueDate={formatDueDate}
                     />
                   ))}
                 </div>
