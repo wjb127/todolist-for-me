@@ -577,12 +577,12 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* 오늘의 성과 카드 */}
+        {/* 할 일 성과 카드 */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <Sparkles className="h-5 w-5 text-yellow-500" />
-              <h2 className="text-lg font-bold text-gray-900">오늘의 현황</h2>
+              <Sparkles className="h-5 w-5 text-blue-500" />
+              <h2 className="text-lg font-bold text-gray-900">오늘의 할 일</h2>
             </div>
             <div className="text-xs text-gray-500">
               {format(new Date(), 'M월 d일 (E)', { locale: ko })}
@@ -659,7 +659,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 분석 모드 탭 */}
+        {/* 할 일 분석 모드 탭 */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
           <div className="flex space-x-1 mb-4">
             {(['daily', 'weekly', 'monthly'] as const).map((mode) => (
@@ -681,9 +681,9 @@ export default function DashboardPage() {
 
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">
-              {viewMode === 'daily' && '일간 분석'}
-              {viewMode === 'weekly' && '주간 분석'}
-              {viewMode === 'monthly' && '월간 분석'}
+              {viewMode === 'daily' && '할 일 일간 분석'}
+              {viewMode === 'weekly' && '할 일 주간 분석'}
+              {viewMode === 'monthly' && '할 일 월간 분석'}
             </h3>
             <div className="flex items-center space-x-2">
               <button
@@ -718,7 +718,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">{currentStats.totalCompleted}</div>
-                  <div className="text-xs text-gray-600">완료</div>
+                  <div className="text-xs text-gray-600">완료된 할 일</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-gray-900">{currentStats.totalTodos}</div>
@@ -733,7 +733,7 @@ export default function DashboardPage() {
               {viewMode !== 'daily' && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-gray-700">
-                    {viewMode === 'weekly' ? '일별 완료율' : '일별 성과'}
+                    {viewMode === 'weekly' ? '일별 할 일 완료율' : '일별 할 일 성과'}
                   </h4>
                   {currentStats.dailyStats.slice(0, viewMode === 'weekly' ? 7 : 10).map((day) => (
                     <div key={day.date} className="flex items-center space-x-3">
@@ -767,32 +767,85 @@ export default function DashboardPage() {
           <GitHubCalendar dailyStats={monthlyStats.dailyStats} />
         )}
 
-        {/* 계획 현황 */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Target className="h-5 w-5 text-purple-600" />
-            <h3 className="text-lg font-semibold text-gray-900">계획 현황</h3>
+        {/* 계획 성과 카드 */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Target className="h-5 w-5 text-purple-500" />
+              <h2 className="text-lg font-bold text-gray-900">나의 계획</h2>
+            </div>
+            <div className="text-xs text-gray-500">
+              총 {totalPlans}개 계획
+            </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">{completedPlans}</div>
-              <div className="text-xs text-purple-700">완료한 계획</div>
+              <div className="text-xs text-gray-600">완료된 계획</div>
             </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">{totalPlans}</div>
-              <div className="text-xs text-gray-600">총 계획</div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{totalPlans - completedPlans}</div>
+              <div className="text-xs text-gray-600">남은 계획</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{planCompletionRate}%</div>
+              <div className="text-xs text-gray-600">달성률</div>
             </div>
           </div>
-
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-            <div 
-              className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${planCompletionRate}%` }}
-            />
-          </div>
-          <div className="text-center text-sm text-gray-600">
-            계획 달성률: {planCompletionRate}%
+          
+          <div className="mt-4">
+            <div className="w-full bg-gray-200 rounded-full h-4 relative overflow-hidden">
+              <div 
+                className="bg-purple-500 h-4 rounded-full transition-all duration-1000 ease-out relative"
+                style={{ width: `${planCompletionRate}%` }}
+              >
+                {/* 반짝이는 애니메이션 효과 */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+                
+                {/* 흐르는 애니메이션 효과 */}
+                {planCompletionRate > 0 && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-slide" />
+                )}
+              </div>
+              
+              {/* 달성률 텍스트 */}
+              {planCompletionRate >= 50 && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs font-bold text-white drop-shadow-sm">
+                    {planCompletionRate}%
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* 동기부여 메시지 */}
+            <div className="text-center mt-2">
+              {planCompletionRate === 100 && (
+                <div className="text-sm font-medium text-purple-600 flex items-center justify-center space-x-1">
+                  <Rocket className="h-4 w-4" />
+                  <span>🎉 모든 계획 완료!</span>
+                </div>
+              )}
+              {planCompletionRate >= 80 && planCompletionRate < 100 && (
+                <div className="text-sm font-medium text-purple-600 flex items-center justify-center space-x-1">
+                  <Zap className="h-4 w-4" />
+                  <span>💪 거의 다 완료!</span>
+                </div>
+              )}
+              {planCompletionRate >= 50 && planCompletionRate < 80 && (
+                <div className="text-sm font-medium text-purple-600 flex items-center justify-center space-x-1">
+                  <Target className="h-4 w-4" />
+                  <span>🌟 좋은 진전!</span>
+                </div>
+              )}
+              {planCompletionRate > 0 && planCompletionRate < 50 && (
+                <div className="text-sm font-medium text-gray-600 flex items-center justify-center space-x-1">
+                  <Shield className="h-4 w-4" />
+                  <span>🌱 시작이 좋습니다!</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
