@@ -186,15 +186,15 @@ export default function PlansPage() {
 
   const handleSavePlan = async () => {
     try {
-      const planData = {
-        title: formData.description, // 설명을 제목으로 저장
-        description: formData.description || null,
-        due_date: formData.due_date || null,
-        priority: formData.priority,
-        order_index: editingPlan ? editingPlan.order_index : plans.length
-      }
-
       if (editingPlan) {
+        const planData = {
+          title: formData.description,
+          description: formData.description || null,
+          due_date: formData.due_date || null,
+          priority: formData.priority,
+          order_index: editingPlan.order_index
+        }
+        
         const { error } = await supabase
           .from('plans')
           .update(planData)
@@ -202,6 +202,38 @@ export default function PlansPage() {
 
         if (error) throw error
       } else {
+        // 새 계획 추가 시 중요도에 따른 order_index 계산
+        let newOrderIndex = 0
+        
+        if (formData.priority === 'high') {
+          // 높음: 맨 앞에 배치
+          newOrderIndex = 0
+        } else if (formData.priority === 'medium') {
+          // 보통: 높음 다음에 배치
+          const highPriorityPlans = plans.filter(p => p.priority === 'high')
+          newOrderIndex = highPriorityPlans.length
+        } else {
+          // 낮음: 맨 뒤에 배치
+          newOrderIndex = plans.length
+        }
+        
+        // 새 계획의 order_index 이상인 기존 계획들의 order_index 증가
+        const plansToUpdate = plans.filter(p => p.order_index >= newOrderIndex)
+        for (const plan of plansToUpdate) {
+          await supabase
+            .from('plans')
+            .update({ order_index: plan.order_index + 1 })
+            .eq('id', plan.id)
+        }
+        
+        const planData = {
+          title: formData.description,
+          description: formData.description || null,
+          due_date: formData.due_date || null,
+          priority: formData.priority,
+          order_index: newOrderIndex
+        }
+        
         const { error } = await supabase
           .from('plans')
           .insert(planData as PlanInsert)
