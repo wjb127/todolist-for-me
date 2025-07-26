@@ -499,41 +499,39 @@ export default function DashboardPage() {
         </div>
 
         {/* 레벨 및 경험치 시스템 */}
-        <div className="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 rounded-xl shadow-lg p-4 mb-6 text-white">
+        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <Crown className="h-8 w-8 text-yellow-200" />
-                <div className="absolute -top-1 -right-1 bg-yellow-300 text-orange-700 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <Crown className="h-8 w-8 text-amber-500" />
+                <div className="absolute -top-1 -right-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {userLevel.level}
                 </div>
               </div>
               <div>
-                <h2 className="text-lg font-bold">{userLevel.title}</h2>
-                <p className="text-sm text-orange-100">레벨 {userLevel.level}</p>
+                <h2 className="text-lg font-bold text-gray-800">{userLevel.title}</h2>
+                <p className="text-sm text-gray-600">레벨 {userLevel.level}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-orange-100">XP</p>
-              <p className="text-lg font-bold">{totalCompletedEver}</p>
+              <p className="text-sm text-gray-600">XP</p>
+              <p className="text-lg font-bold text-gray-800">{totalCompletedEver}</p>
             </div>
           </div>
           
           {/* 경험치 바 */}
           <div className="space-y-2">
-            <div className="flex justify-between text-xs text-orange-100">
+            <div className="flex justify-between text-xs text-gray-600">
               <span>현재 레벨 진행도</span>
               <span>{userLevel.currentXP} / {userLevel.currentXP + userLevel.xpToNext}</span>
             </div>
-            <div className="w-full bg-orange-600/30 rounded-full h-3">
+            <div className="w-full bg-gray-200 rounded-full h-3">
               <div 
-                className="bg-gradient-to-r from-yellow-300 to-yellow-100 h-3 rounded-full transition-all duration-1000 relative overflow-hidden"
+                className="bg-amber-400 h-3 rounded-full transition-all duration-1000"
                 style={{ width: `${(userLevel.currentXP / (userLevel.currentXP + userLevel.xpToNext)) * 100}%` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
-              </div>
+              />
             </div>
-            <div className="text-center text-xs text-orange-100">
+            <div className="text-center text-xs text-gray-600">
               다음 레벨까지 {userLevel.xpToNext}XP 남음
             </div>
           </div>
@@ -541,24 +539,24 @@ export default function DashboardPage() {
 
         {/* 스트릭 및 성과 카드 */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-red-500 to-pink-500 rounded-xl shadow-lg p-4 text-white">
+          <div className="bg-white rounded-xl shadow-lg p-4">
             <div className="flex items-center space-x-2 mb-2">
-              <Flame className="h-5 w-5 text-red-200" />
-              <span className="text-sm font-medium">연속 달성</span>
+              <Flame className="h-5 w-5 text-red-500" />
+              <span className="text-sm font-medium text-gray-800">연속 달성</span>
             </div>
-            <div className="text-2xl font-bold mb-1">{currentStreak}일</div>
-            <div className="text-xs text-red-200">
+            <div className="text-2xl font-bold mb-1 text-gray-800">{currentStreak}일</div>
+            <div className="text-xs text-gray-600">
               {currentStreak >= 7 ? '🔥 불타는 중!' : currentStreak >= 3 ? '💪 좋은 페이스!' : '🌱 시작이 좋아요!'}
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl shadow-lg p-4 text-white">
+          <div className="bg-white rounded-xl shadow-lg p-4">
             <div className="flex items-center space-x-2 mb-2">
-              <Trophy className="h-5 w-5 text-emerald-200" />
-              <span className="text-sm font-medium">획득한 성취</span>
+              <Trophy className="h-5 w-5 text-emerald-500" />
+              <span className="text-sm font-medium text-gray-800">획득한 성취</span>
             </div>
-            <div className="text-2xl font-bold mb-1">{unlockedAchievements.filter(a => a.unlocked).length}</div>
-            <div className="text-xs text-emerald-200">
+            <div className="text-2xl font-bold mb-1 text-gray-800">{unlockedAchievements.filter(a => a.unlocked).length}</div>
+            <div className="text-xs text-gray-600">
               / {achievements.length}개 달성
             </div>
           </div>
@@ -566,14 +564,14 @@ export default function DashboardPage() {
 
         {/* 동기부여 명언 */}
         {currentQuote && (
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg p-4 mb-6 text-white">
+          <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
             <div className="flex items-start space-x-3">
-              <Quote className="h-6 w-6 text-purple-200 flex-shrink-0 mt-1" />
+              <Quote className="h-6 w-6 text-purple-500 flex-shrink-0 mt-1" />
               <div>
-                <p className="text-sm font-medium leading-relaxed mb-2">
+                <p className="text-sm font-medium leading-relaxed mb-2 text-gray-800">
                   &ldquo;{currentQuote.text}&rdquo;
                 </p>
-                <p className="text-xs text-purple-200">- {currentQuote.author}</p>
+                <p className="text-xs text-gray-600">- {currentQuote.author}</p>
               </div>
             </div>
           </div>
