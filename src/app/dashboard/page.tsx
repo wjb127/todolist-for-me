@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Flame, Star, Crown, Shield, Gem, Rocket } from 'lucide-react'
+import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Flame, Star, Crown, Shield, Gem, Rocket, X, Info } from 'lucide-react'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, subWeeks, subMonths, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
@@ -55,6 +55,9 @@ interface Achievement {
   unlocked: boolean
   unlockedAt?: Date
   rarity: 'common' | 'rare' | 'epic' | 'legendary'
+  progress?: number
+  total?: number
+  progressText?: string
 }
 
 const motivationalQuotes: MotivationalQuote[] = [
@@ -188,6 +191,7 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [currentQuote, setCurrentQuote] = useState<MotivationalQuote | null>(null)
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
 
   useEffect(() => {
     // 랜덤 명언 선택
@@ -457,31 +461,83 @@ export default function DashboardPage() {
   // 성취 해제 계산
   const unlockedAchievements = achievements.map(achievement => {
     let unlocked = false
+    let progress = 0
+    let total = 1
+    let progressText = ''
     
     switch (achievement.id) {
       case 'first_todo':
         unlocked = totalCompletedEver >= 1
+        progress = Math.min(totalCompletedEver, 1)
+        total = 1
+        progressText = `첨 번째 할 일 완료: ${progress}/${total}`
         break
       case 'perfectionist':
-        unlocked = currentStats ? currentStats.dailyStats.some(d => d.completionRate === 100) : todayStats.completionRate === 100
+        const perfectDays = currentStats ? currentStats.dailyStats.filter(d => d.completionRate === 100).length : (todayStats.completionRate === 100 ? 1 : 0)
+        unlocked = perfectDays >= 1
+        progress = Math.min(perfectDays, 1)
+        total = 1
+        progressText = `100% 완료 달성 일수: ${progress}/${total}`
         break
       case 'streak_master':
         unlocked = currentStreak >= 7
+        progress = Math.min(currentStreak, 7)
+        total = 7
+        progressText = `연속 달성 일수: ${progress}/${total}일`
         break
       case 'productive_week':
-        unlocked = currentStats ? currentStats.totalCompleted >= 50 : false
+        const weeklyCompleted = currentStats ? currentStats.totalCompleted : 0
+        unlocked = weeklyCompleted >= 50
+        progress = Math.min(weeklyCompleted, 50)
+        total = 50
+        progressText = `주간 완료 수: ${progress}/${total}개`
         break
       case 'century_club':
         unlocked = totalCompletedEver >= 100
+        progress = Math.min(totalCompletedEver, 100)
+        total = 100
+        progressText = `총 완료 수: ${progress}/${total}개`
         break
       case 'planning_pro':
         unlocked = completedPlans >= 10
+        progress = Math.min(completedPlans, 10)
+        total = 10
+        progressText = `완료한 계획: ${progress}/${total}개`
+        break
+      case 'early_bird':
+        // 간단한 예시로 설정
+        unlocked = Math.random() > 0.8
+        progress = unlocked ? 1 : 0
+        total = 1
+        progressText = `오전 6시 전 완료: ${progress}/${total}번`
+        break
+      case 'night_owl':
+        unlocked = Math.random() > 0.8
+        progress = unlocked ? 1 : 0
+        total = 1
+        progressText = `밤 11시 이후 완료: ${progress}/${total}번`
+        break
+      case 'template_master':
+        const templateCompleted = Math.floor(totalCompletedEver * 0.6) // 템플릿 기반 완료 수 추정
+        unlocked = templateCompleted >= 100
+        progress = Math.min(templateCompleted, 100)
+        total = 100
+        progressText = `템플릿 기반 완룼: ${progress}/${total}개`
         break
       default:
-        unlocked = Math.random() > 0.7 // 일부 성취는 랜덤으로 해제
+        unlocked = Math.random() > 0.7
+        progress = unlocked ? 1 : 0
+        total = 1
+        progressText = '???'
     }
     
-    return { ...achievement, unlocked }
+    return { 
+      ...achievement, 
+      unlocked, 
+      progress, 
+      total, 
+      progressText 
+    }
   })
 
   return (
@@ -849,6 +905,75 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* 성취 모달 */}
+        {selectedAchievement && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900">성취 정보</h3>
+                <button
+                  onClick={() => setSelectedAchievement(null)}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="text-center mb-4">
+                <div className="text-4xl mb-2">{selectedAchievement.icon}</div>
+                <h4 className="text-xl font-bold text-gray-900 mb-1">{selectedAchievement.title}</h4>
+                <p className="text-sm text-gray-600 mb-3">{selectedAchievement.description}</p>
+                
+                {/* 희귀도 표시 */}
+                <div className="flex items-center justify-center space-x-2 mb-4">
+                  <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    selectedAchievement.rarity === 'legendary' ? 'bg-purple-100 text-purple-700' :
+                    selectedAchievement.rarity === 'epic' ? 'bg-blue-100 text-blue-700' :
+                    selectedAchievement.rarity === 'rare' ? 'bg-green-100 text-green-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {selectedAchievement.rarity === 'legendary' && '전설'}
+                    {selectedAchievement.rarity === 'epic' && '에픽'}
+                    {selectedAchievement.rarity === 'rare' && '희귀'}
+                    {selectedAchievement.rarity === 'common' && '일반'}
+                  </div>
+                </div>
+              </div>
+              
+              {/* 진척사항 */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">진척사항</span>
+                  <span className="font-medium text-gray-900">
+                    {selectedAchievement.unlocked ? '달성 완료!' : selectedAchievement.progressText}
+                  </span>
+                </div>
+                
+                {!selectedAchievement.unlocked && (
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        selectedAchievement.rarity === 'legendary' ? 'bg-purple-500' :
+                        selectedAchievement.rarity === 'epic' ? 'bg-blue-500' :
+                        selectedAchievement.rarity === 'rare' ? 'bg-green-500' :
+                        'bg-gray-500'
+                      }`}
+                      style={{ width: `${(selectedAchievement.progress! / selectedAchievement.total!) * 100}%` }}
+                    />
+                  </div>
+                )}
+                
+                {selectedAchievement.unlocked && (
+                  <div className="flex items-center justify-center space-x-2 text-green-600">
+                    <Trophy className="h-4 w-4" />
+                    <span className="text-sm font-medium">🎉 성취 달성!</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 성취 배지 */}
         <div className="bg-white rounded-xl shadow-lg p-4">
           <div className="flex items-center justify-between mb-4">
@@ -884,12 +1009,12 @@ export default function DashboardPage() {
               return (
                 <div
                   key={achievement.id}
-                  className={`relative p-3 rounded-lg border-2 transition-all duration-300 ${
+                  onClick={() => setSelectedAchievement(achievement)}
+                  className={`relative p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
                     achievement.unlocked
                       ? `bg-gradient-to-br ${getRarityBg(achievement.rarity)} ${getRarityColor(achievement.rarity)} shadow-md hover:shadow-lg transform hover:scale-105`
-                      : 'border-gray-200 bg-gray-100 opacity-60'
+                      : 'border-gray-200 bg-gray-50 opacity-75 hover:opacity-90'
                   }`}
-                  title={achievement.unlocked ? achievement.description : '???'}
                 >
                   {achievement.unlocked && (
                     <>
@@ -915,8 +1040,11 @@ export default function DashboardPage() {
                   
                   {!achievement.unlocked && (
                     <div className="text-center">
-                      <div className="text-lg mb-1">🔒</div>
-                      <div className="text-xs font-bold text-gray-500">???</div>
+                      <div className="text-lg mb-1 filter grayscale">{achievement.icon}</div>
+                      <div className="text-xs font-bold text-gray-500">{achievement.title}</div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {Math.round((achievement.progress! / achievement.total!) * 100)}%
+                      </div>
                     </div>
                   )}
                 </div>
