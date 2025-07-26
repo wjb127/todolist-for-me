@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar, GripVertical, Eye, Search, Filter, Clock, BarChart3, Star, Copy } from 'lucide-react'
+import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar, GripVertical, Eye, Search, Filter, Clock, BarChart3, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
@@ -116,7 +116,6 @@ export default function TemplatesPage() {
   const [isApplying, setIsApplying] = useState(false)
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [sortBy, setSortBy] = useState<'created' | 'name' | 'usage'>('created')
   const [formData, setFormData] = useState({
     title: '',
@@ -733,7 +732,7 @@ export default function TemplatesPage() {
                         <Plus className="h-8 w-8 mx-auto" />
                       </div>
                       <p className="text-sm text-gray-600 mb-1">아직 할 일이 없습니다</p>
-                      <p className="text-xs text-gray-500">위의 "항목 추가" 버튼을 눌러 할 일을 추가해보세요</p>
+                      <p className="text-xs text-gray-500">위의 &ldquo;항목 추가&rdquo; 버튼을 눌러 할 일을 추가해보세요</p>
                     </div>
                   ) : (
                     <DndContext 
