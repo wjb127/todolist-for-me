@@ -24,3 +24,45 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 게이미피케이션 애니메이션 */
+@keyframes slide {
+  0% {
+    transform: translateX(-100%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(400%) skewX(-12deg);
+  }
+}
+
+.animate-slide {
+  animation: slide 2s infinite;
+}
+
+/* 진행률 바 펄스 효과 */
+@keyframes progress-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-progress-pulse {
+  animation: progress-pulse 2s ease-in-out infinite;
+}
+
+/* 성취 획득 효과 */
+@keyframes achievement-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
+  }
+}
+
+.animate-achievement-glow {
+  animation: achievement-glow 2s ease-in-out infinite;
+}

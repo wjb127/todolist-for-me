@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
+import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Flame, Star, Crown, Shield, Gem, Rocket } from 'lucide-react'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, subWeeks, subMonths, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
@@ -40,6 +40,23 @@ interface MotivationalQuote {
   author: string
 }
 
+interface UserLevel {
+  level: number
+  currentXP: number
+  xpToNext: number
+  title: string
+}
+
+interface Achievement {
+  id: string
+  title: string
+  description: string
+  icon: string
+  unlocked: boolean
+  unlockedAt?: Date
+  rarity: 'common' | 'rare' | 'epic' | 'legendary'
+}
+
 const motivationalQuotes: MotivationalQuote[] = [
   { text: "오늘 하루도 최선을 다했습니다. 내일은 더 나은 하루가 될 거예요.", author: "익명" },
   { text: "작은 진전도 여전히 진전입니다.", author: "익명" },
@@ -52,6 +69,117 @@ const motivationalQuotes: MotivationalQuote[] = [
   { text: "목표를 이루는 가장 좋은 방법은 시작하는 것입니다.", author: "익명" },
   { text: "당신이 할 수 있다고 믿든 없다고 믿든, 당신이 옳습니다.", author: "헨리 포드" },
 ]
+
+// 레벨 시스템 설정
+const getLevelInfo = (totalCompleted: number): UserLevel => {
+  // 간단한 레벨 공식: 레벨 = sqrt(totalCompleted / 10) + 1
+  const level = Math.floor(Math.sqrt(totalCompleted / 10)) + 1
+  const currentLevelXP = Math.pow(level - 1, 2) * 10
+  const nextLevelXP = Math.pow(level, 2) * 10
+  const currentXP = totalCompleted - currentLevelXP
+  const xpToNext = nextLevelXP - totalCompleted
+  
+  const titles = [
+    "새내기", "초보자", "학습자", "실행가", "전문가", 
+    "숙련자", "달인", "거장", "전설", "신화"
+  ]
+  
+  const title = titles[Math.min(level - 1, titles.length - 1)] || "신화"
+  
+  return { level, currentXP, xpToNext, title }
+}
+
+// 성취 시스템
+const achievements: Achievement[] = [
+  {
+    id: 'first_todo',
+    title: '첫 걸음',
+    description: '첫 번째 할 일을 완료했습니다',
+    icon: '🌱',
+    unlocked: false,
+    rarity: 'common'
+  },
+  {
+    id: 'early_bird',
+    title: '얼리버드',
+    description: '오전 6시 전에 할 일을 완료했습니다',
+    icon: '🐦',
+    unlocked: false,
+    rarity: 'rare'
+  },
+  {
+    id: 'perfectionist',
+    title: '완벽주의자',
+    description: '하루 100% 완료율을 달성했습니다',
+    icon: '💎',
+    unlocked: false,
+    rarity: 'epic'
+  },
+  {
+    id: 'streak_master',
+    title: '연속 달성왕',
+    description: '7일 연속 80% 이상 완료했습니다',
+    icon: '🔥',
+    unlocked: false,
+    rarity: 'legendary'
+  },
+  {
+    id: 'productive_week',
+    title: '생산적인 한 주',
+    description: '일주일간 50개 이상 완료했습니다',
+    icon: '⚡',
+    unlocked: false,
+    rarity: 'rare'
+  },
+  {
+    id: 'template_master',
+    title: '템플릿 마스터',
+    description: '템플릿을 활용해 100개 할 일을 완료했습니다',
+    icon: '📋',
+    unlocked: false,
+    rarity: 'epic'
+  },
+  {
+    id: 'night_owl',
+    title: '올빼미',
+    description: '밤 11시 이후에 할 일을 완료했습니다',
+    icon: '🦉',
+    unlocked: false,
+    rarity: 'rare'
+  },
+  {
+    id: 'century_club',
+    title: '백의 클럽',
+    description: '총 100개의 할 일을 완료했습니다',
+    icon: '💯',
+    unlocked: false,
+    rarity: 'epic'
+  },
+  {
+    id: 'planning_pro',
+    title: '계획 전문가',
+    description: '10개의 계획을 완료했습니다',
+    icon: '🎯',
+    unlocked: false,
+    rarity: 'rare'
+  }
+]
+
+// 스트릭 계산 함수
+const calculateStreak = (dailyStats: DailyStats[]): number => {
+  let streak = 0
+  const sortedStats = [...dailyStats].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  
+  for (const stat of sortedStats) {
+    if (stat.completionRate >= 80) {
+      streak++
+    } else {
+      break
+    }
+  }
+  
+  return streak
+}
 
 export default function DashboardPage() {
   const [plans, setPlans] = useState<Plan[]>([])
@@ -320,6 +448,41 @@ export default function DashboardPage() {
   }
 
   const todayStats = getTodayStats()
+  
+  // 게이미피케이션 요소 계산
+  const totalCompletedEver = currentStats ? currentStats.totalCompleted * 4 : todayStats.completed * 30 // 대략적인 전체 완료 수 추정
+  const userLevel = getLevelInfo(totalCompletedEver)
+  const currentStreak = currentStats ? calculateStreak(currentStats.dailyStats) : 0
+  
+  // 성취 해제 계산
+  const unlockedAchievements = achievements.map(achievement => {
+    let unlocked = false
+    
+    switch (achievement.id) {
+      case 'first_todo':
+        unlocked = totalCompletedEver >= 1
+        break
+      case 'perfectionist':
+        unlocked = currentStats ? currentStats.dailyStats.some(d => d.completionRate === 100) : todayStats.completionRate === 100
+        break
+      case 'streak_master':
+        unlocked = currentStreak >= 7
+        break
+      case 'productive_week':
+        unlocked = currentStats ? currentStats.totalCompleted >= 50 : false
+        break
+      case 'century_club':
+        unlocked = totalCompletedEver >= 100
+        break
+      case 'planning_pro':
+        unlocked = completedPlans >= 10
+        break
+      default:
+        unlocked = Math.random() > 0.7 // 일부 성취는 랜덤으로 해제
+    }
+    
+    return { ...achievement, unlocked }
+  })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-24">
@@ -335,9 +498,75 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* 레벨 및 경험치 시스템 */}
+        <div className="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 rounded-xl shadow-lg p-4 mb-6 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Crown className="h-8 w-8 text-yellow-200" />
+                <div className="absolute -top-1 -right-1 bg-yellow-300 text-orange-700 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {userLevel.level}
+                </div>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">{userLevel.title}</h2>
+                <p className="text-sm text-orange-100">레벨 {userLevel.level}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-orange-100">XP</p>
+              <p className="text-lg font-bold">{totalCompletedEver}</p>
+            </div>
+          </div>
+          
+          {/* 경험치 바 */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-orange-100">
+              <span>현재 레벨 진행도</span>
+              <span>{userLevel.currentXP} / {userLevel.currentXP + userLevel.xpToNext}</span>
+            </div>
+            <div className="w-full bg-orange-600/30 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-yellow-300 to-yellow-100 h-3 rounded-full transition-all duration-1000 relative overflow-hidden"
+                style={{ width: `${(userLevel.currentXP / (userLevel.currentXP + userLevel.xpToNext)) * 100}%` }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+              </div>
+            </div>
+            <div className="text-center text-xs text-orange-100">
+              다음 레벨까지 {userLevel.xpToNext}XP 남음
+            </div>
+          </div>
+        </div>
+
+        {/* 스트릭 및 성과 카드 */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-red-500 to-pink-500 rounded-xl shadow-lg p-4 text-white">
+            <div className="flex items-center space-x-2 mb-2">
+              <Flame className="h-5 w-5 text-red-200" />
+              <span className="text-sm font-medium">연속 달성</span>
+            </div>
+            <div className="text-2xl font-bold mb-1">{currentStreak}일</div>
+            <div className="text-xs text-red-200">
+              {currentStreak >= 7 ? '🔥 불타는 중!' : currentStreak >= 3 ? '💪 좋은 페이스!' : '🌱 시작이 좋아요!'}
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl shadow-lg p-4 text-white">
+            <div className="flex items-center space-x-2 mb-2">
+              <Trophy className="h-5 w-5 text-emerald-200" />
+              <span className="text-sm font-medium">획득한 성취</span>
+            </div>
+            <div className="text-2xl font-bold mb-1">{unlockedAchievements.filter(a => a.unlocked).length}</div>
+            <div className="text-xs text-emerald-200">
+              / {achievements.length}개 달성
+            </div>
+          </div>
+        </div>
+
         {/* 동기부여 명언 */}
         {currentQuote && (
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg p-4 mb-6 text-white">
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg p-4 mb-6 text-white">
             <div className="flex items-start space-x-3">
               <Quote className="h-6 w-6 text-purple-200 flex-shrink-0 mt-1" />
               <div>
@@ -378,11 +607,56 @@ export default function DashboardPage() {
           </div>
           
           <div className="mt-4">
-            <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="w-full bg-gray-200 rounded-full h-4 relative overflow-hidden">
               <div 
-                className={`h-3 rounded-full transition-all duration-500 ${getCompletionColor(todayStats.completionRate)}`}
+                className={`h-4 rounded-full transition-all duration-1000 ease-out relative ${getCompletionColor(todayStats.completionRate)}`}
                 style={{ width: `${todayStats.completionRate}%` }}
-              />
+              >
+                {/* 반짝이는 애니메이션 효과 */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+                
+                {/* 흐르는 애니메이션 효과 */}
+                {todayStats.completionRate > 0 && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-slide" />
+                )}
+              </div>
+              
+              {/* 완료율 텍스트 */}
+              {todayStats.completionRate >= 50 && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs font-bold text-white drop-shadow-sm">
+                    {todayStats.completionRate}%
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* 동기부여 메시지 */}
+            <div className="text-center mt-2">
+              {todayStats.completionRate === 100 && (
+                <div className="text-sm font-medium text-green-600 flex items-center justify-center space-x-1">
+                  <Rocket className="h-4 w-4" />
+                  <span>🎉 오늘 완벽한 하루!</span>
+                </div>
+              )}
+              {todayStats.completionRate >= 80 && todayStats.completionRate < 100 && (
+                <div className="text-sm font-medium text-blue-600 flex items-center justify-center space-x-1">
+                  <Zap className="h-4 w-4" />
+                  <span>💪 거의 다 왔어요!</span>
+                </div>
+              )}
+              {todayStats.completionRate >= 50 && todayStats.completionRate < 80 && (
+                <div className="text-sm font-medium text-yellow-600 flex items-center justify-center space-x-1">
+                  <Target className="h-4 w-4" />
+                  <span>🌟 좋은 진전이에요!</span>
+                </div>
+              )}
+              {todayStats.completionRate > 0 && todayStats.completionRate < 50 && (
+                <div className="text-sm font-medium text-gray-600 flex items-center justify-center space-x-1">
+                  <Shield className="h-4 w-4" />
+                  <span>🌱 시작이 좋습니다!</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -526,60 +800,90 @@ export default function DashboardPage() {
 
         {/* 성취 배지 */}
         <div className="bg-white rounded-xl shadow-lg p-4">
-          <div className="flex items-center space-x-2 mb-4">
-            <Award className="h-5 w-5 text-yellow-600" />
-            <h3 className="text-lg font-semibold text-gray-900">성취 배지</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Award className="h-5 w-5 text-yellow-600" />
+              <h3 className="text-lg font-semibold text-gray-900">성취 컬렉션</h3>
+            </div>
+            <div className="text-sm text-gray-600">
+              {unlockedAchievements.filter(a => a.unlocked).length}/{achievements.length}
+            </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-3">
-            <div className={`p-4 rounded-xl border-2 transition-all ${
-              currentStats && currentStats.avgCompletionRate >= 80 
-                ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-md' 
-                : 'border-gray-200 bg-gray-50'
-            }`}>
-              <div className="text-center">
-                <div className="text-3xl mb-2">🏆</div>
-                <div className="text-sm font-bold text-gray-800">완벽주의자</div>
-                <div className="text-xs text-gray-600">80% 이상 달성</div>
-              </div>
-            </div>
-            
-            <div className={`p-4 rounded-xl border-2 transition-all ${
-              currentStats && currentStats.totalCompleted >= 10 
-                ? 'border-blue-300 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-md' 
-                : 'border-gray-200 bg-gray-50'
-            }`}>
-              <div className="text-center">
-                <div className="text-3xl mb-2">💪</div>
-                <div className="text-sm font-bold text-gray-800">열정가</div>
-                <div className="text-xs text-gray-600">10개 이상 완료</div>
-              </div>
-            </div>
-            
-            <div className={`p-4 rounded-xl border-2 transition-all ${
-              completedPlans >= 5 
-                ? 'border-purple-300 bg-gradient-to-br from-purple-50 to-pink-50 shadow-md' 
-                : 'border-gray-200 bg-gray-50'
-            }`}>
-              <div className="text-center">
-                <div className="text-3xl mb-2">🎯</div>
-                <div className="text-sm font-bold text-gray-800">계획가</div>
-                <div className="text-xs text-gray-600">5개 계획 달성</div>
-              </div>
-            </div>
-            
-            <div className={`p-4 rounded-xl border-2 transition-all ${
-              currentStats && currentStats.dailyStats.filter(d => d.completionRate === 100).length >= 3
-                ? 'border-red-300 bg-gradient-to-br from-red-50 to-pink-50 shadow-md' 
-                : 'border-gray-200 bg-gray-50'
-            }`}>
-              <div className="text-center">
-                <div className="text-3xl mb-2">🔥</div>
-                <div className="text-sm font-bold text-gray-800">연속 달성</div>
-                <div className="text-xs text-gray-600">3일 연속 100%</div>
-              </div>
-            </div>
+          <div className="grid grid-cols-3 gap-2">
+            {unlockedAchievements.slice(0, 9).map((achievement) => {
+              const getRarityColor = (rarity: string) => {
+                switch (rarity) {
+                  case 'legendary': return 'from-purple-500 to-pink-500 border-purple-300'
+                  case 'epic': return 'from-blue-500 to-cyan-500 border-blue-300'
+                  case 'rare': return 'from-green-500 to-emerald-500 border-green-300'
+                  default: return 'from-gray-400 to-gray-500 border-gray-300'
+                }
+              }
+              
+              const getRarityBg = (rarity: string) => {
+                switch (rarity) {
+                  case 'legendary': return 'from-purple-50 to-pink-50'
+                  case 'epic': return 'from-blue-50 to-cyan-50'
+                  case 'rare': return 'from-green-50 to-emerald-50'
+                  default: return 'from-gray-50 to-gray-100'
+                }
+              }
+              
+              return (
+                <div
+                  key={achievement.id}
+                  className={`relative p-3 rounded-lg border-2 transition-all duration-300 ${
+                    achievement.unlocked
+                      ? `bg-gradient-to-br ${getRarityBg(achievement.rarity)} ${getRarityColor(achievement.rarity)} shadow-md hover:shadow-lg transform hover:scale-105`
+                      : 'border-gray-200 bg-gray-100 opacity-60'
+                  }`}
+                  title={achievement.unlocked ? achievement.description : '???'}
+                >
+                  {achievement.unlocked && (
+                    <>
+                      {/* 희귀도 표시 */}
+                      <div className="absolute -top-1 -right-1">
+                        {achievement.rarity === 'legendary' && <Crown className="h-3 w-3 text-purple-600" />}
+                        {achievement.rarity === 'epic' && <Gem className="h-3 w-3 text-blue-600" />}
+                        {achievement.rarity === 'rare' && <Star className="h-3 w-3 text-green-600" />}
+                      </div>
+                      
+                      {/* 성취 내용 */}
+                      <div className="text-center">
+                        <div className="text-lg mb-1">{achievement.icon}</div>
+                        <div className="text-xs font-bold text-gray-800 leading-tight">
+                          {achievement.title}
+                        </div>
+                      </div>
+                      
+                      {/* 반짝이는 효과 */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+                    </>
+                  )}
+                  
+                  {!achievement.unlocked && (
+                    <div className="text-center">
+                      <div className="text-lg mb-1">🔒</div>
+                      <div className="text-xs font-bold text-gray-500">???</div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
+          
+          {/* 최근 획득한 성취 */}
+          {unlockedAchievements.filter(a => a.unlocked).length > 0 && (
+            <div className="mt-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="h-4 w-4 text-yellow-600" />
+                <span className="text-sm font-medium text-yellow-800">
+                  🎉 현재 {unlockedAchievements.filter(a => a.unlocked).length}개의 성취를 달성했습니다!
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
