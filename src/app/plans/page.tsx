@@ -92,6 +92,11 @@ function SortableItem({
               }`}>
                 {plan.title}
               </h3>
+              {plan.due_date && (
+                <p className="text-xs text-gray-500 mt-1">
+                  마감일: {new Date(plan.due_date).toLocaleDateString('ko-KR')}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -122,6 +127,7 @@ export default function PlansPage() {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending')
   const [formData, setFormData] = useState({
+    title: '',
     description: '',
     due_date: new Date().toISOString().split('T')[0], // 오늘 날짜로 기본 설정
     priority: 'medium' as 'low' | 'medium' | 'high'
@@ -188,7 +194,7 @@ export default function PlansPage() {
     try {
       if (editingPlan) {
         const planData = {
-          title: formData.description,
+          title: formData.title,
           description: formData.description || null,
           due_date: formData.due_date || null,
           priority: formData.priority,
@@ -227,7 +233,7 @@ export default function PlansPage() {
         }
         
         const planData = {
-          title: formData.description,
+          title: formData.title,
           description: formData.description || null,
           due_date: formData.due_date || null,
           priority: formData.priority,
@@ -279,6 +285,7 @@ export default function PlansPage() {
   const openModal = (plan?: Plan) => {
     setEditingPlan(plan || null)
     setFormData({
+      title: plan?.title || '',
       description: plan?.description || '',
       due_date: plan?.due_date || new Date().toISOString().split('T')[0],
       priority: plan?.priority || 'medium'
@@ -289,7 +296,7 @@ export default function PlansPage() {
   const closeModal = () => {
     setIsModalOpen(false)
     setEditingPlan(null)
-    setFormData({ description: '', due_date: new Date().toISOString().split('T')[0], priority: 'medium' })
+    setFormData({ title: '', description: '', due_date: new Date().toISOString().split('T')[0], priority: 'medium' })
   }
 
   const filteredPlans = plans.filter(plan => {
@@ -413,6 +420,19 @@ export default function PlansPage() {
               <div className="p-4 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    계획 제목 *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="계획 제목을 입력하세요"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     계획 내용
                   </label>
                   <textarea
@@ -420,7 +440,7 @@ export default function PlansPage() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={3}
-                    placeholder="계획 내용을 입력하세요"
+                    placeholder="계획에 대한 상세 설명을 입력하세요 (선택사항)"
                   />
                 </div>
 
@@ -455,7 +475,7 @@ export default function PlansPage() {
               <div className="p-4 border-t border-gray-200 flex space-x-2">
                 <button
                   onClick={handleSavePlan}
-                  disabled={!formData.description}
+                  disabled={!formData.title}
                   className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
                   <Save className="h-4 w-4" />
