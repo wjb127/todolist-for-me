@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// AI 결과물에서 AI티나는 요소들을 제거하는 함수
+// AI 결과물에서 AI티나는 요소들을 제거하고 가독성을 개선하는 함수
 function cleanAiResponse(text: string): string {
   return text
     // 이모지 제거 (유니코드 이모지 패턴)
@@ -13,8 +13,16 @@ function cleanAiResponse(text: string): string {
     .replace(/~~(.*?)~~/g, '$1')
     // 물결표 제거
     .replace(/~/g, '')
+    // 섹션 제목 뒤에 빈 줄 추가 (액션플랜:, 추천 일정:, 주의사항: 등)
+    .replace(/(액션플랜|추천\s*일정|주의사항|고려사항|권장사항):\s*/g, '$1:\n\n')
+    // 숫자 목록 앞에 빈 줄 추가 (연속되지 않은 경우)
+    .replace(/([^\n])\n(\d+\.\s)/g, '$1\n\n$2')
+    // 대시 목록(-) 앞에 빈 줄 추가 (연속되지 않은 경우)
+    .replace(/([^\n])\n(-\s)/g, '$1\n\n$2')
+    // 긴 문장을 적당한 길이로 줄바꿈 (문장 끝에서만)
+    .replace(/([.!?])\s+(\S)/g, '$1\n$2')
     // 연속된 공백 정리
-    .replace(/\s+/g, ' ')
+    .replace(/[ \t]+/g, ' ')
     // 연속된 줄바꿈 정리 (3개 이상을 2개로)
     .replace(/\n{3,}/g, '\n\n')
     // 앞뒤 공백 제거
