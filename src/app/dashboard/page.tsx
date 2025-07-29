@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Flame, Star, Crown, Shield, Gem, Rocket, X, Info } from 'lucide-react'
+import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Star, Crown, Shield, Gem, Rocket, X } from 'lucide-react'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, subWeeks, subMonths, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
@@ -61,16 +61,12 @@ interface Achievement {
 }
 
 const motivationalQuotes: MotivationalQuote[] = [
-  { text: "오늘 하루도 최선을 다했습니다. 내일은 더 나은 하루가 될 거예요.", author: "익명" },
-  { text: "작은 진전도 여전히 진전입니다.", author: "익명" },
   { text: "성공은 매일의 작은 노력들이 쌓여서 만들어집니다.", author: "로버트 콜리어" },
-  { text: "완벽을 추구하지 말고, 꾸준함을 추구하세요.", author: "익명" },
   { text: "오늘의 할 일을 내일로 미루지 마세요.", author: "벤자민 프랭클린" },
   { text: "계획 없이는 꿈은 그저 소망일 뿐입니다.", author: "앙투안 드 생텍쥐페리" },
   { text: "시작이 반이다.", author: "한국 속담" },
-  { text: "하루하루가 새로운 기회입니다.", author: "익명" },
-  { text: "목표를 이루는 가장 좋은 방법은 시작하는 것입니다.", author: "익명" },
   { text: "당신이 할 수 있다고 믿든 없다고 믿든, 당신이 옳습니다.", author: "헨리 포드" },
+  { text: "이것 역시 곧 지나가리라.", author: "페르시아 우화" },
 ]
 
 // 레벨 시스템 설정
@@ -188,6 +184,7 @@ export default function DashboardPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null)
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats | null>(null)
+  const [dailyStats, setDailyStats] = useState<DailyStats | null>(null)
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [currentQuote, setCurrentQuote] = useState<MotivationalQuote | null>(null)
@@ -227,7 +224,9 @@ export default function DashboardPage() {
     if (todosResponse.error) {
       console.error('Error fetching todos:', todosResponse.error)
     } else {
-      if (viewMode === 'weekly') {
+      if (viewMode === 'daily') {
+        calculateDailyStats(todosResponse.data || [], selectedDate)
+      } else if (viewMode === 'weekly') {
         calculateWeeklyStats(todosResponse.data || [], startDate, endDate)
       } else if (viewMode === 'monthly') {
         calculateMonthlyStats(todosResponse.data || [], startDate, endDate)
@@ -240,6 +239,20 @@ export default function DashboardPage() {
       setPlans(plansResponse.data || [])
     }
   }, [selectedDate, viewMode])
+
+  const calculateDailyStats = (todoData: Todo[], selectedDay: Date) => {
+    const dayString = format(selectedDay, 'yyyy-MM-dd')
+    const dayTodos = todoData.filter(todo => todo.date === dayString)
+    const completed = dayTodos.filter(todo => todo.completed).length
+    const total = dayTodos.length
+    
+    setDailyStats({
+      date: dayString,
+      completed,
+      total,
+      completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
+    })
+  }
 
   const calculateWeeklyStats = (todoData: Todo[], weekStart: Date, weekEnd: Date) => {
     const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
@@ -438,6 +451,7 @@ export default function DashboardPage() {
   const planCompletionRate = totalPlans > 0 ? Math.round((completedPlans / totalPlans) * 100) : 0
 
   const getCurrentStats = () => {
+    if (viewMode === 'daily') return dailyStats
     if (viewMode === 'weekly') return weeklyStats
     if (viewMode === 'monthly') return monthlyStats
     return null
@@ -447,16 +461,37 @@ export default function DashboardPage() {
   
   const getTodayStats = () => {
     const today = format(new Date(), 'yyyy-MM-dd')
-    const dailyStats = currentStats?.dailyStats.find(stat => stat.date === today)
-    return dailyStats || { date: today, completed: 0, total: 0, completionRate: 0 }
+    
+    if (viewMode === 'daily' && dailyStats) {
+      return dailyStats
+    }
+    
+    if (currentStats && 'dailyStats' in currentStats) {
+      const todayData = currentStats.dailyStats.find(stat => stat.date === today)
+      return todayData || { date: today, completed: 0, total: 0, completionRate: 0 }
+    }
+    
+    return { date: today, completed: 0, total: 0, completionRate: 0 }
   }
 
   const todayStats = getTodayStats()
   
   // 게이미피케이션 요소 계산
-  const totalCompletedEver = currentStats ? currentStats.totalCompleted * 4 : todayStats.completed * 30 // 대략적인 전체 완료 수 추정
+  const totalCompletedEver = (() => {
+    if (currentStats && 'totalCompleted' in currentStats) {
+      return currentStats.totalCompleted * 4
+    }
+    return todayStats.completed * 30 // 대략적인 전체 완료 수 추정
+  })()
+  
   const userLevel = getLevelInfo(totalCompletedEver)
-  const currentStreak = currentStats ? calculateStreak(currentStats.dailyStats) : 0
+  
+  const currentStreak = (() => {
+    if (currentStats && 'dailyStats' in currentStats) {
+      return calculateStreak(currentStats.dailyStats)
+    }
+    return 0
+  })()
   
   // 성취 해제 계산
   const unlockedAchievements = achievements.map(achievement => {
@@ -473,7 +508,12 @@ export default function DashboardPage() {
         progressText = `첨 번째 할 일 완료: ${progress}/${total}`
         break
       case 'perfectionist':
-        const perfectDays = currentStats ? currentStats.dailyStats.filter(d => d.completionRate === 100).length : (todayStats.completionRate === 100 ? 1 : 0)
+        const perfectDays = (() => {
+          if (currentStats && 'dailyStats' in currentStats) {
+            return currentStats.dailyStats.filter(d => d.completionRate === 100).length
+          }
+          return todayStats.completionRate === 100 ? 1 : 0
+        })()
         unlocked = perfectDays >= 1
         progress = Math.min(perfectDays, 1)
         total = 1
@@ -486,7 +526,12 @@ export default function DashboardPage() {
         progressText = `연속 달성 일수: ${progress}/${total}일`
         break
       case 'productive_week':
-        const weeklyCompleted = currentStats ? currentStats.totalCompleted : 0
+        const weeklyCompleted = (() => {
+          if (currentStats && 'totalCompleted' in currentStats) {
+            return currentStats.totalCompleted
+          }
+          return 0
+        })()
         unlocked = weeklyCompleted >= 50
         progress = Math.min(weeklyCompleted, 50)
         total = 50
@@ -593,27 +638,33 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 스트릭 및 성과 카드 */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Flame className="h-5 w-5 text-red-500" />
-              <span className="text-sm font-medium text-gray-800">연속 달성</span>
+        {/* 성과 카드 */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Trophy className="h-6 w-6 text-emerald-500" />
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">획득한 성취</h2>
+                <p className="text-sm text-gray-600">나의 성취 컬렉션</p>
+              </div>
             </div>
-            <div className="text-2xl font-bold mb-1 text-gray-800">{currentStreak}일</div>
-            <div className="text-xs text-gray-600">
-              {currentStreak >= 7 ? '🔥 불타는 중!' : currentStreak >= 3 ? '💪 좋은 페이스!' : '🌱 시작이 좋아요!'}
+            <div className="text-right">
+              <div className="text-2xl font-bold text-emerald-600">{unlockedAchievements.filter(a => a.unlocked).length}</div>
+              <div className="text-sm text-gray-600">/ {achievements.length}개 달성</div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl shadow-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Trophy className="h-5 w-5 text-emerald-500" />
-              <span className="text-sm font-medium text-gray-800">획득한 성취</span>
+          {/* 성취 진행률 바 */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>전체 성취 진행률</span>
+              <span>{Math.round((unlockedAchievements.filter(a => a.unlocked).length / achievements.length) * 100)}%</span>
             </div>
-            <div className="text-2xl font-bold mb-1 text-gray-800">{unlockedAchievements.filter(a => a.unlocked).length}</div>
-            <div className="text-xs text-gray-600">
-              / {achievements.length}개 달성
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-emerald-500 h-3 rounded-full transition-all duration-1000"
+                style={{ width: `${(unlockedAchievements.filter(a => a.unlocked).length / achievements.length) * 100}%` }}
+              />
             </div>
           </div>
         </div>
@@ -771,27 +822,50 @@ export default function DashboardPage() {
 
           {currentStats && (
             <>
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{currentStats.totalCompleted}</div>
-                  <div className="text-xs text-gray-600">완료된 할 일</div>
+              {viewMode === 'daily' ? (
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{dailyStats?.completed || 0}</div>
+                    <div className="text-xs text-gray-600">완료된 할 일</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">{dailyStats?.total || 0}</div>
+                    <div className="text-xs text-gray-600">총 할 일</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{dailyStats?.completionRate || 0}%</div>
+                    <div className="text-xs text-gray-600">완료율</div>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">{currentStats.totalTodos}</div>
-                  <div className="text-xs text-gray-600">총 할 일</div>
+              ) : (
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {'totalCompleted' in currentStats ? currentStats.totalCompleted : 0}
+                    </div>
+                    <div className="text-xs text-gray-600">완료된 할 일</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {'totalTodos' in currentStats ? currentStats.totalTodos : 0}
+                    </div>
+                    <div className="text-xs text-gray-600">총 할 일</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {'avgCompletionRate' in currentStats ? currentStats.avgCompletionRate : 0}%
+                    </div>
+                    <div className="text-xs text-gray-600">평균 완료율</div>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{currentStats.avgCompletionRate}%</div>
-                  <div className="text-xs text-gray-600">평균 완료율</div>
-                </div>
-              </div>
+              )}
 
               {viewMode !== 'daily' && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-gray-700">
                     {viewMode === 'weekly' ? '일별 할 일 완료율' : '일별 할 일 성과'}
                   </h4>
-                  {currentStats.dailyStats.slice(0, viewMode === 'weekly' ? 7 : 10).map((day) => (
+                  {('dailyStats' in currentStats ? currentStats.dailyStats : []).slice(0, viewMode === 'weekly' ? 7 : 10).map((day) => (
                     <div key={day.date} className="flex items-center space-x-3">
                       <div className="w-12 text-xs text-gray-600">
                         {viewMode === 'weekly' 
@@ -812,6 +886,13 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              
+              {viewMode === 'daily' && dailyStats && dailyStats.total === 0 && (
+                <div className="text-center py-4 text-gray-500">
+                  <p className="text-sm">선택한 날짜에 할 일이 없습니다.</p>
+                  <p className="text-xs">할 일을 추가해보세요!</p>
                 </div>
               )}
             </>
