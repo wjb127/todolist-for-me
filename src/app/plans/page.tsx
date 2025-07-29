@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle2, Clock, GripVertical } from 'lucide-react'
+import { Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle2, Clock, GripVertical, Sparkles } from 'lucide-react'
 import { 
   DndContext, 
   closestCenter, 
@@ -132,6 +132,8 @@ export default function PlansPage() {
     due_date: new Date().toISOString().split('T')[0], // 오늘 날짜로 기본 설정
     priority: 'medium' as 'low' | 'medium' | 'high'
   })
+  const [isAiLoading, setIsAiLoading] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState('')
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -297,6 +299,53 @@ export default function PlansPage() {
     setIsModalOpen(false)
     setEditingPlan(null)
     setFormData({ title: '', description: '', due_date: new Date().toISOString().split('T')[0], priority: 'medium' })
+    setAiSuggestion('')
+    setIsAiLoading(false)
+  }
+
+  const handleAiHelp = async () => {
+    if (!formData.title.trim()) {
+      alert('계획 제목을 먼저 입력해주세요.')
+      return
+    }
+
+    setIsAiLoading(true)
+    try {
+      const response = await fetch('/api/ai-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          dueDate: formData.due_date,
+          priority: formData.priority,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('AI 요청에 실패했습니다.')
+      }
+
+      const data = await response.json()
+      setAiSuggestion(data.suggestion)
+    } catch (error) {
+      console.error('AI 도웄 오류:', error)
+      alert('AI 도웄 기능에 오류가 발생했습니다.')
+    } finally {
+      setIsAiLoading(false)
+    }
+  }
+
+  const applyAiSuggestion = () => {
+    if (aiSuggestion) {
+      setFormData(prev => ({
+        ...prev,
+        description: prev.description + (prev.description ? '\n\n' : '') + aiSuggestion
+      }))
+      setAiSuggestion('')
+    }
   }
 
   const filteredPlans = plans.filter(plan => {
@@ -432,16 +481,58 @@ export default function PlansPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    계획 내용
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      계획 내용
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleAiHelp}
+                      disabled={isAiLoading || !formData.title}
+                      className="flex items-center space-x-1 px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>{isAiLoading ? 'AI 분석 중...' : 'AI 도움'}</span>
+                    </button>
+                  </div>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
+                    rows={aiSuggestion ? 8 : 3}
                     placeholder="계획에 대한 상세 설명을 입력하세요 (선택사항)"
                   />
+                  
+                  {/* AI 추천 결과 */}
+                  {aiSuggestion && (
+                    <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-purple-900 flex items-center space-x-1">
+                          <Sparkles className="h-4 w-4" />
+                          <span>AI 추천 액션플랜</span>
+                        </h4>
+                        <div className="flex space-x-2">
+                          <button
+                            type="button"
+                            onClick={applyAiSuggestion}
+                            className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+                          >
+                            내용에 추가
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAiSuggestion('')}
+                            className="text-xs px-2 py-1 text-purple-600 hover:text-purple-800"
+                          >
+                            닫기
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-sm text-purple-800 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                        {aiSuggestion}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
