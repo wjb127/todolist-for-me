@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle2, Clock, GripVertical, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Save, X, AlertCircle, CheckCircle2, Clock, GripVertical, Sparkles } from 'lucide-react'
 import { 
   DndContext, 
   closestCenter, 
@@ -85,22 +85,27 @@ function SortableItem({
               <CheckCircle2 className={`h-6 w-6 ${plan.completed ? 'fill-current' : ''}`} />
             </button>
             <div className="flex-1">
-              <h3 className={`font-semibold ${
-                plan.completed
-                  ? 'text-gray-500 line-through'
-                  : 'text-gray-900'
-              }`}>
-                {plan.title}
-              </h3>
-              {plan.due_date && (
-                <p className="text-xs text-gray-500 mt-1">
-                  마감일: {new Date(plan.due_date).toLocaleDateString('ko-KR')}
-                </p>
-              )}
+              <div 
+                className="cursor-pointer" 
+                onClick={() => onEdit(plan)}
+              >
+                <h3 className={`font-semibold ${
+                  plan.completed
+                    ? 'text-gray-500 line-through'
+                    : 'text-gray-900'
+                }`}>
+                  {plan.title}
+                </h3>
+                {plan.due_date && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    마감일: {new Date(plan.due_date).toLocaleDateString('ko-KR')}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-2 ml-4">
+        <div className="flex items-center ml-4">
           <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
             {getPriorityIcon(plan.priority)}
             <span>
@@ -109,12 +114,6 @@ function SortableItem({
               {plan.priority === 'low' && '낮음'}
             </span>
           </div>
-          <button
-            onClick={() => onEdit(plan)}
-            className="p-2 text-gray-400 hover:text-blue-600"
-          >
-            <Edit className="h-4 w-4" />
-          </button>
         </div>
       </div>
     </div>
@@ -134,6 +133,7 @@ export default function PlansPage() {
   })
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [aiSuggestion, setAiSuggestion] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -193,6 +193,9 @@ export default function PlansPage() {
   }
 
   const handleSavePlan = async () => {
+    if (isSaving) return
+    
+    setIsSaving(true)
     try {
       if (editingPlan) {
         const planData = {
@@ -253,6 +256,8 @@ export default function PlansPage() {
       closeModal()
     } catch (error) {
       console.error('Error saving plan:', error)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -301,6 +306,7 @@ export default function PlansPage() {
     setFormData({ title: '', description: '', due_date: new Date().toISOString().split('T')[0], priority: 'medium' })
     setAiSuggestion('')
     setIsAiLoading(false)
+    setIsSaving(false)
   }
 
   const handleAiHelp = async () => {
@@ -566,11 +572,11 @@ export default function PlansPage() {
               <div className="p-4 border-t border-gray-200 flex space-x-2">
                 <button
                   onClick={handleSavePlan}
-                  disabled={!formData.title}
+                  disabled={!formData.title || isSaving}
                   className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
                   <Save className="h-4 w-4" />
-                  <span>저장</span>
+                  <span>{isSaving ? '저장 중...' : '저장'}</span>
                 </button>
                 {editingPlan && (
                   <button
