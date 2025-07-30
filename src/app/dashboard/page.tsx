@@ -446,8 +446,26 @@ export default function DashboardPage() {
     return 'bg-red-500'
   }
 
-  const completedPlans = plans.filter(plan => plan.completed).length
-  const totalPlans = plans.length
+  // 현재 월의 마감일을 가진 계획들만 필터링
+  const getCurrentMonthPlans = () => {
+    const currentDate = new Date()
+    const currentYear = currentDate.getFullYear()
+    const currentMonth = currentDate.getMonth() + 1
+    
+    return plans.filter(plan => {
+      if (!plan.due_date) return false
+      
+      const dueDate = new Date(plan.due_date)
+      const dueYear = dueDate.getFullYear()
+      const dueMonth = dueDate.getMonth() + 1
+      
+      return dueYear === currentYear && dueMonth === currentMonth
+    })
+  }
+
+  const currentMonthPlans = getCurrentMonthPlans()
+  const completedPlans = currentMonthPlans.filter(plan => plan.completed).length
+  const totalPlans = currentMonthPlans.length
   const planCompletionRate = totalPlans > 0 ? Math.round((completedPlans / totalPlans) * 100) : 0
 
   const getCurrentStats = () => {
@@ -909,7 +927,10 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Target className="h-5 w-5 text-purple-500" />
-              <h2 className="text-lg font-bold text-gray-900">나의 계획</h2>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">이번 달 계획</h2>
+                <p className="text-sm text-gray-600">{format(new Date(), 'M월', { locale: ko })} 마감 계획</p>
+              </div>
             </div>
             <div className="text-xs text-gray-500">
               총 {totalPlans}개 계획
@@ -958,28 +979,40 @@ export default function DashboardPage() {
             
             {/* 동기부여 메시지 */}
             <div className="text-center mt-2">
-              {planCompletionRate === 100 && (
-                <div className="text-sm font-medium text-purple-600 flex items-center justify-center space-x-1">
-                  <Rocket className="h-4 w-4" />
-                  <span>🎉 모든 계획 완료!</span>
+              {totalPlans === 0 && (
+                <div className="text-sm font-medium text-gray-500 flex items-center justify-center space-x-1">
+                  <Target className="h-4 w-4" />
+                  <span>📅 이번 달 마감 계획이 없습니다</span>
                 </div>
               )}
-              {planCompletionRate >= 80 && planCompletionRate < 100 && (
+              {totalPlans > 0 && planCompletionRate === 100 && (
+                <div className="text-sm font-medium text-purple-600 flex items-center justify-center space-x-1">
+                  <Rocket className="h-4 w-4" />
+                  <span>🎉 이번 달 계획 모두 완료!</span>
+                </div>
+              )}
+              {totalPlans > 0 && planCompletionRate >= 80 && planCompletionRate < 100 && (
                 <div className="text-sm font-medium text-purple-600 flex items-center justify-center space-x-1">
                   <Zap className="h-4 w-4" />
                   <span>💪 거의 다 완료!</span>
                 </div>
               )}
-              {planCompletionRate >= 50 && planCompletionRate < 80 && (
+              {totalPlans > 0 && planCompletionRate >= 50 && planCompletionRate < 80 && (
                 <div className="text-sm font-medium text-purple-600 flex items-center justify-center space-x-1">
                   <Target className="h-4 w-4" />
                   <span>🌟 좋은 진전!</span>
                 </div>
               )}
-              {planCompletionRate > 0 && planCompletionRate < 50 && (
+              {totalPlans > 0 && planCompletionRate > 0 && planCompletionRate < 50 && (
                 <div className="text-sm font-medium text-gray-600 flex items-center justify-center space-x-1">
                   <Shield className="h-4 w-4" />
                   <span>🌱 시작이 좋습니다!</span>
+                </div>
+              )}
+              {totalPlans > 0 && planCompletionRate === 0 && (
+                <div className="text-sm font-medium text-gray-600 flex items-center justify-center space-x-1">
+                  <Target className="h-4 w-4" />
+                  <span>🚀 계획을 시작해보세요!</span>
                 </div>
               )}
             </div>
