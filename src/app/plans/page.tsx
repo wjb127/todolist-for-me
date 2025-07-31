@@ -53,6 +53,8 @@ function SortableItem({
     isDragging,
   } = useSortable({ id: plan.id })
 
+  const { getCardStyle } = useTheme()
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -63,7 +65,7 @@ function SortableItem({
     <div 
       ref={setNodeRef} 
       style={style} 
-      className={`bg-white rounded-lg shadow-sm p-4 ${isDragging ? 'z-50' : ''}`}
+      className={`${getCardStyle()} ${isDragging ? 'z-50' : ''}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -137,7 +139,7 @@ export default function PlansPage() {
   const [isSaving, setIsSaving] = useState(false)
   
   // 전역 테마 시스템 사용
-  const { getCardStyle, getCardStyleLarge, getButtonStyle, getBackgroundStyle, getInputStyle, getTabButtonStyle } = useTheme()
+  const { getCardStyle, getCardStyleLarge, getButtonStyle, getBackgroundStyle, getInputStyle, getTabButtonStyle, getModalStyle, getModalHeaderStyle, getModalButtonStyle, getModalBackdropStyle } = useTheme()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -463,14 +465,14 @@ export default function PlansPage() {
         </DndContext>
 
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg w-full max-w-md">
-              <div className="p-4 border-b border-gray-200">
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} w-full max-w-md`}>
+              <div className={getModalHeaderStyle()}>
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">
                     {editingPlan ? '계획 편집' : '새 계획'}
                   </h2>
-                  <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded">
+                  <button onClick={closeModal} className={getModalButtonStyle()}>
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -485,7 +487,7 @@ export default function PlansPage() {
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={getInputStyle()}
                     placeholder="계획 제목을 입력하세요"
                   />
                 </div>
@@ -508,7 +510,7 @@ export default function PlansPage() {
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={getInputStyle()}
                     rows={aiSuggestion ? 8 : 3}
                     placeholder="계획에 대한 상세 설명을 입력하세요 (선택사항)"
                   />
@@ -553,7 +555,7 @@ export default function PlansPage() {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={getInputStyle()}
                   />
                 </div>
 
@@ -564,7 +566,7 @@ export default function PlansPage() {
                   <select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={getInputStyle()}
                   >
                     <option value="low">낮음</option>
                     <option value="medium">보통</option>
@@ -573,33 +575,35 @@ export default function PlansPage() {
                 </div>
               </div>
 
-              <div className="p-4 border-t border-gray-200 flex space-x-2">
-                <button
-                  onClick={handleSavePlan}
-                  disabled={!formData.title || isSaving}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                >
-                  <Save className="h-4 w-4" />
-                  <span>{isSaving ? '저장 중...' : '저장'}</span>
-                </button>
-                {editingPlan && (
+              <div className={`${getModalHeaderStyle()} border-t`}>
+                <div className="flex space-x-2">
                   <button
-                    onClick={() => {
-                      handleDeletePlan(editingPlan.id)
-                      closeModal()
-                    }}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2"
+                    onClick={handleSavePlan}
+                    disabled={!formData.title || isSaving}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
-                    <Trash2 className="h-4 w-4" />
-                    <span>삭제</span>
+                    <Save className="h-4 w-4" />
+                    <span>{isSaving ? '저장 중...' : '저장'}</span>
                   </button>
-                )}
-                <button
-                  onClick={closeModal}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  취소
-                </button>
+                  {editingPlan && (
+                    <button
+                      onClick={() => {
+                        handleDeletePlan(editingPlan.id)
+                        closeModal()
+                      }}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>삭제</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={closeModal}
+                    className={`${getModalButtonStyle()} px-4 py-2 border border-gray-300`}
+                  >
+                    취소
+                  </button>
+                </div>
               </div>
             </div>
           </div>

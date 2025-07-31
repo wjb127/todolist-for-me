@@ -26,7 +26,7 @@ export default function TodosPage() {
   const [newTodoTitle, setNewTodoTitle] = useState('')
   
   // 전역 테마 시스템 사용
-  const { getCardStyle, getCardStyleLarge, getButtonStyle, getBackgroundStyle, getInputStyle } = useTheme()
+  const { getCardStyle, getCardStyleLarge, getButtonStyle, getBackgroundStyle, getInputStyle, getModalStyle, getModalHeaderStyle, getModalButtonStyle, getModalBackdropStyle } = useTheme()
 
   const fetchTodos = useCallback(async () => {
     const { data, error } = await supabase
@@ -448,9 +448,9 @@ export default function TodosPage() {
         </div>
 
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className={getCardStyleLarge() + " w-full max-w-md"}>
-              <div className="p-4 border-b border-gray-200">
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} w-full max-w-md`}>
+              <div className={getModalHeaderStyle()}>
                 <h2 className="text-lg font-semibold">템플릿에서 추가</h2>
               </div>
               <div className="p-4">
@@ -458,10 +458,10 @@ export default function TodosPage() {
                   {templates.map((template) => (
                     <div
                       key={template.id}
-                      className={`p-3 border rounded-lg cursor-pointer ${
+                      className={`p-3 rounded-lg cursor-pointer ${
                         selectedTemplate === template.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? getButtonStyle() + ' border-blue-500 bg-blue-50'
+                          : getButtonStyle() + ' hover:opacity-80'
                       }`}
                       onClick={() => setSelectedTemplate(template.id)}
                     >
@@ -501,23 +501,25 @@ export default function TodosPage() {
                   ))}
                 </div>
               </div>
-              <div className="p-4 border-t border-gray-200 flex space-x-2">
-                <button
-                  onClick={handleAddFromTemplate}
-                  disabled={!selectedTemplate}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  추가
-                </button>
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false)
-                    setSelectedTemplate('')
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  취소
-                </button>
+              <div className={`${getModalHeaderStyle()} border-t`}>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleAddFromTemplate}
+                    disabled={!selectedTemplate}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    추가
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsModalOpen(false)
+                      setSelectedTemplate('')
+                    }}
+                    className={`${getModalButtonStyle()} px-4 py-2 border border-gray-300`}
+                  >
+                    취소
+                  </button>
+                </div>
               </div>
             </div>
           </div>
