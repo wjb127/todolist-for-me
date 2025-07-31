@@ -1111,9 +1111,9 @@ export default function DashboardPage() {
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="w-4 h-4 bg-white rounded border" style={{
-                          background: '#ffffff',
-                          boxShadow: '2px 2px 4px rgba(0, 0, 0, 0.1), -2px -2px 4px rgba(255, 255, 255, 0.8)'
+                        <div className="w-4 h-4 rounded border" style={{
+                          background: 'radial-gradient(circle at center, #eef3f9, #e3e8f0)',
+                          boxShadow: '3px 3px 6px rgba(174, 190, 205, 0.3), -3px -3px 6px rgba(255, 255, 255, 0.7), 0 0 10px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)'
                         }}></div>
                         <div>
                           <h4 className="font-semibold text-gray-900">뉴모피즘</h4>
