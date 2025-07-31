@@ -101,11 +101,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }
 
   const getTextColor = () => {
-    return theme === 'neumorphism' ? 'text-gray-800' : 'text-gray-900'
+    return theme === 'neumorphism' ? 'text-slate-600' : 'text-gray-900'
   }
 
   const getSubtextColor = () => {
-    return theme === 'neumorphism' ? 'text-gray-600' : 'text-gray-600'
+    return theme === 'neumorphism' ? 'text-slate-500' : 'text-gray-600'
   }
 
   const getModalStyle = () => {
