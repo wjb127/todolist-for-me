@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Star, Crown, Shield, Gem, Rocket, X } from 'lucide-react'
+import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Star, Crown, Shield, Gem, Rocket, X, Palette } from 'lucide-react'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, subWeeks, subMonths, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
@@ -9,6 +9,8 @@ import { Database } from '@/lib/database.types'
 
 type Todo = Database['public']['Tables']['todos']['Row']
 type Plan = Database['public']['Tables']['plans']['Row']
+
+type DesignTheme = 'classic' | 'neumorphism'
 
 interface DailyStats {
   date: string
@@ -189,12 +191,74 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [currentQuote, setCurrentQuote] = useState<MotivationalQuote | null>(null)
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
+  const [designTheme, setDesignTheme] = useState<DesignTheme>('classic')
 
   useEffect(() => {
     // 랜덤 명언 선택
     const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
     setCurrentQuote(randomQuote)
+    
+    // 저장된 테마 불러오기
+    const savedTheme = localStorage.getItem('designTheme') as DesignTheme
+    if (savedTheme === 'classic' || savedTheme === 'neumorphism') {
+      setDesignTheme(savedTheme)
+    }
   }, [])
+
+  // 테마 변경 시 localStorage에 저장
+  const handleThemeChange = (theme: DesignTheme) => {
+    setDesignTheme(theme)
+    localStorage.setItem('designTheme', theme)
+  }
+
+  // 테마별 스타일 헬퍼 함수
+  const getCardStyle = () => {
+    return designTheme === 'neumorphism' 
+      ? 'neumorphism-card rounded-xl p-4' 
+      : 'bg-white rounded-xl shadow-lg p-4'
+  }
+
+  const getCardStyleLarge = () => {
+    return designTheme === 'neumorphism' 
+      ? 'neumorphism-card rounded-xl p-6' 
+      : 'bg-white rounded-xl shadow-lg p-6'
+  }
+
+  const getButtonStyle = () => {
+    return designTheme === 'neumorphism' 
+      ? 'neumorphism-button rounded-lg p-2' 
+      : 'bg-white rounded-lg shadow-sm p-2'
+  }
+
+  const getBackgroundStyle = () => {
+    return designTheme === 'neumorphism' 
+      ? 'min-h-screen neumorphism-bg p-4 pb-24' 
+      : 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-24'
+  }
+
+  const getProgressStyle = () => {
+    return designTheme === 'neumorphism' 
+      ? 'w-full neumorphism-progress rounded-full h-3' 
+      : 'w-full bg-gray-200 rounded-full h-3'
+  }
+
+  const getProgressFillStyle = () => {
+    return designTheme === 'neumorphism' 
+      ? 'neumorphism-progress-fill h-3 rounded-full transition-all duration-1000' 
+      : 'bg-amber-400 h-3 rounded-full transition-all duration-1000'
+  }
+
+  const getTabButtonStyle = (isActive: boolean) => {
+    if (designTheme === 'neumorphism') {
+      return isActive
+        ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all neumorphism-card-inset text-blue-600'
+        : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all neumorphism-button text-gray-600 hover:text-blue-600'
+    } else {
+      return isActive
+        ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all bg-blue-600 text-white shadow-md'
+        : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all text-gray-600 hover:bg-gray-100'
+    }
+  }
 
   const fetchData = useCallback(async () => {
     let startDate: Date, endDate: Date
@@ -604,7 +668,7 @@ export default function DashboardPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-24">
+    <div className={getBackgroundStyle()}>
       <div className="max-w-md mx-auto">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
@@ -612,13 +676,31 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
             <p className="text-sm text-gray-600">나의 성과를 한눈에</p>
           </div>
-          <div className="p-2 bg-white rounded-lg shadow-sm">
-            <BarChart3 className="h-6 w-6 text-blue-600" />
+          <div className="flex items-center space-x-2">
+            {/* 테마 선택기 */}
+            <div className="relative">
+              <button
+                onClick={() => setSelectedAchievement({ 
+                  id: 'theme_selector', 
+                  title: '디자인 테마 선택', 
+                  description: '원하는 디자인 스타일을 선택하세요', 
+                  icon: '🎨', 
+                  unlocked: true, 
+                  rarity: 'common' 
+                })}
+                className={getButtonStyle()}
+              >
+                <Palette className="h-6 w-6 text-blue-600" />
+              </button>
+            </div>
+            <div className={getButtonStyle()}>
+              <BarChart3 className="h-6 w-6 text-blue-600" />
+            </div>
           </div>
         </div>
 
         {/* 레벨 및 경험치 시스템 */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
+        <div className={`${getCardStyle()} mb-6`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <div className="relative">
@@ -644,9 +726,9 @@ export default function DashboardPage() {
               <span>현재 레벨 진행도</span>
               <span>{userLevel.currentXP} / {userLevel.currentXP + userLevel.xpToNext}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className={getProgressStyle()}>
               <div 
-                className="bg-amber-400 h-3 rounded-full transition-all duration-1000"
+                className={getProgressFillStyle()}
                 style={{ width: `${(userLevel.currentXP / (userLevel.currentXP + userLevel.xpToNext)) * 100}%` }}
               />
             </div>
@@ -657,7 +739,7 @@ export default function DashboardPage() {
         </div>
 
         {/* 성과 카드 */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div className={`${getCardStyleLarge()} mb-6`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <Trophy className="h-6 w-6 text-emerald-500" />
@@ -689,7 +771,7 @@ export default function DashboardPage() {
 
         {/* 동기부여 명언 */}
         {currentQuote && (
-          <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
+          <div className={`${getCardStyle()} mb-6`}>
             <div className="flex items-start space-x-3">
               <Quote className="h-6 w-6 text-purple-500 flex-shrink-0 mt-1" />
               <div>
@@ -703,7 +785,7 @@ export default function DashboardPage() {
         )}
 
         {/* 할 일 성과 카드 */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div className={`${getCardStyleLarge()} mb-6`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Sparkles className="h-5 w-5 text-blue-500" />
@@ -785,17 +867,13 @@ export default function DashboardPage() {
         </div>
 
         {/* 할 일 분석 모드 탭 */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
+        <div className={`${getCardStyle()} mb-6`}>
           <div className="flex space-x-1 mb-4">
             {(['daily', 'weekly', 'monthly'] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all ${
-                  viewMode === mode
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                className={getTabButtonStyle(viewMode === mode)}
               >
                 {mode === 'daily' && '일간'}
                 {mode === 'weekly' && '주간'}
@@ -923,7 +1001,7 @@ export default function DashboardPage() {
         )}
 
         {/* 계획 성과 카드 */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div className={`${getCardStyleLarge()} mb-6`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Target className="h-5 w-5 text-purple-500" />
@@ -1024,7 +1102,9 @@ export default function DashboardPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">성취 정보</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {selectedAchievement.id === 'theme_selector' ? '디자인 테마 선택' : '성취 정보'}
+                </h3>
                 <button
                   onClick={() => setSelectedAchievement(null)}
                   className="p-1 text-gray-400 hover:text-gray-600 rounded"
@@ -1033,10 +1113,76 @@ export default function DashboardPage() {
                 </button>
               </div>
               
-              <div className="text-center mb-4">
-                <div className="text-4xl mb-2">{selectedAchievement.icon}</div>
-                <h4 className="text-xl font-bold text-gray-900 mb-1">{selectedAchievement.title}</h4>
-                <p className="text-sm text-gray-600 mb-3">{selectedAchievement.description}</p>
+              {selectedAchievement.id === 'theme_selector' ? (
+                // 테마 선택기
+                <div className="space-y-4">
+                  <div className="text-center mb-4">
+                    <div className="text-4xl mb-2">🎨</div>
+                    <p className="text-sm text-gray-600">원하는 디자인 스타일을 선택하세요</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        handleThemeChange('classic')
+                        setSelectedAchievement(null)
+                      }}
+                      className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        designTheme === 'classic' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 bg-gradient-to-br from-blue-50 to-indigo-100 rounded border shadow-sm"></div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">클래식</h4>
+                          <p className="text-sm text-gray-600">깔끔하고 모던한 카드 디자인</p>
+                        </div>
+                        {designTheme === 'classic' && (
+                          <div className="ml-auto text-blue-500">
+                            <Trophy className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        handleThemeChange('neumorphism')
+                        setSelectedAchievement(null)
+                      }}
+                      className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        designTheme === 'neumorphism' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 bg-gray-200 rounded border" style={{
+                          background: 'linear-gradient(145deg, #f0f0f3, #cacace)',
+                          boxShadow: '2px 2px 4px #a8a8aa, -2px -2px 4px #ffffff'
+                        }}></div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">뉴모피즘</h4>
+                          <p className="text-sm text-gray-600">부드럽고 입체적인 디자인</p>
+                        </div>
+                        {designTheme === 'neumorphism' && (
+                          <div className="ml-auto text-blue-500">
+                            <Trophy className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // 기존 성취 정보
+                <div>
+                  <div className="text-center mb-4">
+                    <div className="text-4xl mb-2">{selectedAchievement.icon}</div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-1">{selectedAchievement.title}</h4>
+                    <p className="text-sm text-gray-600 mb-3">{selectedAchievement.description}</p>
                 
                 {/* 희귀도 표시 */}
                 <div className="flex items-center justify-center space-x-2 mb-4">
@@ -1077,19 +1223,21 @@ export default function DashboardPage() {
                   </div>
                 )}
                 
-                {selectedAchievement.unlocked && (
-                  <div className="flex items-center justify-center space-x-2 text-green-600">
-                    <Trophy className="h-4 w-4" />
-                    <span className="text-sm font-medium">🎉 성취 달성!</span>
-                  </div>
-                )}
+                  {selectedAchievement.unlocked && (
+                    <div className="flex items-center justify-center space-x-2 text-green-600">
+                      <Trophy className="h-4 w-4" />
+                      <span className="text-sm font-medium">🎉 성취 달성!</span>
+                    </div>
+                  )}
+                </div>
               </div>
+              )}
             </div>
           </div>
         )}
 
         {/* 성취 배지 */}
-        <div className="bg-white rounded-xl shadow-lg p-4">
+        <div className={getCardStyle()}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Award className="h-5 w-5 text-yellow-600" />
