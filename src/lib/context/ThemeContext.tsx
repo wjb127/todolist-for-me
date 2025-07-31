@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
-export type DesignTheme = 'classic' | 'neumorphism'
+export type DesignTheme = 'classic' | 'neumorphism' | 'glassmorphism' | 'minimalism'
 
 interface ThemeContextType {
   theme: DesignTheme
@@ -35,7 +35,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   useEffect(() => {
     // 저장된 테마 불러오기
     const savedTheme = localStorage.getItem('designTheme') as DesignTheme
-    if (savedTheme === 'classic' || savedTheme === 'neumorphism') {
+    if (savedTheme === 'classic' || savedTheme === 'neumorphism' || savedTheme === 'glassmorphism' || savedTheme === 'minimalism') {
       setTheme(savedTheme)
     }
   }, [])
@@ -47,83 +47,180 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   // 테마별 스타일 헬퍼 함수들
   const getCardStyle = () => {
-    return theme === 'neumorphism' 
-      ? 'neumorphism-card rounded-xl p-4' 
-      : 'bg-white rounded-xl shadow-lg p-4'
+    switch (theme) {
+      case 'neumorphism':
+        return 'neumorphism-card rounded-xl p-4'
+      case 'glassmorphism':
+        return 'glassmorphism-card rounded-xl p-4'
+      case 'minimalism':
+        return 'minimalism-card rounded-xl p-4'
+      default:
+        return 'bg-white rounded-xl shadow-lg p-4'
+    }
   }
 
   const getCardStyleLarge = () => {
-    return theme === 'neumorphism' 
-      ? 'neumorphism-card rounded-xl p-6' 
-      : 'bg-white rounded-xl shadow-lg p-6'
+    switch (theme) {
+      case 'neumorphism':
+        return 'neumorphism-card rounded-xl p-6'
+      case 'glassmorphism':
+        return 'glassmorphism-card rounded-xl p-6'
+      case 'minimalism':
+        return 'minimalism-card rounded-xl p-6'
+      default:
+        return 'bg-white rounded-xl shadow-lg p-6'
+    }
   }
 
   const getButtonStyle = () => {
-    return theme === 'neumorphism' 
-      ? 'neumorphism-button rounded-lg p-2' 
-      : 'bg-white rounded-lg shadow-sm p-2'
+    switch (theme) {
+      case 'neumorphism':
+        return 'neumorphism-button rounded-lg p-2'
+      case 'glassmorphism':
+        return 'glassmorphism-button rounded-lg p-2'
+      case 'minimalism':
+        return 'minimalism-button rounded-lg p-2'
+      default:
+        return 'bg-white rounded-lg shadow-sm p-2'
+    }
   }
 
   const getBackgroundStyle = () => {
-    return theme === 'neumorphism' 
-      ? 'min-h-screen neumorphism-bg p-4 pb-24' 
-      : 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-24'
+    switch (theme) {
+      case 'neumorphism':
+        return 'min-h-screen neumorphism-bg p-4 pb-24'
+      case 'glassmorphism':
+        return 'min-h-screen glassmorphism-bg p-4 pb-24'
+      case 'minimalism':
+        return 'min-h-screen minimalism-bg p-4 pb-24'
+      default:
+        return 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-24'
+    }
   }
 
   const getProgressStyle = () => {
-    return theme === 'neumorphism' 
-      ? 'w-full neumorphism-progress rounded-full h-3' 
-      : 'w-full bg-gray-200 rounded-full h-3'
+    switch (theme) {
+      case 'neumorphism':
+        return 'w-full neumorphism-progress rounded-full h-3'
+      case 'glassmorphism':
+        return 'w-full glassmorphism-progress rounded-full h-3'
+      case 'minimalism':
+        return 'w-full minimalism-progress rounded-full h-3'
+      default:
+        return 'w-full bg-gray-200 rounded-full h-3'
+    }
   }
 
   const getProgressFillStyle = () => {
-    return theme === 'neumorphism' 
-      ? 'neumorphism-progress-fill h-3 rounded-full transition-all duration-1000' 
-      : 'bg-amber-400 h-3 rounded-full transition-all duration-1000'
+    switch (theme) {
+      case 'neumorphism':
+        return 'neumorphism-progress-fill h-3 rounded-full transition-all duration-1000'
+      case 'glassmorphism':
+        return 'glassmorphism-progress-fill h-3 rounded-full transition-all duration-1000'
+      case 'minimalism':
+        return 'minimalism-progress-fill h-3 rounded-full transition-all duration-1000'
+      default:
+        return 'bg-amber-400 h-3 rounded-full transition-all duration-1000'
+    }
   }
 
   const getTabButtonStyle = (isActive: boolean) => {
-    if (theme === 'neumorphism') {
-      return isActive
-        ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all neumorphism-card-inset text-blue-600'
-        : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all neumorphism-button text-gray-600 hover:text-blue-600'
-    } else {
-      return isActive
-        ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all bg-blue-600 text-white shadow-md'
-        : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all text-gray-600 hover:bg-gray-100'
+    switch (theme) {
+      case 'neumorphism':
+        return isActive
+          ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all neumorphism-card-inset text-blue-600'
+          : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all neumorphism-button text-gray-600 hover:text-blue-600'
+      case 'glassmorphism':
+        return isActive
+          ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all glassmorphism-card-inset text-blue-600'
+          : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all glassmorphism-button text-gray-600 hover:text-blue-600'
+      case 'minimalism':
+        return isActive
+          ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all minimalism-card-inset text-blue-600 border'
+          : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all minimalism-button text-gray-600 hover:text-blue-600'
+      default:
+        return isActive
+          ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all bg-blue-600 text-white shadow-md'
+          : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all text-gray-600 hover:bg-gray-100'
     }
   }
 
   const getInputStyle = () => {
-    return theme === 'neumorphism'
-      ? 'neumorphism-input w-full px-3 py-2 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
-      : 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+    switch (theme) {
+      case 'neumorphism':
+        return 'neumorphism-input w-full px-3 py-2 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
+      case 'glassmorphism':
+        return 'glassmorphism-input w-full px-3 py-2 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
+      case 'minimalism':
+        return 'minimalism-input w-full px-3 py-2 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
+      default:
+        return 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+    }
   }
 
   const getTextColor = () => {
-    return theme === 'neumorphism' ? 'text-slate-600' : 'text-gray-900'
+    switch (theme) {
+      case 'neumorphism':
+        return 'text-slate-600'
+      case 'glassmorphism':
+        return 'text-gray-800'
+      case 'minimalism':
+        return 'text-gray-900'
+      default:
+        return 'text-gray-900'
+    }
   }
 
   const getSubtextColor = () => {
-    return theme === 'neumorphism' ? 'text-slate-500' : 'text-gray-600'
+    switch (theme) {
+      case 'neumorphism':
+        return 'text-slate-500'
+      case 'glassmorphism':
+        return 'text-gray-700'
+      case 'minimalism':
+        return 'text-gray-600'
+      default:
+        return 'text-gray-600'
+    }
   }
 
   const getModalStyle = () => {
-    return theme === 'neumorphism'
-      ? 'neumorphism-modal rounded-lg'
-      : 'bg-white rounded-lg'
+    switch (theme) {
+      case 'neumorphism':
+        return 'neumorphism-modal rounded-lg'
+      case 'glassmorphism':
+        return 'glassmorphism-modal rounded-lg'
+      case 'minimalism':
+        return 'minimalism-modal rounded-lg'
+      default:
+        return 'bg-white rounded-lg'
+    }
   }
 
   const getModalHeaderStyle = () => {
-    return theme === 'neumorphism'
-      ? 'neumorphism-modal-header p-4'
-      : 'p-4 border-b border-gray-200'
+    switch (theme) {
+      case 'neumorphism':
+        return 'neumorphism-modal-header p-4'
+      case 'glassmorphism':
+        return 'glassmorphism-modal-header p-4'
+      case 'minimalism':
+        return 'minimalism-modal-header p-4'
+      default:
+        return 'p-4 border-b border-gray-200'
+    }
   }
 
   const getModalButtonStyle = () => {
-    return theme === 'neumorphism'
-      ? 'neumorphism-modal-button p-2 rounded'
-      : 'p-2 hover:bg-gray-100 rounded'
+    switch (theme) {
+      case 'neumorphism':
+        return 'neumorphism-modal-button p-2 rounded'
+      case 'glassmorphism':
+        return 'glassmorphism-modal-button p-2 rounded'
+      case 'minimalism':
+        return 'minimalism-modal-button p-2 rounded'
+      default:
+        return 'p-2 hover:bg-gray-100 rounded'
+    }
   }
 
   const getModalBackdropStyle = () => {

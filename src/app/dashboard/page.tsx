@@ -1126,6 +1126,65 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </button>
+                    
+                    <button
+                      onClick={() => {
+                        setTheme('glassmorphism')
+                        setSelectedAchievement(null)
+                      }}
+                      className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        theme === 'glassmorphism' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 rounded border" style={{
+                          background: 'rgba(255, 255, 255, 0.15)',
+                          backdropFilter: 'blur(10px)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                        }}></div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">글래스모피즘</h4>
+                          <p className="text-sm text-gray-600">투명하고 현대적인 유리 효과</p>
+                        </div>
+                        {theme === 'glassmorphism' && (
+                          <div className="ml-auto text-blue-500">
+                            <Trophy className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setTheme('minimalism')
+                        setSelectedAchievement(null)
+                      }}
+                      className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        theme === 'minimalism' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 rounded border" style={{
+                          background: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          boxShadow: 'none'
+                        }}></div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">미니멀리즘</h4>
+                          <p className="text-sm text-gray-600">깔끔하고 단순한 디자인</p>
+                        </div>
+                        {theme === 'minimalism' && (
+                          <div className="ml-auto text-blue-500">
+                            <Trophy className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+                    </button>
                   </div>
                 </div>
               ) : (
