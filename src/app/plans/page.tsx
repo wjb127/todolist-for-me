@@ -24,6 +24,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
+import { useTheme } from '@/lib/context/ThemeContext'
 
 type Plan = Database['public']['Tables']['plans']['Row']
 type PlanInsert = Database['public']['Tables']['plans']['Insert']
@@ -134,6 +135,9 @@ export default function PlansPage() {
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  
+  // 전역 테마 시스템 사용
+  const { getCardStyle, getCardStyleLarge, getButtonStyle, getBackgroundStyle, getInputStyle, getTabButtonStyle } = useTheme()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -383,7 +387,7 @@ export default function PlansPage() {
   const totalCount = plans.length
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
+    <div className={getBackgroundStyle()}>
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">계획</h1>
@@ -396,7 +400,7 @@ export default function PlansPage() {
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className={getCardStyle() + " mb-6"}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-700">전체 현황</span>
             <span className="text-sm text-gray-600">{completedCount}/{totalCount}</span>
