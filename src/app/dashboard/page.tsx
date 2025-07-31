@@ -6,11 +6,10 @@ import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMont
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
+import { useTheme } from '@/lib/context/ThemeContext'
 
 type Todo = Database['public']['Tables']['todos']['Row']
 type Plan = Database['public']['Tables']['plans']['Row']
-
-type DesignTheme = 'classic' | 'neumorphism'
 
 interface DailyStats {
   date: string
@@ -191,74 +190,27 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [currentQuote, setCurrentQuote] = useState<MotivationalQuote | null>(null)
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
-  const [designTheme, setDesignTheme] = useState<DesignTheme>('classic')
+  
+  // 전역 테마 시스템 사용
+  const { 
+    theme, 
+    setTheme, 
+    getCardStyle, 
+    getCardStyleLarge, 
+    getButtonStyle, 
+    getBackgroundStyle, 
+    getProgressStyle, 
+    getProgressFillStyle, 
+    getTabButtonStyle 
+  } = useTheme()
 
   useEffect(() => {
     // 랜덤 명언 선택
     const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
     setCurrentQuote(randomQuote)
-    
-    // 저장된 테마 불러오기
-    const savedTheme = localStorage.getItem('designTheme') as DesignTheme
-    if (savedTheme === 'classic' || savedTheme === 'neumorphism') {
-      setDesignTheme(savedTheme)
-    }
   }, [])
 
-  // 테마 변경 시 localStorage에 저장
-  const handleThemeChange = (theme: DesignTheme) => {
-    setDesignTheme(theme)
-    localStorage.setItem('designTheme', theme)
-  }
 
-  // 테마별 스타일 헬퍼 함수
-  const getCardStyle = () => {
-    return designTheme === 'neumorphism' 
-      ? 'neumorphism-card rounded-xl p-4' 
-      : 'bg-white rounded-xl shadow-lg p-4'
-  }
-
-  const getCardStyleLarge = () => {
-    return designTheme === 'neumorphism' 
-      ? 'neumorphism-card rounded-xl p-6' 
-      : 'bg-white rounded-xl shadow-lg p-6'
-  }
-
-  const getButtonStyle = () => {
-    return designTheme === 'neumorphism' 
-      ? 'neumorphism-button rounded-lg p-2' 
-      : 'bg-white rounded-lg shadow-sm p-2'
-  }
-
-  const getBackgroundStyle = () => {
-    return designTheme === 'neumorphism' 
-      ? 'min-h-screen neumorphism-bg p-4 pb-24' 
-      : 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-24'
-  }
-
-  const getProgressStyle = () => {
-    return designTheme === 'neumorphism' 
-      ? 'w-full neumorphism-progress rounded-full h-3' 
-      : 'w-full bg-gray-200 rounded-full h-3'
-  }
-
-  const getProgressFillStyle = () => {
-    return designTheme === 'neumorphism' 
-      ? 'neumorphism-progress-fill h-3 rounded-full transition-all duration-1000' 
-      : 'bg-amber-400 h-3 rounded-full transition-all duration-1000'
-  }
-
-  const getTabButtonStyle = (isActive: boolean) => {
-    if (designTheme === 'neumorphism') {
-      return isActive
-        ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all neumorphism-card-inset text-blue-600'
-        : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all neumorphism-button text-gray-600 hover:text-blue-600'
-    } else {
-      return isActive
-        ? 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all bg-blue-600 text-white shadow-md'
-        : 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all text-gray-600 hover:bg-gray-100'
-    }
-  }
 
   const fetchData = useCallback(async () => {
     let startDate: Date, endDate: Date
@@ -1124,11 +1076,11 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     <button
                       onClick={() => {
-                        handleThemeChange('classic')
+                        setTheme('classic')
                         setSelectedAchievement(null)
                       }}
                       className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                        designTheme === 'classic' 
+                        theme === 'classic' 
                           ? 'border-blue-500 bg-blue-50' 
                           : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
@@ -1139,7 +1091,7 @@ export default function DashboardPage() {
                           <h4 className="font-semibold text-gray-900">클래식</h4>
                           <p className="text-sm text-gray-600">깔끔하고 모던한 카드 디자인</p>
                         </div>
-                        {designTheme === 'classic' && (
+                        {theme === 'classic' && (
                           <div className="ml-auto text-blue-500">
                             <Trophy className="h-5 w-5" />
                           </div>
@@ -1149,11 +1101,11 @@ export default function DashboardPage() {
                     
                     <button
                       onClick={() => {
-                        handleThemeChange('neumorphism')
+                        setTheme('neumorphism')
                         setSelectedAchievement(null)
                       }}
                       className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                        designTheme === 'neumorphism' 
+                        theme === 'neumorphism' 
                           ? 'border-blue-500 bg-blue-50' 
                           : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
@@ -1167,7 +1119,7 @@ export default function DashboardPage() {
                           <h4 className="font-semibold text-gray-900">뉴모피즘</h4>
                           <p className="text-sm text-gray-600">부드럽고 입체적인 디자인</p>
                         </div>
-                        {designTheme === 'neumorphism' && (
+                        {theme === 'neumorphism' && (
                           <div className="ml-auto text-blue-500">
                             <Trophy className="h-5 w-5" />
                           </div>

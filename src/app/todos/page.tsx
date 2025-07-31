@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
+import { useTheme } from '@/lib/context/ThemeContext'
 
 type Todo = Database['public']['Tables']['todos']['Row']
 type Template = Database['public']['Tables']['templates']['Row']
@@ -23,6 +24,9 @@ export default function TodosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [newTodoTitle, setNewTodoTitle] = useState('')
+  
+  // 전역 테마 시스템 사용
+  const { getCardStyle, getCardStyleLarge, getButtonStyle, getBackgroundStyle, getInputStyle } = useTheme()
 
   const fetchTodos = useCallback(async () => {
     const { data, error } = await supabase
@@ -283,12 +287,12 @@ export default function TodosPage() {
   const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
+    <div className={getBackgroundStyle()}>
       <div className="max-w-md mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Todo 리스트</h1>
           
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <div className={getCardStyle() + " mb-4"}>
             <div className="flex items-center space-x-2 mb-2">
               <Calendar className="h-5 w-5 text-gray-500" />
               <label className="text-sm font-medium text-gray-700">날짜 선택</label>
@@ -297,7 +301,7 @@ export default function TodosPage() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={getInputStyle()}
             />
             <div className="mt-3 flex items-center justify-between">
               <button
@@ -321,7 +325,7 @@ export default function TodosPage() {
           </div>
 
           {totalCount > 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+            <div className={getCardStyle() + " mb-4"}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">진행률</span>
                 <span className="text-sm text-gray-600">{completedCount}/{totalCount}</span>
@@ -403,7 +407,7 @@ export default function TodosPage() {
             </div>
           ) : (
             todos.map((todo) => (
-              <div key={todo.id} className="bg-white rounded-lg shadow-sm p-4">
+              <div key={todo.id} className={getCardStyle()}>
                 <div className="flex items-start space-x-3">
                   <button
                     onClick={() => handleToggleComplete(todo.id, todo.completed)}
@@ -445,7 +449,7 @@ export default function TodosPage() {
 
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg w-full max-w-md">
+            <div className={getCardStyleLarge() + " w-full max-w-md"}>
               <div className="p-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold">템플릿에서 추가</h2>
               </div>

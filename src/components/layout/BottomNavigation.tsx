@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FileText, CheckSquare, Target, BarChart3 } from 'lucide-react'
+import { useTheme } from '@/lib/context/ThemeContext'
 
 const navigation = [
   { name: '템플릿', href: '/templates', icon: FileText },
@@ -13,9 +14,16 @@ const navigation = [
 
 export default function BottomNavigation() {
   const pathname = usePathname()
+  const { theme } = useTheme()
+
+  const getNavStyle = () => {
+    return theme === 'neumorphism'
+      ? 'fixed bottom-0 left-0 right-0 neumorphism-card border-t-0 px-4 pt-2 pb-4 safe-area-pb rounded-t-xl'
+      : 'fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-2 pb-4 safe-area-pb'
+  }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-2 pb-4 safe-area-pb">
+    <nav className={getNavStyle()}>
       <div className="flex justify-around">
         {navigation.map((item) => {
           const isActive = pathname.startsWith(item.href)
@@ -25,7 +33,9 @@ export default function BottomNavigation() {
               href={item.href}
               className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-colors ${
                 isActive
-                  ? 'text-blue-600 bg-blue-50'
+                  ? theme === 'neumorphism' 
+                    ? 'text-blue-600 neumorphism-card-inset'
+                    : 'text-blue-600 bg-blue-50'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >

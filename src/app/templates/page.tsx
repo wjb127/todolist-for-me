@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar, GripVertical, Eye, 
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
+import { useTheme } from '@/lib/context/ThemeContext'
 import {
   DndContext,
   closestCenter,
@@ -122,6 +123,9 @@ export default function TemplatesPage() {
     description: '',
     items: [] as TemplateItem[]
   })
+  
+  // 전역 테마 시스템 사용
+  const { getCardStyle, getCardStyleLarge, getButtonStyle, getBackgroundStyle, getInputStyle } = useTheme()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -464,7 +468,7 @@ export default function TemplatesPage() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
+    <div className={getBackgroundStyle()}>
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -481,7 +485,7 @@ export default function TemplatesPage() {
         </div>
 
         {/* 검색 및 필터 바 */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 space-y-4">
+        <div className={getCardStyle() + " mb-6 space-y-4"}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
