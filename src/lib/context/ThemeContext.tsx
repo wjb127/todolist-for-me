@@ -17,6 +17,10 @@ interface ThemeContextType {
   getInputStyle: () => string
   getTextColor: () => string
   getSubtextColor: () => string
+  getModalStyle: () => string
+  getModalHeaderStyle: () => string
+  getModalButtonStyle: () => string
+  getModalBackdropStyle: () => string
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -104,6 +108,28 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return theme === 'neumorphism' ? 'text-gray-600' : 'text-gray-600'
   }
 
+  const getModalStyle = () => {
+    return theme === 'neumorphism'
+      ? 'neumorphism-modal rounded-lg'
+      : 'bg-white rounded-lg'
+  }
+
+  const getModalHeaderStyle = () => {
+    return theme === 'neumorphism'
+      ? 'neumorphism-modal-header p-4'
+      : 'p-4 border-b border-gray-200'
+  }
+
+  const getModalButtonStyle = () => {
+    return theme === 'neumorphism'
+      ? 'neumorphism-modal-button p-2 rounded'
+      : 'p-2 hover:bg-gray-100 rounded'
+  }
+
+  const getModalBackdropStyle = () => {
+    return 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4'
+  }
+
   const value: ThemeContextType = {
     theme,
     setTheme: handleThemeChange,
@@ -117,6 +143,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     getInputStyle,
     getTextColor,
     getSubtextColor,
+    getModalStyle,
+    getModalHeaderStyle,
+    getModalButtonStyle,
+    getModalBackdropStyle,
   }
 
   return (

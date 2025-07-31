@@ -125,7 +125,7 @@ export default function TemplatesPage() {
   })
   
   // 전역 테마 시스템 사용
-  const { getCardStyle, getCardStyleLarge, getButtonStyle, getBackgroundStyle, getInputStyle } = useTheme()
+  const { getCardStyle, getCardStyleLarge, getButtonStyle, getBackgroundStyle, getInputStyle, getModalStyle, getModalHeaderStyle, getModalButtonStyle, getModalBackdropStyle } = useTheme()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -652,9 +652,9 @@ export default function TemplatesPage() {
         </div>
 
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
-              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} w-full max-w-md max-h-[90vh] overflow-y-auto`}>
+              <div className={getModalHeaderStyle()}>
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -676,7 +676,7 @@ export default function TemplatesPage() {
                   </div>
                   <button 
                     onClick={closeModal} 
-                    className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+                    className={getModalButtonStyle()}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -693,7 +693,7 @@ export default function TemplatesPage() {
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className={getInputStyle()}
                       placeholder="예: 일일 루틴, 주간 계획..."
                     />
                   </div>
@@ -705,7 +705,7 @@ export default function TemplatesPage() {
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                      className={`${getInputStyle()} resize-none`}
                       rows={3}
                       placeholder="템플릿에 대한 간단한 설명을 입력하세요"
                     />
@@ -789,9 +789,9 @@ export default function TemplatesPage() {
 
         {/* 템플릿 미리보기 모달 */}
         {previewTemplate && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
-              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} w-full max-w-md max-h-[90vh] overflow-y-auto`}>
+              <div className={getModalHeaderStyle()}>
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -802,7 +802,7 @@ export default function TemplatesPage() {
                   </div>
                   <button 
                     onClick={() => setPreviewTemplate(null)} 
-                    className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+                    className={getModalButtonStyle()}
                   >
                     <X className="h-4 w-4" />
                   </button>

@@ -1111,9 +1111,9 @@ export default function DashboardPage() {
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="w-4 h-4 bg-gray-200 rounded border" style={{
-                          background: 'linear-gradient(145deg, #f0f0f3, #cacace)',
-                          boxShadow: '2px 2px 4px #a8a8aa, -2px -2px 4px #ffffff'
+                        <div className="w-4 h-4 bg-white rounded border" style={{
+                          background: '#ffffff',
+                          boxShadow: '2px 2px 4px rgba(0, 0, 0, 0.1), -2px -2px 4px rgba(255, 255, 255, 0.8)'
                         }}></div>
                         <div>
                           <h4 className="font-semibold text-gray-900">뉴모피즘</h4>
