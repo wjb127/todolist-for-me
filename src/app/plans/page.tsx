@@ -139,7 +139,7 @@ export default function PlansPage() {
   const [isSaving, setIsSaving] = useState(false)
   
   // 테마 시스템 사용
-  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
+  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -420,11 +420,7 @@ export default function PlansPage() {
             <button
               key={filterType}
               onClick={() => setFilter(filterType)}
-              className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg ${
-                filter === filterType
-                  ? getButtonStyle()
-                  : getCardStyle() + ' text-gray-600 hover:opacity-80'
-              }`}
+              className={getFilterButtonStyle(filter === filterType)}
             >
               {filterType === 'all' && '전체'}
               {filterType === 'pending' && '진행중'}

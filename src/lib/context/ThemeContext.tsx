@@ -13,6 +13,7 @@ interface ThemeContextType {
   getInputStyle: () => string
   getModalStyle: () => string
   getModalBackdropStyle: () => string
+  getFilterButtonStyle: (isSelected: boolean) => string
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -110,6 +111,29 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     }
   }
 
+  const getFilterButtonStyle = (isSelected: boolean) => {
+    const baseStyle = 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all duration-200'
+    
+    switch (theme) {
+      case 'neumorphism':
+        return isSelected 
+          ? `${baseStyle} neumorphism-button-active text-blue-700 shadow-inner`
+          : `${baseStyle} neumorphism-button text-gray-600 hover:text-gray-800`
+      case 'glassmorphism':
+        return isSelected
+          ? `${baseStyle} glassmorphism-button-active text-purple-800 backdrop-blur-md`
+          : `${baseStyle} glassmorphism-button text-gray-600 hover:text-gray-800`
+      case 'minimalism':
+        return isSelected
+          ? `${baseStyle} bg-gray-900 text-white border border-gray-900`
+          : `${baseStyle} bg-white text-gray-600 border border-gray-300 hover:bg-gray-50`
+      default:
+        return isSelected
+          ? `${baseStyle} bg-blue-600 text-white shadow-md`
+          : `${baseStyle} bg-white text-gray-600 shadow-sm hover:shadow-md hover:bg-gray-50`
+    }
+  }
+
   const value: ThemeContextType = {
     theme,
     setTheme: handleThemeChange,
@@ -119,6 +143,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     getInputStyle,
     getModalStyle,
     getModalBackdropStyle,
+    getFilterButtonStyle,
   }
 
   return (

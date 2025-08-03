@@ -91,6 +91,14 @@ body {
     -2px -2px 4px rgba(255, 255, 255, 0.8);
 }
 
+.neumorphism-button-active {
+  background: linear-gradient(145deg, #e0e0e0, #f0f0f0);
+  box-shadow: 
+    inset 4px 4px 8px rgba(0, 0, 0, 0.1),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+  border: none;
+}
+
 .neumorphism-input {
   background: linear-gradient(145deg, #e0e0e0, #f0f0f0);
   box-shadow: 
@@ -132,6 +140,14 @@ body {
 .glassmorphism-button:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
+}
+
+.glassmorphism-button-active {
+  background: rgba(147, 51, 234, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(147, 51, 234, 0.4);
+  box-shadow: 0 4px 16px rgba(147, 51, 234, 0.2);
 }
 
 .glassmorphism-input {
