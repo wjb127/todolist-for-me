@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Save, X, AlertCircle, CheckCircle2, Clock, GripVertical, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Save, X, AlertCircle, CheckCircle2, Clock, GripVertical, Sparkles, ChevronRight, ChevronDown } from 'lucide-react'
 import { 
   DndContext, 
   closestCenter, 
@@ -33,16 +33,24 @@ interface SortableItemProps {
   plan: Plan
   onToggleComplete: (id: string, completed: boolean) => void
   onEdit: (plan: Plan) => void
+  onAddChild: (parentId: string) => void
   getPriorityColor: (priority: string) => string
   getPriorityIcon: (priority: string) => React.ReactNode
+  hasChildren: boolean
+  isExpanded: boolean
+  onToggleExpanded: (planId: string) => void
 }
 
 function SortableItem({ 
   plan, 
   onToggleComplete, 
-  onEdit, 
+  onEdit,
+  onAddChild,
   getPriorityColor, 
-  getPriorityIcon
+  getPriorityIcon,
+  hasChildren,
+  isExpanded,
+  onToggleExpanded
 }: SortableItemProps) {
   const {
     attributes,
@@ -69,7 +77,25 @@ function SortableItem({
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-start space-x-3">
+          <div className="flex items-start space-x-2">
+            {/* 들여쓰기 */}
+            <div style={{ width: `${plan.depth * 24}px` }} />
+            
+            {/* 펼치기/접기 버튼 */}
+            {hasChildren && (
+              <button
+                onClick={() => onToggleExpanded(plan.id)}
+                className="p-1 text-gray-400 hover:text-gray-600"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            )}
+            {!hasChildren && <div className="w-6" />}
+            
             <div 
               {...attributes} 
               {...listeners}
@@ -108,7 +134,17 @@ function SortableItem({
             </div>
           </div>
         </div>
-        <div className="flex items-center ml-4">
+        <div className="flex items-center ml-4 space-x-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onAddChild(plan.id)
+            }}
+            className="p-1 text-blue-500 hover:text-blue-600"
+            title="하위 계획 추가"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
           <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
             {getPriorityIcon(plan.priority)}
             <span>
@@ -132,11 +168,13 @@ export default function PlansPage() {
     title: '',
     description: '',
     due_date: new Date().toISOString().split('T')[0], // 오늘 날짜로 기본 설정
-    priority: 'medium' as 'low' | 'medium' | 'high'
+    priority: 'medium' as 'low' | 'medium' | 'high',
+    parent_id: null as string | null
   })
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
   
   // 테마 시스템 사용
   const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
@@ -156,12 +194,16 @@ export default function PlansPage() {
     const { data, error } = await supabase
       .from('plans')
       .select('*')
+      .order('parent_id', { ascending: true })
       .order('order_index', { ascending: true })
 
     if (error) {
       console.error('Error fetching plans:', error)
     } else {
       setPlans(data || [])
+      // 모든 계획을 기본적으로 펼친 상태로 설정
+      const allPlanIds = new Set(data?.map(p => p.id) || [])
+      setExpandedPlans(allPlanIds)
     }
   }
 
@@ -209,6 +251,7 @@ export default function PlansPage() {
           description: formData.description || null,
           due_date: formData.due_date || null,
           priority: formData.priority,
+          parent_id: formData.parent_id,
           order_index: editingPlan.order_index
         }
         
@@ -219,24 +262,28 @@ export default function PlansPage() {
 
         if (error) throw error
       } else {
-        // 새 계획 추가 시 중요도에 따른 order_index 계산
-        let newOrderIndex = 0
+        // 새 계획 추가 시 같은 부모의 자식들 중에서 order_index 계산
+        const siblingPlans = plans.filter(p => 
+          (p.parent_id === formData.parent_id) || 
+          (p.parent_id === null && formData.parent_id === null)
+        )
         
+        let newOrderIndex = 0
         if (formData.priority === 'high') {
-          // 높음: 맨 앞에 배치
+          // 높음: 같은 부모 하위에서 맨 앞에 배치
           newOrderIndex = 0
         } else if (formData.priority === 'medium') {
           // 보통: 높음 다음에 배치
-          const highPriorityPlans = plans.filter(p => p.priority === 'high')
-          newOrderIndex = highPriorityPlans.length
+          const highPrioritySiblings = siblingPlans.filter(p => p.priority === 'high')
+          newOrderIndex = highPrioritySiblings.length
         } else {
-          // 낮음: 맨 뒤에 배치
-          newOrderIndex = plans.length
+          // 낮음: 같은 부모 하위에서 맨 뒤에 배치
+          newOrderIndex = siblingPlans.length
         }
         
-        // 새 계획의 order_index 이상인 기존 계획들의 order_index 증가
-        const plansToUpdate = plans.filter(p => p.order_index >= newOrderIndex)
-        for (const plan of plansToUpdate) {
+        // 새 계획의 order_index 이상인 기존 형제들의 order_index 증가
+        const siblingsToUpdate = siblingPlans.filter(p => p.order_index >= newOrderIndex)
+        for (const plan of siblingsToUpdate) {
           await supabase
             .from('plans')
             .update({ order_index: plan.order_index + 1 })
@@ -248,6 +295,7 @@ export default function PlansPage() {
           description: formData.description || null,
           due_date: formData.due_date || null,
           priority: formData.priority,
+          parent_id: formData.parent_id,
           order_index: newOrderIndex
         }
         
@@ -295,13 +343,14 @@ export default function PlansPage() {
     }
   }
 
-  const openModal = (plan?: Plan) => {
+  const openModal = (plan?: Plan, parentId?: string) => {
     setEditingPlan(plan || null)
     setFormData({
       title: plan?.title || '',
       description: plan?.description || '',
       due_date: plan?.due_date || new Date().toISOString().split('T')[0],
-      priority: plan?.priority || 'medium'
+      priority: plan?.priority || 'medium',
+      parent_id: plan?.parent_id || parentId || null
     })
     setIsModalOpen(true)
   }
@@ -309,7 +358,7 @@ export default function PlansPage() {
   const closeModal = () => {
     setIsModalOpen(false)
     setEditingPlan(null)
-    setFormData({ title: '', description: '', due_date: new Date().toISOString().split('T')[0], priority: 'medium' })
+    setFormData({ title: '', description: '', due_date: new Date().toISOString().split('T')[0], priority: 'medium', parent_id: null })
     setAiSuggestion('')
     setIsAiLoading(false)
     setIsSaving(false)
@@ -360,11 +409,88 @@ export default function PlansPage() {
     }
   }
 
+  // 계층 구조로 계획 정리
+  const buildPlanTree = (plans: Plan[]): Plan[] => {
+    const planMap = new Map<string, Plan & { children?: Plan[] }>()
+    const rootPlans: (Plan & { children?: Plan[] })[] = []
+
+    // 모든 계획을 맵에 저장
+    plans.forEach(plan => {
+      planMap.set(plan.id, { ...plan, children: [] })
+    })
+
+    // 부모-자식 관계 설정
+    plans.forEach(plan => {
+      const planWithChildren = planMap.get(plan.id)!
+      if (plan.parent_id && planMap.has(plan.parent_id)) {
+        const parent = planMap.get(plan.parent_id)!
+        parent.children = parent.children || []
+        parent.children.push(planWithChildren)
+      } else if (!plan.parent_id) {
+        rootPlans.push(planWithChildren)
+      }
+    })
+
+    // 각 레벨에서 order_index로 정렬
+    const sortPlans = (plans: (Plan & { children?: Plan[] })[]) => {
+      plans.sort((a, b) => a.order_index - b.order_index)
+      plans.forEach(plan => {
+        if (plan.children && plan.children.length > 0) {
+          sortPlans(plan.children)
+        }
+      })
+    }
+
+    sortPlans(rootPlans)
+    return rootPlans
+  }
+
+  // 트리를 평탄화하여 표시할 계획 목록 생성
+  const flattenPlanTree = (
+    plans: (Plan & { children?: Plan[] })[],
+    expandedIds: Set<string>,
+    parentVisible: boolean = true
+  ): Plan[] => {
+    const result: Plan[] = []
+
+    plans.forEach(plan => {
+      if (parentVisible) {
+        result.push(plan)
+        
+        if (plan.children && plan.children.length > 0 && expandedIds.has(plan.id)) {
+          const childPlans = flattenPlanTree(plan.children, expandedIds, true)
+          result.push(...childPlans)
+        }
+      }
+    })
+
+    return result
+  }
+
+  const toggleExpanded = (planId: string) => {
+    setExpandedPlans(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(planId)) {
+        newSet.delete(planId)
+      } else {
+        newSet.add(planId)
+      }
+      return newSet
+    })
+  }
+
+  const hasChildren = (planId: string): boolean => {
+    return plans.some(plan => plan.parent_id === planId)
+  }
+
   const filteredPlans = plans.filter(plan => {
     if (filter === 'pending') return !plan.completed
     if (filter === 'completed') return plan.completed
     return true
   })
+
+  const planTree = buildPlanTree(filteredPlans)
+  const visiblePlans = flattenPlanTree(planTree, expandedPlans)
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -435,23 +561,27 @@ export default function PlansPage() {
           onDragEnd={handleDragEnd}
         >
           <div className="space-y-4">
-            {filteredPlans.length === 0 ? (
+            {visiblePlans.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>계획이 없습니다.</p>
                 <p className="text-sm">새로운 계획을 추가해보세요.</p>
               </div>
             ) : (
-              <SortableContext items={filteredPlans.map(plan => plan.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-4">
-                  {filteredPlans.map((plan) => (
+              <SortableContext items={visiblePlans.map(plan => plan.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {visiblePlans.map((plan) => (
                     <SortableItem
                       key={plan.id}
                       plan={plan}
                       onToggleComplete={handleToggleComplete}
                       onEdit={openModal}
+                      onAddChild={(parentId) => openModal(undefined, parentId)}
                       getPriorityColor={getPriorityColor}
                       getPriorityIcon={getPriorityIcon}
+                      hasChildren={hasChildren(plan.id)}
+                      isExpanded={expandedPlans.has(plan.id)}
+                      onToggleExpanded={toggleExpanded}
                     />
                   ))}
                 </div>
@@ -553,6 +683,30 @@ export default function PlansPage() {
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                     className={getInputStyle()}
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    상위 계획
+                  </label>
+                  <select
+                    value={formData.parent_id || ''}
+                    onChange={(e) => setFormData({ ...formData, parent_id: e.target.value || null })}
+                    className={getInputStyle()}
+                  >
+                    <option value="">최상위 계획</option>
+                    {plans
+                      .filter(plan => 
+                        plan.id !== editingPlan?.id && // 자기 자신 제외
+                        plan.depth < 3 // 최대 깊이 제한
+                      )
+                      .map(plan => (
+                        <option key={plan.id} value={plan.id}>
+                          {'└'.repeat(plan.depth)} {plan.title}
+                        </option>
+                      ))
+                    }
+                  </select>
                 </div>
 
                 <div>

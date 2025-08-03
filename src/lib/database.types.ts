@@ -77,6 +77,9 @@ export interface Database {
           completed: boolean
           priority: 'low' | 'medium' | 'high'
           order_index: number
+          parent_id: string | null
+          depth: number
+          is_expanded: boolean
           created_at: string
           updated_at: string
         }
@@ -88,6 +91,9 @@ export interface Database {
           completed?: boolean
           priority?: 'low' | 'medium' | 'high'
           order_index?: number
+          parent_id?: string | null
+          depth?: number
+          is_expanded?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -99,6 +105,9 @@ export interface Database {
           completed?: boolean
           priority?: 'low' | 'medium' | 'high'
           order_index?: number
+          parent_id?: string | null
+          depth?: number
+          is_expanded?: boolean
           created_at?: string
           updated_at?: string
         }
