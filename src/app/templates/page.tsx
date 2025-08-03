@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar, GripVertical, Eye, Search, Filter, Clock, BarChart3, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from '@/lib/context/ThemeContext'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 import {
@@ -50,6 +51,8 @@ function SortableItem({ item, index, updateItem, removeItem }: SortableItemProps
     transition,
     isDragging,
   } = useSortable({ id: item.id })
+  
+  const { getCardStyle, getInputStyle } = useTheme()
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -61,7 +64,7 @@ function SortableItem({ item, index, updateItem, removeItem }: SortableItemProps
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white border-2 border-gray-200 rounded-xl p-4 transition-all ${
+      className={`${getCardStyle()} border-2 border-gray-200 rounded-xl p-4 transition-all ${
         isDragging ? 'shadow-2xl z-10 scale-105 border-blue-300' : 'hover:shadow-md hover:border-gray-300'
       }`}
     >
@@ -84,14 +87,14 @@ function SortableItem({ item, index, updateItem, removeItem }: SortableItemProps
             type="text"
             value={item.title}
             onChange={(e) => updateItem(index, 'title', e.target.value)}
-            className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className={`${getInputStyle()} text-sm`}
             placeholder="할 일 제목을 입력하세요..."
           />
           <input
             type="text"
             value={item.description || ''}
             onChange={(e) => updateItem(index, 'description', e.target.value)}
-            className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className={`${getInputStyle()} text-xs`}
             placeholder="설명 (선택사항)"
           />
         </div>
@@ -110,6 +113,7 @@ function SortableItem({ item, index, updateItem, removeItem }: SortableItemProps
 
 export default function TemplatesPage() {
   const router = useRouter()
+  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
   const [templates, setTemplates] = useState<Template[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
@@ -464,7 +468,7 @@ export default function TemplatesPage() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
+    <div className={`min-h-screen p-4 pb-24 ${getBackgroundStyle()}`}>
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -473,7 +477,7 @@ export default function TemplatesPage() {
           </div>
           <button
             onClick={() => openModal()}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-lg"
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg shadow-lg ${getButtonStyle()}`}
           >
             <Plus className="h-4 w-4" />
             <span>새 템플릿</span>
@@ -481,7 +485,7 @@ export default function TemplatesPage() {
         </div>
 
         {/* 검색 및 필터 바 */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 space-y-4">
+        <div className={`${getCardStyle()} rounded-lg shadow-sm p-4 mb-6 space-y-4`}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -489,7 +493,7 @@ export default function TemplatesPage() {
               placeholder="템플릿 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full pl-10 pr-4 py-2 rounded-lg ${getInputStyle()}`}
             />
           </div>
           
@@ -499,7 +503,7 @@ export default function TemplatesPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'created' | 'name' | 'usage')}
-                className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`text-sm rounded px-2 py-1 ${getInputStyle()}`}
               >
                 <option value="created">최근 생성순</option>
                 <option value="name">이름순</option>
@@ -521,7 +525,7 @@ export default function TemplatesPage() {
           ) : (
             filteredAndSortedTemplates.map((template) => (
               <div key={template.id} className={`rounded-xl shadow-sm p-4 transition-all hover:shadow-md ${
-                template.is_active ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200' : 'bg-white'
+                template.is_active ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200' : getCardStyle()
               }`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -648,8 +652,8 @@ export default function TemplatesPage() {
         </div>
 
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} rounded-xl w-full max-w-md shadow-2xl`}>
               <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                 <div className="flex items-center justify-between">
                   <div>
@@ -689,7 +693,7 @@ export default function TemplatesPage() {
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className={getInputStyle()}
                       placeholder="예: 일일 루틴, 주간 계획..."
                     />
                   </div>
@@ -701,7 +705,7 @@ export default function TemplatesPage() {
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                      className={`${getInputStyle()} resize-none`}
                       rows={3}
                       placeholder="템플릿에 대한 간단한 설명을 입력하세요"
                     />
@@ -720,7 +724,7 @@ export default function TemplatesPage() {
                     </div>
                     <button
                       onClick={addItem}
-                      className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${getButtonStyle()}`}
                     >
                       <Plus className="h-4 w-4" />
                       <span>항목 추가</span>
@@ -767,14 +771,14 @@ export default function TemplatesPage() {
                 <button
                   onClick={handleSaveTemplate}
                   disabled={!formData.title || formData.items.length === 0}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 font-medium transition-colors"
+                  className={`flex-1 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 font-medium transition-colors ${getButtonStyle()}`}
                 >
                   <Save className="h-4 w-4" />
                   <span>{editingTemplate ? '수정 완료' : '템플릿 생성'}</span>
                 </button>
                 <button
                   onClick={closeModal}
-                  className="px-6 py-3 border border-gray-300 bg-white rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${getCardStyle()} hover:opacity-80`}
                 >
                   취소
                 </button>
@@ -785,8 +789,8 @@ export default function TemplatesPage() {
 
         {/* 템플릿 미리보기 모달 */}
         {previewTemplate && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} rounded-xl w-full max-w-md shadow-2xl`}>
               <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
                 <div className="flex items-center justify-between">
                   <div>
@@ -881,7 +885,7 @@ export default function TemplatesPage() {
                       handleApplyTemplate(previewTemplate)
                     }}
                     disabled={isApplying}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                    className={`flex-1 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center space-x-2 ${getButtonStyle()}`}
                   >
                     <Calendar className="h-4 w-4" />
                     <span>템플릿 적용</span>
@@ -899,7 +903,7 @@ export default function TemplatesPage() {
                 </button>
                 <button
                   onClick={() => setPreviewTemplate(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className={`px-4 py-2 rounded-lg hover:opacity-80 ${getCardStyle()}`}
                 >
                   닫기
                 </button>

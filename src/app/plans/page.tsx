@@ -24,6 +24,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
+import { useTheme } from '@/lib/context/ThemeContext'
 
 type Plan = Database['public']['Tables']['plans']['Row']
 type PlanInsert = Database['public']['Tables']['plans']['Insert']
@@ -51,6 +52,8 @@ function SortableItem({
     transition,
     isDragging,
   } = useSortable({ id: plan.id })
+  
+  const { getCardStyle } = useTheme()
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -62,7 +65,7 @@ function SortableItem({
     <div 
       ref={setNodeRef} 
       style={style} 
-      className={`bg-white rounded-lg shadow-sm p-4 ${isDragging ? 'z-50' : ''}`}
+      className={`${getCardStyle()} ${isDragging ? 'z-50' : ''}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -134,6 +137,9 @@ export default function PlansPage() {
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  
+  // 테마 시스템 사용
+  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -383,20 +389,20 @@ export default function PlansPage() {
   const totalCount = plans.length
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
+    <div className={getBackgroundStyle()}>
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">계획</h1>
           <button
             onClick={() => openModal()}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${getButtonStyle()}`}
           >
             <Plus className="h-4 w-4" />
             <span>새 계획</span>
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className={`${getCardStyle()} mb-6`}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-700">전체 현황</span>
             <span className="text-sm text-gray-600">{completedCount}/{totalCount}</span>
@@ -416,8 +422,8 @@ export default function PlansPage() {
               onClick={() => setFilter(filterType)}
               className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg ${
                 filter === filterType
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  ? getButtonStyle()
+                  : getCardStyle() + ' text-gray-600 hover:opacity-80'
               }`}
             >
               {filterType === 'all' && '전체'}
@@ -459,8 +465,8 @@ export default function PlansPage() {
         </DndContext>
 
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg w-full max-w-md">
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} w-full max-w-md`}>
               <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">
@@ -481,7 +487,7 @@ export default function PlansPage() {
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={getInputStyle()}
                     placeholder="계획 제목을 입력하세요"
                   />
                 </div>
@@ -504,7 +510,7 @@ export default function PlansPage() {
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={getInputStyle()}
                     rows={aiSuggestion ? 8 : 3}
                     placeholder="계획에 대한 상세 설명을 입력하세요 (선택사항)"
                   />
@@ -549,7 +555,7 @@ export default function PlansPage() {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={getInputStyle()}
                   />
                 </div>
 
@@ -560,7 +566,7 @@ export default function PlansPage() {
                   <select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={getInputStyle()}
                   >
                     <option value="low">낮음</option>
                     <option value="medium">보통</option>
@@ -573,7 +579,7 @@ export default function PlansPage() {
                 <button
                   onClick={handleSavePlan}
                   disabled={!formData.title || isSaving}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  className={`flex-1 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 ${getButtonStyle()}`}
                 >
                   <Save className="h-4 w-4" />
                   <span>{isSaving ? '저장 중...' : '저장'}</span>
@@ -592,7 +598,7 @@ export default function PlansPage() {
                 )}
                 <button
                   onClick={closeModal}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className={`px-4 py-2 rounded-lg ${getCardStyle()} hover:opacity-80`}
                 >
                   취소
                 </button>

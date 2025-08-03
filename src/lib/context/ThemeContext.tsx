@@ -91,20 +91,20 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const getModalStyle = () => {
     switch (theme) {
       case 'neumorphism':
-        return 'neumorphism-modal rounded-lg'
+        return 'neumorphism-modal rounded-lg max-h-[90vh] overflow-y-auto'
       case 'glassmorphism':
-        return 'glassmorphism-modal rounded-lg max-h-[90vh] overflow-y-auto'
+        return 'glassmorphism-modal rounded-lg'
       case 'minimalism':
-        return 'bg-white border border-gray-300 rounded-lg'
+        return 'bg-white border border-gray-300 rounded-lg max-h-[90vh] overflow-y-auto'
       default:
-        return 'bg-white rounded-lg shadow-xl'
+        return 'bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto'
     }
   }
 
   const getModalBackdropStyle = () => {
     switch (theme) {
       case 'glassmorphism':
-        return 'fixed inset-0 bg-purple-200 bg-opacity-30 z-50 flex items-center justify-center p-4 overflow-y-auto'
+        return 'fixed inset-0 bg-purple-200 bg-opacity-30 z-50 flex items-center justify-center p-4'
       default:
         return 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4'
     }
