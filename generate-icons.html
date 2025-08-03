@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+</head>
+<body>
+    <h2>Todo App 아이콘 생성기</h2>
+    <canvas id="canvas192" width="192" height="192" style="border: 1px solid #ccc; margin: 10px;"></canvas>
+    <canvas id="canvas512" width="512" height="512" style="border: 1px solid #ccc; margin: 10px;"></canvas>
+    
+    <br>
+    <button onclick="downloadIcons()">아이콘 다운로드</button>
+    
+    <script>
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const center = size / 2;
+            const radius = size * 0.47;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Create gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#3B82F6');
+            gradient.addColorStop(1, '#1D4ED8');
+            
+            // Draw background circle
+            ctx.beginPath();
+            ctx.arc(center, center, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Add border
+            ctx.lineWidth = size * 0.015;
+            ctx.strokeStyle = '#1E40AF';
+            ctx.stroke();
+            
+            // Draw check mark
+            ctx.beginPath();
+            ctx.moveTo(size * 0.3, size * 0.5);
+            ctx.lineTo(size * 0.43, size * 0.62);
+            ctx.lineTo(size * 0.7, size * 0.34);
+            
+            ctx.lineWidth = size * 0.047;
+            ctx.strokeStyle = 'white';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+            
+            // Add shine effect
+            const shineGradient = ctx.createRadialGradient(
+                size * 0.35, size * 0.35, 0, 
+                size * 0.35, size * 0.35, size * 0.3
+            );
+            shineGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+            shineGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.beginPath();
+            ctx.ellipse(size * 0.38, size * 0.32, size * 0.12, size * 0.18, -Math.PI/4, 0, 2 * Math.PI);
+            ctx.fillStyle = shineGradient;
+            ctx.fill();
+        }
+        
+        function downloadIcons() {
+            // Generate 192x192 icon
+            const canvas192 = document.getElementById('canvas192');
+            const link192 = document.createElement('a');
+            link192.download = 'icon-192x192.png';
+            link192.href = canvas192.toDataURL();
+            link192.click();
+            
+            // Generate 512x512 icon
+            setTimeout(() => {
+                const canvas512 = document.getElementById('canvas512');
+                const link512 = document.createElement('a');
+                link512.download = 'icon-512x512.png';
+                link512.href = canvas512.toDataURL();
+                link512.click();
+            }, 500);
+            
+            // Generate favicon
+            setTimeout(() => {
+                const faviconCanvas = document.createElement('canvas');
+                faviconCanvas.width = 32;
+                faviconCanvas.height = 32;
+                drawIcon(faviconCanvas, 32);
+                
+                const linkFavicon = document.createElement('a');
+                linkFavicon.download = 'favicon.ico';
+                linkFavicon.href = faviconCanvas.toDataURL();
+                linkFavicon.click();
+            }, 1000);
+        }
+        
+        // Draw icons on page load
+        drawIcon(document.getElementById('canvas192'), 192);
+        drawIcon(document.getElementById('canvas512'), 512);
+    </script>
+</body>
+</html>
