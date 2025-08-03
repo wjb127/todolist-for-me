@@ -1170,53 +1170,58 @@ export default function DashboardPage() {
                   <div className="text-4xl mb-2">{selectedAchievement.icon}</div>
                   <h4 className="text-xl font-bold text-gray-900 mb-1">{selectedAchievement.title}</h4>
                   <p className="text-sm text-gray-600 mb-3">{selectedAchievement.description}</p>
-                
-                {/* 희귀도 표시 */}
-                <div className="flex items-center justify-center space-x-2 mb-4">
-                  <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    selectedAchievement.rarity === 'legendary' ? 'bg-purple-100 text-purple-700' :
-                    selectedAchievement.rarity === 'epic' ? 'bg-blue-100 text-blue-700' :
-                    selectedAchievement.rarity === 'rare' ? 'bg-green-100 text-green-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {selectedAchievement.rarity === 'legendary' && '전설'}
-                    {selectedAchievement.rarity === 'epic' && '에픽'}
-                    {selectedAchievement.rarity === 'rare' && '희귀'}
-                    {selectedAchievement.rarity === 'common' && '일반'}
+                  
+                  {/* 희귀도 표시 */}
+                  <div className="flex items-center justify-center space-x-2 mb-4">
+                    <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      selectedAchievement.rarity === 'legendary' ? 'bg-purple-100 text-purple-700' :
+                      selectedAchievement.rarity === 'epic' ? 'bg-blue-100 text-blue-700' :
+                      selectedAchievement.rarity === 'rare' ? 'bg-green-100 text-green-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {selectedAchievement.rarity === 'legendary' && '전설'}
+                      {selectedAchievement.rarity === 'epic' && '에픽'}
+                      {selectedAchievement.rarity === 'rare' && '희귀'}
+                      {selectedAchievement.rarity === 'common' && '일반'}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               
-              {/* 진척사항 */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">진척사항</span>
-                  <span className="font-medium text-gray-900">
-                    {selectedAchievement.unlocked ? '달성 완료!' : selectedAchievement.progressText}
-                  </span>
+              {selectedAchievement.id !== 'theme_selector' && (
+                <div>
+                  {/* 진척사항 */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">진척사항</span>
+                      <span className="font-medium text-gray-900">
+                        {selectedAchievement.unlocked ? '달성 완료!' : selectedAchievement.progressText}
+                      </span>
+                    </div>
+                    
+                    {!selectedAchievement.unlocked && (
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            selectedAchievement.rarity === 'legendary' ? 'bg-purple-500' :
+                            selectedAchievement.rarity === 'epic' ? 'bg-blue-500' :
+                            selectedAchievement.rarity === 'rare' ? 'bg-green-500' :
+                            'bg-gray-500'
+                          }`}
+                          style={{ width: `${(selectedAchievement.progress! / selectedAchievement.total!) * 100}%` }}
+                        />
+                      </div>
+                    )}
+                    
+                    {selectedAchievement.unlocked && (
+                      <div className="flex items-center justify-center space-x-2 text-green-600">
+                        <Trophy className="h-4 w-4" />
+                        <span className="text-sm font-medium">🎉 성취 달성!</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                
-                {!selectedAchievement.unlocked && (
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        selectedAchievement.rarity === 'legendary' ? 'bg-purple-500' :
-                        selectedAchievement.rarity === 'epic' ? 'bg-blue-500' :
-                        selectedAchievement.rarity === 'rare' ? 'bg-green-500' :
-                        'bg-gray-500'
-                      }`}
-                      style={{ width: `${(selectedAchievement.progress! / selectedAchievement.total!) * 100}%` }}
-                    />
-                  </div>
-                )}
-                
-                {selectedAchievement.unlocked && (
-                  <div className="flex items-center justify-center space-x-2 text-green-600">
-                    <Trophy className="h-4 w-4" />
-                    <span className="text-sm font-medium">🎉 성취 달성!</span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
         )}
