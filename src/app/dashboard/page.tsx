@@ -74,7 +74,7 @@ const motivationalQuotes: MotivationalQuote[] = [
 interface LevelData {
   level: number
   title: string
-  icon: React.ComponentType<any>
+  icon: React.ComponentType<{ className?: string }>
   color: string
   description: string
   xpRequired: number

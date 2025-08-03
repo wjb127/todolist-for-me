@@ -26,7 +26,7 @@ export default function TodosPage() {
   const [newTodoTitle, setNewTodoTitle] = useState('')
   
   // 테마 시스템 사용
-  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
+  const { getBackgroundStyle, getCardStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
 
   const fetchTodos = useCallback(async () => {
     const { data, error } = await supabase
