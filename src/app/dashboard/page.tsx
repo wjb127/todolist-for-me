@@ -70,23 +70,59 @@ const motivationalQuotes: MotivationalQuote[] = [
   { text: "이것 역시 곧 지나가리라.", author: "페르시아 우화" },
 ]
 
+// 레벨별 정보 시스템
+interface LevelData {
+  level: number
+  title: string
+  icon: React.ComponentType<any>
+  color: string
+  description: string
+  xpRequired: number
+}
+
+const levelData: LevelData[] = [
+  { level: 1, title: "새내기", icon: Target, color: "text-gray-500", description: "할 일 관리의 첫 걸음을 시작했습니다", xpRequired: 0 },
+  { level: 2, title: "초보자", icon: Star, color: "text-blue-500", description: "기본적인 할 일 관리를 익혔습니다", xpRequired: 10 },
+  { level: 3, title: "학습자", icon: Award, color: "text-green-500", description: "꾸준히 할 일을 실행하고 있습니다", xpRequired: 40 },
+  { level: 4, title: "실행가", icon: Zap, color: "text-yellow-500", description: "생산성이 눈에 띄게 향상되었습니다", xpRequired: 90 },
+  { level: 5, title: "전문가", icon: Trophy, color: "text-orange-500", description: "할 일 관리의 전문성을 갖췄습니다", xpRequired: 160 },
+  { level: 6, title: "숙련자", icon: Crown, color: "text-purple-500", description: "뛰어난 생산성을 보여주고 있습니다", xpRequired: 250 },
+  { level: 7, title: "달인", icon: Gem, color: "text-pink-500", description: "할 일 관리의 달인이 되었습니다", xpRequired: 360 },
+  { level: 8, title: "거장", icon: Shield, color: "text-indigo-500", description: "최고 수준의 생산성을 달성했습니다", xpRequired: 490 },
+  { level: 9, title: "전설", icon: Rocket, color: "text-amber-500", description: "전설적인 생산성의 소유자입니다", xpRequired: 640 },
+  { level: 10, title: "신화", icon: Sparkles, color: "text-violet-500", description: "신화적 존재로 거듭났습니다", xpRequired: 810 }
+]
+
 // 레벨 시스템 설정
 const getLevelInfo = (totalCompleted: number): UserLevel => {
-  // 간단한 레벨 공식: 레벨 = sqrt(totalCompleted / 10) + 1
-  const level = Math.floor(Math.sqrt(totalCompleted / 10)) + 1
-  const currentLevelXP = Math.pow(level - 1, 2) * 10
-  const nextLevelXP = Math.pow(level, 2) * 10
-  const currentXP = totalCompleted - currentLevelXP
+  // 현재 레벨 찾기
+  let currentLevel = levelData[0]
+  for (let i = levelData.length - 1; i >= 0; i--) {
+    if (totalCompleted >= levelData[i].xpRequired) {
+      currentLevel = levelData[i]
+      break
+    }
+  }
+  
+  // 다음 레벨 정보
+  const nextLevelIndex = Math.min(currentLevel.level, levelData.length - 1)
+  const nextLevel = levelData[nextLevelIndex]
+  const nextLevelXP = nextLevel ? nextLevel.xpRequired : currentLevel.xpRequired
+  
+  const currentXP = totalCompleted - currentLevel.xpRequired
   const xpToNext = nextLevelXP - totalCompleted
   
-  const titles = [
-    "새내기", "초보자", "학습자", "실행가", "전문가", 
-    "숙련자", "달인", "거장", "전설", "신화"
-  ]
-  
-  const title = titles[Math.min(level - 1, titles.length - 1)] || "신화"
-  
-  return { level, currentXP, xpToNext, title }
+  return { 
+    level: currentLevel.level, 
+    currentXP: Math.max(0, currentXP), 
+    xpToNext: Math.max(0, xpToNext), 
+    title: currentLevel.title 
+  }
+}
+
+// 현재 레벨의 아이콘과 색상 가져오기
+const getCurrentLevelData = (level: number): LevelData => {
+  return levelData.find(data => data.level === level) || levelData[0]
 }
 
 // 성취 시스템
@@ -190,6 +226,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [currentQuote, setCurrentQuote] = useState<MotivationalQuote | null>(null)
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
+  const [showLevelModal, setShowLevelModal] = useState(false)
   
   // 테마 시스템 사용
   const { theme, setTheme, getBackgroundStyle, getCardStyle, getButtonStyle, getModalStyle, getModalBackdropStyle } = useTheme()
@@ -640,18 +677,24 @@ export default function DashboardPage() {
         {/* 레벨 및 경험치 시스템 */}
         <div className={`${getCardStyle()} mb-6`}>
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowLevelModal(true)}
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <div className="relative">
-                <Crown className="h-8 w-8 text-amber-500" />
+                {(() => {
+                  const LevelIcon = getCurrentLevelData(userLevel.level).icon
+                  return <LevelIcon className={`h-8 w-8 ${getCurrentLevelData(userLevel.level).color}`} />
+                })()}
                 <div className="absolute -top-1 -right-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {userLevel.level}
                 </div>
               </div>
-              <div>
+              <div className="text-left">
                 <h2 className="text-lg font-bold text-gray-800">{userLevel.title}</h2>
                 <p className="text-sm text-gray-600">레벨 {userLevel.level}</p>
               </div>
-            </div>
+            </button>
             <div className="text-right">
               <p className="text-sm text-gray-600">XP</p>
               <p className="text-lg font-bold text-gray-800">{totalCompletedEver}</p>
@@ -1316,6 +1359,130 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* 레벨 정보 모달 */}
+        {showLevelModal && (
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} max-w-md w-full p-6`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900">레벨 시스템</h3>
+                <button
+                  onClick={() => setShowLevelModal(false)}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* 현재 레벨 정보 */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                <div className="flex items-center space-x-3 mb-2">
+                  {(() => {
+                    const LevelIcon = getCurrentLevelData(userLevel.level).icon
+                    return <LevelIcon className={`h-8 w-8 ${getCurrentLevelData(userLevel.level).color}`} />
+                  })()}
+                  <div>
+                    <h4 className="text-lg font-bold text-gray-900">{userLevel.title}</h4>
+                    <p className="text-sm text-gray-600">레벨 {userLevel.level}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-700">{getCurrentLevelData(userLevel.level).description}</p>
+                <div className="mt-3">
+                  <div className="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>현재 XP: {totalCompletedEver}</span>
+                    <span>다음 레벨까지: {userLevel.xpToNext}XP</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-1000"
+                      style={{ 
+                        width: userLevel.xpToNext > 0 
+                          ? `${Math.max(10, (userLevel.currentXP / (userLevel.currentXP + userLevel.xpToNext)) * 100)}%`
+                          : '100%'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 모든 레벨 목록 */}
+              <div>
+                <h4 className="text-md font-semibold text-gray-800 mb-3">모든 칭호</h4>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {levelData.map((data) => {
+                    const isUnlocked = totalCompletedEver >= data.xpRequired
+                    const isCurrent = data.level === userLevel.level
+                    const IconComponent = data.icon
+                    
+                    return (
+                      <div 
+                        key={data.level}
+                        className={`flex items-center space-x-3 p-3 rounded-lg border ${
+                          isCurrent 
+                            ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-300' 
+                            : isUnlocked 
+                              ? 'bg-green-50 border-green-200' 
+                              : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className="relative">
+                          <IconComponent 
+                            className={`h-6 w-6 ${
+                              isUnlocked ? data.color : 'text-gray-400'
+                            } ${!isUnlocked ? 'opacity-50' : ''}`} 
+                          />
+                          {isCurrent && (
+                            <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                              ✓
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <h5 className={`font-semibold ${
+                              isUnlocked ? 'text-gray-900' : 'text-gray-500'
+                            }`}>
+                              {data.title}
+                            </h5>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              isCurrent 
+                                ? 'bg-blue-100 text-blue-700'
+                                : isUnlocked 
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              Lv.{data.level}
+                            </span>
+                          </div>
+                          <p className={`text-xs mt-1 ${
+                            isUnlocked ? 'text-gray-600' : 'text-gray-400'
+                          }`}>
+                            {data.description}
+                          </p>
+                          <p className={`text-xs mt-1 ${
+                            isUnlocked ? 'text-gray-500' : 'text-gray-400'
+                          }`}>
+                            필요 XP: {data.xpRequired}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 닫기 버튼 */}
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={() => setShowLevelModal(false)}
+                  className={`px-6 py-2 rounded-lg ${getButtonStyle()}`}
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
