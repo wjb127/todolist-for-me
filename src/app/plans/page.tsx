@@ -74,6 +74,7 @@ function SortableItem({
       ref={setNodeRef} 
       style={style} 
       className={`${getCardStyle()} ${isDragging ? 'z-50' : ''}`}
+      data-plan-id={plan.id}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -353,6 +354,19 @@ export default function PlansPage() {
       parent_id: plan?.parent_id || parentId || null
     })
     setIsModalOpen(true)
+    
+    // 하위 계획 추가시 해당 부모 계획으로 스크롤
+    if (parentId) {
+      setTimeout(() => {
+        const parentElement = document.querySelector(`[data-plan-id="${parentId}"]`)
+        if (parentElement) {
+          parentElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          })
+        }
+      }, 100)
+    }
   }
 
   const closeModal = () => {
