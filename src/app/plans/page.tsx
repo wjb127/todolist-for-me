@@ -146,8 +146,7 @@ function SortableItem({
           >
             <Plus className="h-4 w-4" />
           </button>
-          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
-            {getPriorityIcon(plan.priority)}
+          <div className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
             <span>
               {plan.priority === 'high' && '높음'}
               {plan.priority === 'medium' && '보통'}
