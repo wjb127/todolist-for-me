@@ -89,9 +89,9 @@ function SortableItem({
                 className="p-1 text-gray-400 hover:text-gray-600"
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-6 w-6" />
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-6 w-6" />
                 )}
               </button>
             )}
