@@ -100,13 +100,13 @@ function SortableItem({
             <div 
               {...attributes} 
               {...listeners}
-              className="p-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-1"
+              className="p-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex items-center"
             >
               <GripVertical className="h-4 w-4" />
             </div>
             <button
               onClick={() => onToggleComplete(plan.id, plan.completed)}
-              className={`p-1 rounded mt-1 ${
+              className={`p-1 rounded flex items-center ${
                 plan.completed
                   ? 'text-green-600 hover:text-green-700'
                   : 'text-gray-400 hover:text-gray-600'
