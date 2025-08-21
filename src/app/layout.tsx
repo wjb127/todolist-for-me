@@ -26,7 +26,7 @@ export function generateViewport() {
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
-    themeColor: '#000000',
+    themeColor: '#3B82F6',
   }
 }
 
@@ -39,9 +39,14 @@ export default function RootLayout({
     <html lang="ko">
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/icon-192x192.svg" />
+        <link rel="apple-touch-icon" href="/icon-180x180.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/icon-120x120.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/icon-167x167.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icon-180x180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="TodoApp" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-50`}
