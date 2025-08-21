@@ -764,6 +764,18 @@ export default function TemplatesPage() {
                       </SortableContext>
                     </DndContext>
                   )}
+                  {/* 하단 항목 추가 버튼 */}
+                  {formData.items.length > 0 && (
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        onClick={addItem}
+                        className={`flex items-center space-x-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${getButtonStyle()}`}
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>항목 추가</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
