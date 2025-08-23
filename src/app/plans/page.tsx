@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Save, X, AlertCircle, CheckCircle2, Clock, GripVertical, Sparkles, ChevronRight, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, Save, X, AlertCircle, Clock, GripVertical, Sparkles, ChevronRight, ChevronDown } from 'lucide-react'
+import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import { 
   DndContext, 
   closestCenter, 
@@ -104,16 +105,12 @@ function SortableItem({
             >
               <GripVertical className="h-4 w-4" />
             </div>
-            <button
-              onClick={() => onToggleComplete(plan.id, plan.completed)}
-              className={`p-1 rounded flex items-center ${
-                plan.completed
-                  ? 'text-green-600 hover:text-green-700'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <CheckCircle2 className={`h-6 w-6 ${plan.completed ? 'fill-current' : ''}`} />
-            </button>
+            <AnimatedCheckbox
+              checked={plan.completed}
+              onChange={() => onToggleComplete(plan.id, plan.completed)}
+              size="md"
+              className="mr-2"
+            />
             <div className="flex-1">
               <div 
                 className="cursor-pointer" 
@@ -518,7 +515,7 @@ export default function PlansPage() {
     switch (priority) {
       case 'high': return <AlertCircle className="h-4 w-4" />
       case 'medium': return <Clock className="h-4 w-4" />
-      case 'low': return <CheckCircle2 className="h-4 w-4" />
+      case 'low': return <Clock className="h-4 w-4 opacity-50" />
       default: return <Clock className="h-4 w-4" />
     }
   }

@@ -7,6 +7,7 @@ import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMont
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
+import YearlyContributionGraph from '@/components/dashboard/YearlyContributionGraph'
 
 type Todo = Database['public']['Tables']['todos']['Row']
 type Plan = Database['public']['Tables']['plans']['Row']
@@ -674,8 +675,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* GitHub 스타일 연간 잔디 */}
+        <YearlyContributionGraph />
+
         {/* 레벨 및 경험치 시스템 */}
-        <div className={`${getCardStyle()} mb-6`}>
+        <div className={`${getCardStyle()} mb-6 mt-6`}>
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => setShowLevelModal(true)}

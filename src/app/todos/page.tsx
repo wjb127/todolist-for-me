@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Calendar, Plus, CheckSquare, Square, Clock, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, Plus, Clock, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -345,7 +346,7 @@ export default function TodosPage() {
           {templates.some(t => t.is_active) && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
               <div className="flex items-center space-x-2 mb-1">
-                <CheckSquare className="h-4 w-4 text-green-600" />
+                <AnimatedCheckbox checked={true} onChange={() => {}} size="sm" className="pointer-events-none" />
                 <span className="text-sm font-medium text-green-800">
                   활성 템플릿: {templates.find(t => t.is_active)?.title}
                 </span>
@@ -409,20 +410,11 @@ export default function TodosPage() {
             todos.map((todo) => (
               <div key={todo.id} className={getCardStyle()}>
                 <div className="flex items-start space-x-3">
-                  <button
-                    onClick={() => handleToggleComplete(todo.id, todo.completed)}
-                    className={`p-1 rounded ${
-                      todo.completed
-                        ? 'text-green-600 hover:text-green-700'
-                        : 'text-gray-400 hover:text-gray-600'
-                    }`}
-                  >
-                    {todo.completed ? (
-                      <CheckSquare className="h-6 w-6" />
-                    ) : (
-                      <Square className="h-6 w-6" />
-                    )}
-                  </button>
+                  <AnimatedCheckbox
+                    checked={todo.completed}
+                    onChange={() => handleToggleComplete(todo.id, todo.completed)}
+                    size="md"
+                  />
                   <div className="flex-1">
                     <h3 className={`font-medium ${
                       todo.completed
