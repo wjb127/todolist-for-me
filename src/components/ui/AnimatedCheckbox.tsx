@@ -2,7 +2,7 @@
 
 import { Check, Star, Sparkles } from 'lucide-react'
 import { useCheckboxEffects } from '@/lib/hooks/useCheckboxEffects'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 interface AnimatedCheckboxProps {
   checked: boolean

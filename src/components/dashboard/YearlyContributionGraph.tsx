@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { format, subDays, startOfYear, endOfYear, eachDayOfInterval, getDay, getWeek, differenceInWeeks } from 'date-fns'
+import { useState, useEffect, useCallback } from 'react'
+import { format, subDays, startOfYear, endOfYear, eachDayOfInterval, getDay, differenceInWeeks } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
 import { useTheme } from '@/lib/context/ThemeContext'
@@ -22,11 +22,7 @@ export default function YearlyContributionGraph() {
   const [currentStreak, setCurrentStreak] = useState(0)
   const { getCardStyle } = useTheme()
 
-  useEffect(() => {
-    fetchYearlyData()
-  }, [selectedYear])
-
-  const fetchYearlyData = async () => {
+  const fetchYearlyData = useCallback(async () => {
     const startDate = startOfYear(new Date(selectedYear, 0, 1))
     const endDate = endOfYear(new Date(selectedYear, 0, 1))
     
@@ -68,7 +64,11 @@ export default function YearlyContributionGraph() {
     
     // Calculate statistics
     calculateStatistics(contributionsMap)
-  }
+  }, [selectedYear])
+
+  useEffect(() => {
+    fetchYearlyData()
+  }, [fetchYearlyData])
 
   const calculateStatistics = (contributionsMap: Map<string, ContributionData>) => {
     let total = 0
@@ -134,7 +134,7 @@ export default function YearlyContributionGraph() {
     // Add padding for the first week
     const firstDayOfWeek = getDay(yearStart)
     for (let i = 0; i < firstDayOfWeek; i++) {
-      currentWeek.push(null as any)
+      currentWeek.push(null as unknown as Date)
     }
     
     days.forEach(day => {
@@ -148,7 +148,7 @@ export default function YearlyContributionGraph() {
     // Add remaining days
     if (currentWeek.length > 0) {
       while (currentWeek.length < 7) {
-        currentWeek.push(null as any)
+        currentWeek.push(null as unknown as Date)
       }
       weeks.push(currentWeek)
     }

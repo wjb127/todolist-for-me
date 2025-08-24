@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Save, X, AlertCircle, Clock, GripVertical, Sparkles, ChevronRight, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, Save, X, Clock, GripVertical, Sparkles, ChevronRight, ChevronDown } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import { 
   DndContext, 
@@ -36,7 +36,6 @@ interface SortableItemProps {
   onEdit: (plan: Plan) => void
   onAddChild: (parentId: string) => void
   getPriorityColor: (priority: string) => string
-  getPriorityIcon: (priority: string) => React.ReactNode
   hasChildren: boolean
   isExpanded: boolean
   onToggleExpanded: (planId: string) => void
@@ -47,8 +46,7 @@ function SortableItem({
   onToggleComplete, 
   onEdit,
   onAddChild,
-  getPriorityColor, 
-  getPriorityIcon,
+  getPriorityColor,
   hasChildren,
   isExpanded,
   onToggleExpanded
@@ -511,14 +509,6 @@ export default function PlansPage() {
     }
   }
 
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case 'high': return <AlertCircle className="h-4 w-4" />
-      case 'medium': return <Clock className="h-4 w-4" />
-      case 'low': return <Clock className="h-4 w-4 opacity-50" />
-      default: return <Clock className="h-4 w-4" />
-    }
-  }
 
 
   const completedCount = plans.filter(plan => plan.completed).length
@@ -588,7 +578,6 @@ export default function PlansPage() {
                       onEdit={openModal}
                       onAddChild={(parentId) => openModal(undefined, parentId)}
                       getPriorityColor={getPriorityColor}
-                      getPriorityIcon={getPriorityIcon}
                       hasChildren={hasChildren(plan.id)}
                       isExpanded={expandedPlans.has(plan.id)}
                       onToggleExpanded={toggleExpanded}
