@@ -112,6 +112,65 @@ export interface Database {
           updated_at?: string
         }
       }
+      bucketlist: {
+        Row: {
+          id: string
+          parent_id: string | null
+          title: string
+          description: string | null
+          category: string
+          target_date: string | null
+          completed: boolean
+          completed_at: string | null
+          priority: 'low' | 'medium' | 'high'
+          depth: number
+          order_index: number
+          is_expanded: boolean
+          notes: string | null
+          tags: string[] | null
+          progress: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          parent_id?: string | null
+          title: string
+          description?: string | null
+          category?: string
+          target_date?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          priority?: 'low' | 'medium' | 'high'
+          depth?: number
+          order_index?: number
+          is_expanded?: boolean
+          notes?: string | null
+          tags?: string[] | null
+          progress?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          parent_id?: string | null
+          title?: string
+          description?: string | null
+          category?: string
+          target_date?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          priority?: 'low' | 'medium' | 'high'
+          depth?: number
+          order_index?: number
+          is_expanded?: boolean
+          notes?: string | null
+          tags?: string[] | null
+          progress?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }
