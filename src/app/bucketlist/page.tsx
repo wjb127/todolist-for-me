@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react'
-import { Target, Plus, ChevronRight, ChevronDown, MoreHorizontal, Copy, Trash2, Calendar, CheckCircle2, Circle, Star, Search, GripVertical } from 'lucide-react'
+import { Target, Plus, ChevronRight, ChevronDown, MoreHorizontal, Trash2, Calendar, CheckCircle2, Circle, Star, Search, GripVertical } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
@@ -39,7 +39,6 @@ interface BucketItemProps {
   onUpdate: (id: string, updates: BucketListUpdate) => void
   onDelete: (id: string) => void
   onAddChild: (parentId: string) => void
-  onDuplicate: (item: BucketListItem) => void
   onToggleComplete: (item: BucketListItem) => void
   isExpanded: boolean
   onToggleExpand: (id: string) => void
@@ -51,7 +50,6 @@ function BucketItem({
   onUpdate,
   onDelete,
   onAddChild,
-  onDuplicate,
   onToggleComplete,
   isExpanded,
   onToggleExpand
@@ -329,16 +327,6 @@ function BucketItem({
                   <Plus className="h-4 w-4" />
                   하위 항목 추가
                 </button>
-                <button
-                  onClick={() => {
-                    onDuplicate(item)
-                    setShowActions(false)
-                  }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                >
-                  <Copy className="h-4 w-4" />
-                  복제
-                </button>
                 <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
                 <button
                   onClick={() => {
@@ -369,7 +357,6 @@ function BucketItem({
               onUpdate={onUpdate}
               onDelete={onDelete}
               onAddChild={onAddChild}
-              onDuplicate={onDuplicate}
               onToggleComplete={onToggleComplete}
               isExpanded={expandedItems.has(child.id)}
               onToggleExpand={onToggleExpand}
@@ -548,26 +535,6 @@ export default function BucketListPage() {
     }
   }
 
-  // 항목 복제
-  const handleDuplicate = async (item: BucketListItem) => {
-    const newItem: BucketListInsert = {
-      ...item,
-      id: undefined,
-      title: `${item.title} (복사본)`,
-      completed: false,
-      completed_at: null,
-      created_at: undefined,
-      updated_at: undefined
-    }
-
-    const { error } = await supabase
-      .from('bucketlist')
-      .insert(newItem)
-
-    if (!error) {
-      fetchItems()
-    }
-  }
 
   // 드래그 앤 드롭
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -688,7 +655,6 @@ export default function BucketListPage() {
                     onUpdate={handleUpdate}
                     onDelete={handleDelete}
                     onAddChild={handleAddItem}
-                    onDuplicate={handleDuplicate}
                     onToggleComplete={toggleComplete}
                     isExpanded={localExpandedItems.has(item.id)}
                     onToggleExpand={toggleExpanded}

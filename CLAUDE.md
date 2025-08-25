@@ -103,3 +103,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 - All tables use UUID primary keys and have updated_at triggers
 - Bottom navigation uses pathname.startsWith() for active state
 - Korean language used throughout UI text
+
+## 🔔 작업 완료 알림 규칙
+**중요**: 모든 주요 작업 완료 시 터미널에서 `notify` 명령을 실행하여 사용자에게 알림을 보낸다.
+```bash
+# 작업 완료 시 실행
+notify
+```
