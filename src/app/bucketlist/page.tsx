@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react'
-import { Target, Plus, ChevronRight, ChevronDown, MoreHorizontal, Trash2, Calendar, CheckCircle2, Circle, Star, Search, GripVertical } from 'lucide-react'
+import { Target, Plus, ChevronRight, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, GripVertical } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
@@ -58,27 +58,9 @@ function BucketItem({
   const [isEditingDesc, setIsEditingDesc] = useState(false)
   const [editTitle, setEditTitle] = useState(item.title)
   const [editDesc, setEditDesc] = useState(item.description || '')
-  const [showActions, setShowActions] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
   const descRef = useRef<HTMLTextAreaElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
   const { getCardStyle } = useTheme()
-
-  // Click outside handler for menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowActions(false)
-      }
-    }
-
-    if (showActions) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside)
-      }
-    }
-  }, [showActions])
 
   const {
     attributes,
@@ -179,6 +161,15 @@ function BucketItem({
               <GripVertical className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </div>
           </div>
+
+          {/* 하위 항목 추가 버튼 */}
+          <button
+            onClick={() => onAddChild(item.id)}
+            className="min-w-[32px] min-h-[32px] mr-2 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+            aria-label="하위 항목 추가"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
 
           {/* 체크박스 - 모바일 최적화 */}
           <button
@@ -300,49 +291,18 @@ function BucketItem({
             </div>
           </div>
 
-          {/* 액션 버튼 - 모바일 최적화 */}
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setShowActions(!showActions)}
-              className={`min-w-[44px] min-h-[44px] p-2.5 rounded-lg transition-all ${
-                showActions 
-                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md' 
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 md:hover:bg-gray-200 md:dark:hover:bg-gray-700'
-              } md:opacity-0 md:group-hover:opacity-100 border border-gray-300 dark:border-gray-600`}
-              aria-label="더보기 메뉴"
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </button>
-
-            {showActions && (
-              <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 py-1 w-48 backdrop-blur-xl" 
-                   style={{ zIndex: 9999 }}>
-                <button
-                  onClick={() => {
-                    onAddChild(item.id)
-                    setShowActions(false)
-                  }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  하위 항목 추가
-                </button>
-                <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
-                <button
-                  onClick={() => {
-                    if (confirm('이 항목과 하위 항목을 모두 삭제하시겠습니까?')) {
-                      onDelete(item.id)
-                    }
-                    setShowActions(false)
-                  }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 flex items-center gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  삭제
-                </button>
-              </div>
-            )}
-          </div>
+          {/* 삭제 버튼 - 모바일 최적화 */}
+          <button
+            onClick={() => {
+              if (confirm('정말 삭제하시겠습니까? 하위 항목도 모두 삭제됩니다.')) {
+                onDelete(item.id)
+              }
+            }}
+            className="min-w-[40px] min-h-[40px] p-2 rounded-lg transition-all text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 md:opacity-0 md:group-hover:opacity-100"
+            aria-label="삭제"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
