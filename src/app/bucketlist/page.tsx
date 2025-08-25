@@ -155,37 +155,40 @@ function BucketItem({
         isDragging ? 'shadow-2xl ring-2 ring-blue-400' : ''
       }`}>
         <div className="flex items-start">
-          {/* 드래그 핸들 & 확장/축소 */}
+          {/* 드래그 핸들 & 확장/축소 - 모바일 최적화 */}
           <div className="flex items-center mr-2">
             {hasChildren && (
               <button
                 onClick={() => onToggleExpand(item.id)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                className="min-w-[32px] min-h-[32px] p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center"
+                aria-label={isExpanded ? "축소" : "펼치기"}
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                  <ChevronDown className="h-5 w-5 text-gray-500" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                  <ChevronRight className="h-5 w-5 text-gray-500" />
                 )}
               </button>
             )}
             <div
               {...attributes}
               {...listeners}
-              className={`p-1 cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-                !hasChildren ? 'ml-6' : ''
+              className={`min-w-[40px] min-h-[40px] p-2 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-all ${
+                !hasChildren ? 'ml-[32px]' : ''
               }`}
+              aria-label="드래그 핸들"
             >
-              <GripVertical className="h-4 w-4 text-gray-400" />
+              <GripVertical className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </div>
           </div>
 
-          {/* 체크박스 */}
+          {/* 체크박스 - 모바일 최적화 */}
           <button
             onClick={() => onToggleComplete(item)}
-            className={`mr-3 mt-0.5 transition-colors ${
+            className={`min-w-[32px] min-h-[32px] mr-2 flex items-center justify-center transition-colors ${
               item.completed ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'
             }`}
+            aria-label={item.completed ? "완료 취소" : "완료 표시"}
           >
             {item.completed ? (
               <CheckCircle2 className="h-5 w-5" />
@@ -256,14 +259,14 @@ function BucketItem({
               )
             )}
 
-            {/* 설명 추가 버튼 (설명이 없을 때) */}
+            {/* 설명 추가 버튼 (설명이 없을 때) - 모바일 터치 영역 개선 */}
             {!item.description && !isEditingDesc && (
               <button
                 onClick={() => {
                   setIsEditingDesc(true)
                   setTimeout(() => descRef.current?.focus(), 50)
                 }}
-                className="text-xs text-gray-400 hover:text-gray-600 mb-2"
+                className="text-xs text-gray-400 hover:text-gray-600 mb-2 py-1 px-2 -ml-2 rounded"
               >
                 + 설명 추가
               </button>
@@ -299,18 +302,18 @@ function BucketItem({
             </div>
           </div>
 
-          {/* 액션 버튼 */}
+          {/* 액션 버튼 - 모바일 최적화 */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowActions(!showActions)}
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`min-w-[44px] min-h-[44px] p-2.5 rounded-lg transition-all ${
                 showActions 
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' 
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
-              } opacity-0 group-hover:opacity-100 border border-transparent hover:border-gray-300 dark:hover:border-gray-600`}
+                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md' 
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 md:hover:bg-gray-200 md:dark:hover:bg-gray-700'
+              } md:opacity-0 md:group-hover:opacity-100 border border-gray-300 dark:border-gray-600`}
               aria-label="더보기 메뉴"
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <MoreHorizontal className="h-5 w-5" />
             </button>
 
             {showActions && (
@@ -608,23 +611,23 @@ export default function BucketListPage() {
   return (
     <div className={`min-h-screen p-4 pb-24 ${getBackgroundStyle()}`}>
       <div className="max-w-4xl mx-auto">
-        {/* 헤더 */}
+        {/* 헤더 - 모바일 최적화 */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Target className="h-7 w-7 text-purple-600" />
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Target className="h-6 md:h-7 w-6 md:w-7 text-purple-600" />
               버킷리스트
             </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
               인생에서 이루고 싶은 목표들
             </p>
           </div>
           <button
             onClick={() => handleAddItem(null)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${getButtonStyle()}`}
+            className={`min-w-[44px] min-h-[44px] flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 rounded-lg ${getButtonStyle()}`}
           >
-            <Plus className="h-4 w-4" />
-            <span>새 목표</span>
+            <Plus className="h-5 md:h-4 w-5 md:w-4" />
+            <span className="hidden md:inline">새 목표</span>
           </button>
         </div>
 

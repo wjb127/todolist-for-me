@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, KeyboardEvent } from 'react'
-import { Plus, GripVertical, X, ChevronDown, ChevronRight, MoreHorizontal, Copy, Trash2 } from 'lucide-react'
+import { Plus, GripVertical, ChevronDown, ChevronRight, MoreHorizontal, Copy, Trash2 } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import {
   DndContext,
@@ -32,7 +32,6 @@ export interface TemplateItem {
 
 interface NotionStyleItemProps {
   item: TemplateItem
-  index: number
   depth: number
   onUpdate: (id: string, field: 'title' | 'description', value: string) => void
   onDelete: (id: string) => void
@@ -44,7 +43,6 @@ interface NotionStyleItemProps {
 
 function NotionStyleItem({
   item,
-  index,
   depth = 0,
   onUpdate,
   onDelete,
@@ -59,7 +57,7 @@ function NotionStyleItem({
   const [isEditingDesc, setIsEditingDesc] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
   const descRef = useRef<HTMLInputElement>(null)
-  const { getCardStyle, getInputStyle } = useTheme()
+  const { } = useTheme()
 
   const {
     attributes,
@@ -260,11 +258,10 @@ function NotionStyleItem({
       {/* Sub Items */}
       {hasSubItems && item.isExpanded && (
         <div className="ml-6">
-          {item.subItems!.map((subItem, subIndex) => (
+          {item.subItems!.map((subItem) => (
             <NotionStyleItem
               key={subItem.id}
               item={subItem}
-              index={subIndex}
               depth={depth + 1}
               onUpdate={onUpdate}
               onDelete={onDelete}
@@ -461,11 +458,10 @@ export default function NotionStyleEditor({ items, onChange }: NotionStyleEditor
             </button>
           ) : (
             <div className="space-y-0.5">
-              {localItems.map((item, index) => (
+              {localItems.map((item) => (
                 <NotionStyleItem
                   key={item.id}
                   item={item}
-                  index={index}
                   depth={0}
                   onUpdate={handleUpdate}
                   onDelete={handleDelete}

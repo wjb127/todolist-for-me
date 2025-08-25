@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🔴 CRITICAL: Mobile-First Development
+
+**ALL DEVELOPMENT MUST BE MOBILE-OPTIMIZED FIRST**
+- This is a mobile-first PWA application
+- Design and test for mobile screens (390px - 430px width) FIRST
+- Desktop is secondary consideration
+- Touch interactions must be prioritized over hover effects
+- Minimum touch target size: 44x44px (Apple HIG) / 48x48px (Material Design)
+- Ensure all interactive elements are easily tappable on mobile
+- Avoid hover-only interactions - always provide mobile alternatives
+
 ## Development Commands
 
 ```bash
