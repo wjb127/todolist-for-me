@@ -63,7 +63,24 @@ function BucketItem({
   const [showActions, setShowActions] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
   const descRef = useRef<HTMLTextAreaElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const { getCardStyle } = useTheme()
+
+  // Click outside handler for menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowActions(false)
+      }
+    }
+
+    if (showActions) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [showActions])
 
   const {
     attributes,
@@ -283,16 +300,22 @@ function BucketItem({
           </div>
 
           {/* 액션 버튼 */}
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowActions(!showActions)}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition-all"
+              className={`p-1.5 rounded-lg transition-all ${
+                showActions 
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' 
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+              } opacity-0 group-hover:opacity-100 border border-transparent hover:border-gray-300 dark:hover:border-gray-600`}
+              aria-label="더보기 메뉴"
             >
-              <MoreHorizontal className="h-4 w-4 text-gray-500" />
+              <MoreHorizontal className="h-4 w-4" />
             </button>
 
             {showActions && (
-              <div className="absolute right-0 top-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1 w-48">
+              <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 py-1 w-48 backdrop-blur-xl" 
+                   style={{ zIndex: 9999 }}>
                 <button
                   onClick={() => {
                     onAddChild(item.id)
