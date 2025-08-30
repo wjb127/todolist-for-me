@@ -1,6 +1,26 @@
 export interface Database {
   public: {
     Tables: {
+      notes: {
+        Row: {
+          id: string
+          content: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          content?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
       templates: {
         Row: {
           id: string

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, memo, useCallback } from 'react'
 import { Plus, Trash2, Save, X, Clock, GripVertical, Sparkles, ChevronRight, ChevronDown } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import { 
@@ -41,7 +41,7 @@ interface SortableItemProps {
   onToggleExpanded: (planId: string) => void
 }
 
-function SortableItem({ 
+const SortableItem = memo(function SortableItem({ 
   plan, 
   onToggleComplete, 
   onEdit,
@@ -152,7 +152,7 @@ function SortableItem({
       </div>
     </div>
   )
-}
+})
 
 export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([])
@@ -256,34 +256,24 @@ export default function PlansPage() {
           .eq('id', editingPlan.id)
 
         if (error) throw error
+        
+        // 편집된 계획만 로컬 상태에서 직접 업데이트
+        setPlans(prevPlans => 
+          prevPlans.map(p => 
+            p.id === editingPlan.id 
+              ? { ...p, ...planData }
+              : p
+          )
+        )
       } else {
-        // 새 계획 추가 시 같은 부모의 자식들 중에서 order_index 계산
+        // 새 계획 추가 시 간소화된 로직
         const siblingPlans = plans.filter(p => 
           (p.parent_id === formData.parent_id) || 
           (p.parent_id === null && formData.parent_id === null)
         )
         
-        let newOrderIndex = 0
-        if (formData.priority === 'high') {
-          // 높음: 같은 부모 하위에서 맨 앞에 배치
-          newOrderIndex = 0
-        } else if (formData.priority === 'medium') {
-          // 보통: 높음 다음에 배치
-          const highPrioritySiblings = siblingPlans.filter(p => p.priority === 'high')
-          newOrderIndex = highPrioritySiblings.length
-        } else {
-          // 낮음: 같은 부모 하위에서 맨 뒤에 배치
-          newOrderIndex = siblingPlans.length
-        }
-        
-        // 새 계획의 order_index 이상인 기존 형제들의 order_index 증가
-        const siblingsToUpdate = siblingPlans.filter(p => p.order_index >= newOrderIndex)
-        for (const plan of siblingsToUpdate) {
-          await supabase
-            .from('plans')
-            .update({ order_index: plan.order_index + 1 })
-            .eq('id', plan.id)
-        }
+        // 단순히 맨 뒤에 추가 (우선순위 기반 정렬은 나중에 드래그로 조정)
+        const newOrderIndex = siblingPlans.length
         
         const planData = {
           title: formData.title,
@@ -291,26 +281,48 @@ export default function PlansPage() {
           due_date: formData.due_date || null,
           priority: formData.priority,
           parent_id: formData.parent_id,
-          order_index: newOrderIndex
+          order_index: newOrderIndex,
+          completed: false
         }
         
-        const { error } = await supabase
+        const { data: newPlan, error } = await supabase
           .from('plans')
           .insert(planData as PlanInsert)
+          .select()
+          .single()
 
         if (error) throw error
+        
+        // 새 계획을 로컬 상태에 직접 추가
+        if (newPlan) {
+          setPlans(prevPlans => [...prevPlans, newPlan])
+          
+          // 새로 추가된 계획이 있는 부모를 자동으로 펼침
+          if (formData.parent_id) {
+            setExpandedPlans(prev => new Set([...prev, formData.parent_id!]))
+          }
+        }
       }
 
-      await fetchPlans()
       closeModal()
     } catch (error) {
       console.error('Error saving plan:', error)
+      // 에러 발생 시에만 전체 데이터 다시 불러오기
+      await fetchPlans()
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleToggleComplete = async (id: string, completed: boolean) => {
+  const handleToggleComplete = useCallback(async (id: string, completed: boolean) => {
+    // 낙관적 업데이트 - UI를 즉시 업데이트
+    setPlans(prevPlans => 
+      prevPlans.map(p => 
+        p.id === id ? { ...p, completed: !completed } : p
+      )
+    )
+    
+    // 백그라운드에서 데이터베이스 업데이트
     const { error } = await supabase
       .from('plans')
       .update({ completed: !completed })
@@ -318,10 +330,14 @@ export default function PlansPage() {
 
     if (error) {
       console.error('Error updating plan:', error)
-    } else {
-      await fetchPlans()
+      // 에러 발생 시 롤백
+      setPlans(prevPlans => 
+        prevPlans.map(p => 
+          p.id === id ? { ...p, completed: completed } : p
+        )
+      )
     }
-  }
+  }, [])
 
   const handleDeletePlan = async (id: string) => {
     if (confirm('계획을 삭제하시겠습니까?')) {
@@ -417,8 +433,8 @@ export default function PlansPage() {
     }
   }
 
-  // 계층 구조로 계획 정리
-  const buildPlanTree = (plans: Plan[]): Plan[] => {
+  // 계층 구조로 계획 정리 - Memoized
+  const buildPlanTree = useCallback((plans: Plan[]): Plan[] => {
     const planMap = new Map<string, Plan & { children?: Plan[] }>()
     const rootPlans: (Plan & { children?: Plan[] })[] = []
 
@@ -451,10 +467,10 @@ export default function PlansPage() {
 
     sortPlans(rootPlans)
     return rootPlans
-  }
+  }, [])
 
-  // 트리를 평탄화하여 표시할 계획 목록 생성
-  const flattenPlanTree = (
+  // 트리를 평탄화하여 표시할 계획 목록 생성 - Memoized
+  const flattenPlanTree = useCallback((
     plans: (Plan & { children?: Plan[] })[],
     expandedIds: Set<string>,
     parentVisible: boolean = true
@@ -473,7 +489,7 @@ export default function PlansPage() {
     })
 
     return result
-  }
+  }, [])
 
   const toggleExpanded = (planId: string) => {
     setExpandedPlans(prev => {
@@ -491,14 +507,16 @@ export default function PlansPage() {
     return plans.some(plan => plan.parent_id === planId)
   }
 
-  const filteredPlans = plans.filter(plan => {
-    if (filter === 'pending') return !plan.completed
-    if (filter === 'completed') return plan.completed
-    return true
-  })
+  const filteredPlans = useMemo(() => {
+    return plans.filter(plan => {
+      if (filter === 'pending') return !plan.completed
+      if (filter === 'completed') return plan.completed
+      return true
+    })
+  }, [plans, filter])
 
-  const planTree = buildPlanTree(filteredPlans)
-  const visiblePlans = flattenPlanTree(planTree, expandedPlans)
+  const planTree = useMemo(() => buildPlanTree(filteredPlans), [filteredPlans, buildPlanTree])
+  const visiblePlans = useMemo(() => flattenPlanTree(planTree, expandedPlans), [planTree, expandedPlans, flattenPlanTree])
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
