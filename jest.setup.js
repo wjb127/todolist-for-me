@@ -1,30 +1,35 @@
 import '@testing-library/jest-dom'
 
-// Mock Supabase client
-jest.mock('@/lib/supabase/client', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        order: jest.fn(() => ({
-          eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
-        })),
-        eq: jest.fn(() => Promise.resolve({ data: [], error: null })),
-        single: jest.fn(() => Promise.resolve({ data: null, error: null }))
-      })),
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => Promise.resolve({ data: null, error: null }))
-        }))
-      })),
-      update: jest.fn(() => ({
-        eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
-      })),
-      delete: jest.fn(() => ({
-        eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
-      }))
-    }))
+// Mock Supabase client with proper chaining
+jest.mock('@/lib/supabase/client', () => {
+  const mockQuery = {
+    select: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn().mockResolvedValue({ data: null, error: null }),
+    then: jest.fn((callback) => callback({ data: [], error: null }))
   }
-}))
+
+  return {
+    supabase: {
+      from: jest.fn(() => ({
+        select: jest.fn(() => mockQuery),
+        insert: jest.fn(() => ({
+          select: jest.fn(() => ({
+            single: jest.fn(() => Promise.resolve({ data: null, error: null }))
+          })),
+          then: jest.fn(() => Promise.resolve({ error: null }))
+        })),
+        update: jest.fn(() => ({
+          eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
+        })),
+        delete: jest.fn(() => ({
+          eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }))
+    }
+  }
+})
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({

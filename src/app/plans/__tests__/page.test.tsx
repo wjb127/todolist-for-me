@@ -51,10 +51,10 @@ describe('Plans Page', () => {
       const user = userEvent.setup()
       render(<PlansPage />)
       
-      const addButton = screen.getByText('새 계획')
+      const addButton = screen.getByRole('button', { name: /새 계획/ })
       await user.click(addButton)
       
-      expect(screen.getByText('새 계획')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: '새 계획' })).toBeInTheDocument()
       expect(screen.getByPlaceholderText('계획 제목을 입력하세요')).toBeInTheDocument()
     })
 
@@ -62,7 +62,7 @@ describe('Plans Page', () => {
       const user = userEvent.setup()
       render(<PlansPage />)
       
-      const addButton = screen.getByText('새 계획')
+      const addButton = screen.getByRole('button', { name: /새 계획/ })
       await user.click(addButton)
       
       const cancelButton = screen.getByText('취소')
@@ -83,7 +83,7 @@ describe('Plans Page', () => {
       
       render(<PlansPage />)
       
-      const addButton = screen.getByText('새 계획')
+      const addButton = screen.getByRole('button', { name: /새 계획/ })
       await user.click(addButton)
       
       const titleInput = screen.getByPlaceholderText('계획 제목을 입력하세요')
@@ -101,7 +101,7 @@ describe('Plans Page', () => {
       const user = userEvent.setup()
       render(<PlansPage />)
       
-      const addButton = screen.getByText('새 계획')
+      const addButton = screen.getByRole('button', { name: /새 계획/ })
       await user.click(addButton)
       
       const saveButton = screen.getByText('저장')
@@ -182,7 +182,7 @@ describe('Plans Page', () => {
       const user = userEvent.setup()
       render(<PlansPage />)
       
-      const addButton = screen.getByText('새 계획')
+      const addButton = screen.getByRole('button', { name: /새 계획/ })
       await user.click(addButton)
       
       const prioritySelect = screen.getByLabelText('우선순위')
@@ -232,7 +232,7 @@ describe('Plans Page', () => {
       
       render(<PlansPage />)
       
-      const addButton = screen.getByText('새 계획')
+      const addButton = screen.getByRole('button', { name: /새 계획/ })
       await user.click(addButton)
       
       const titleInput = screen.getByPlaceholderText('계획 제목을 입력하세요')
