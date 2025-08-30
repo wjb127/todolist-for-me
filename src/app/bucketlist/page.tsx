@@ -108,7 +108,7 @@ function BucketItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`${depth > 0 ? 'ml-8' : ''}`}
+      className={`${depth > 0 ? 'ml-4' : ''}`}
     >
       <div className={`group ${getCardStyle()} rounded-lg p-3 mb-2 hover:shadow-md transition-all ${
         isDragging ? 'shadow-2xl ring-2 ring-blue-400' : ''
@@ -236,7 +236,7 @@ function BucketItem({
 
       {/* 하위 항목 */}
       {hasChildren && isExpanded && (
-        <div className="ml-4">
+        <div className="ml-2">
           {item.children!.map(child => (
             <BucketItem
               key={child.id}
