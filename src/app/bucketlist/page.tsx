@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react'
-import { Target, Plus, ChevronRight, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, GripVertical } from 'lucide-react'
+import { Target, Plus, ChevronRight, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, GripVertical, Edit2, X, Save } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
@@ -42,6 +42,7 @@ interface BucketItemProps {
   onToggleComplete: (item: BucketListItem) => void
   isExpanded: boolean
   onToggleExpand: (id: string) => void
+  onOpenEditModal: (item: BucketListItem) => void
 }
 
 function BucketItem({
@@ -52,14 +53,12 @@ function BucketItem({
   onAddChild,
   onToggleComplete,
   isExpanded,
-  onToggleExpand
+  onToggleExpand,
+  onOpenEditModal
 }: BucketItemProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
-  const [isEditingDesc, setIsEditingDesc] = useState(false)
   const [editTitle, setEditTitle] = useState(item.title)
-  const [editDesc, setEditDesc] = useState(item.description || '')
   const titleRef = useRef<HTMLInputElement>(null)
-  const descRef = useRef<HTMLTextAreaElement>(null)
   const { getCardStyle } = useTheme()
 
   const {
@@ -83,22 +82,9 @@ function BucketItem({
     if (e.key === 'Enter') {
       e.preventDefault()
       saveTitleEdit()
-      // 설명 편집으로 이동
-      setIsEditingDesc(true)
-      setTimeout(() => descRef.current?.focus(), 50)
     } else if (e.key === 'Escape') {
       setEditTitle(item.title)
       setIsEditingTitle(false)
-    }
-  }
-
-  const handleDescKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      saveDescEdit()
-    } else if (e.key === 'Escape') {
-      setEditDesc(item.description || '')
-      setIsEditingDesc(false)
     }
   }
 
@@ -109,13 +95,6 @@ function BucketItem({
       setEditTitle(item.title)
     }
     setIsEditingTitle(false)
-  }
-
-  const saveDescEdit = () => {
-    if (editDesc !== item.description) {
-      onUpdate(item.id, { description: editDesc.trim() || null })
-    }
-    setIsEditingDesc(false)
   }
 
   const getProgressColor = (progress: number) => {
@@ -136,40 +115,31 @@ function BucketItem({
       }`}>
         <div className="flex items-start">
           {/* 드래그 핸들 & 확장/축소 - 모바일 최적화 */}
-          <div className="flex items-center mr-2">
+          <div className="flex items-center">
             {hasChildren && (
               <button
                 onClick={() => onToggleExpand(item.id)}
-                className="min-w-[32px] min-h-[32px] p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center"
+                className="min-w-[28px] min-h-[28px] p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center"
                 aria-label={isExpanded ? "축소" : "펼치기"}
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-5 w-5 text-gray-500" />
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
                 ) : (
-                  <ChevronRight className="h-5 w-5 text-gray-500" />
+                  <ChevronRight className="h-4 w-4 text-gray-500" />
                 )}
               </button>
             )}
             <div
               {...attributes}
               {...listeners}
-              className={`min-w-[40px] min-h-[40px] p-2 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-all ${
-                !hasChildren ? 'ml-[32px]' : ''
+              className={`min-w-[32px] min-h-[32px] p-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-all ${
+                !hasChildren ? 'ml-[28px]' : ''
               }`}
               aria-label="드래그 핸들"
             >
-              <GripVertical className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <GripVertical className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             </div>
           </div>
-
-          {/* 하위 항목 추가 버튼 */}
-          <button
-            onClick={() => onAddChild(item.id)}
-            className="min-w-[32px] min-h-[32px] mr-2 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
-            aria-label="하위 항목 추가"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
 
           {/* 체크박스 - 모바일 최적화 */}
           <button
@@ -221,44 +191,11 @@ function BucketItem({
               )}
             </div>
 
-            {/* 설명 */}
-            {(item.description || isEditingDesc) && (
-              isEditingDesc ? (
-                <textarea
-                  ref={descRef}
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  onBlur={saveDescEdit}
-                  onKeyDown={handleDescKeyDown}
-                  placeholder="설명 추가..."
-                  className="w-full px-2 py-1 text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  rows={2}
-                  autoFocus
-                />
-              ) : (
-                <p
-                  onClick={() => {
-                    setIsEditingDesc(true)
-                    setTimeout(() => descRef.current?.focus(), 50)
-                  }}
-                  className="text-sm text-gray-600 dark:text-gray-400 mb-2 cursor-text hover:bg-gray-50 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors"
-                >
-                  {item.description}
-                </p>
-              )
-            )}
-
-            {/* 설명 추가 버튼 (설명이 없을 때) - 모바일 터치 영역 개선 */}
-            {!item.description && !isEditingDesc && (
-              <button
-                onClick={() => {
-                  setIsEditingDesc(true)
-                  setTimeout(() => descRef.current?.focus(), 50)
-                }}
-                className="text-xs text-gray-400 hover:text-gray-600 mb-2 py-1 px-2 -ml-2 rounded"
-              >
-                + 설명 추가
-              </button>
+            {/* 설명 - 편집 모달에서만 표시, 여기서는 읽기 전용으로만 표시 */}
+            {item.description && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 px-2">
+                {item.description}
+              </p>
             )}
 
             {/* 진행률 바 */}
@@ -278,30 +215,21 @@ function BucketItem({
             )}
 
             {/* 메타 정보 */}
-            <div className="flex items-center gap-4 text-xs text-gray-500">
-              {item.target_date && (
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  <span>{format(new Date(item.target_date), 'yyyy.MM.dd', { locale: ko })}</span>
-                </div>
-              )}
-              {hasChildren && (
-                <span>{item.children!.length}개 하위 항목</span>
-              )}
-            </div>
+            {item.target_date && (
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <Calendar className="h-3 w-3" />
+                <span>{format(new Date(item.target_date), 'yyyy.MM.dd', { locale: ko })}</span>
+              </div>
+            )}
           </div>
 
-          {/* 삭제 버튼 - 모바일 최적화 */}
+          {/* 편집 버튼 - 모바일 최적화 */}
           <button
-            onClick={() => {
-              if (confirm('정말 삭제하시겠습니까? 하위 항목도 모두 삭제됩니다.')) {
-                onDelete(item.id)
-              }
-            }}
-            className="min-w-[40px] min-h-[40px] p-2 rounded-lg transition-all text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 md:opacity-0 md:group-hover:opacity-100"
-            aria-label="삭제"
+            onClick={() => onOpenEditModal(item)}
+            className="min-w-[40px] min-h-[40px] p-2 rounded-lg transition-all text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 md:opacity-0 md:group-hover:opacity-100"
+            aria-label="편집"
           >
-            <Trash2 className="h-4 w-4" />
+            <Edit2 className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -320,6 +248,7 @@ function BucketItem({
               onToggleComplete={onToggleComplete}
               isExpanded={expandedItems.has(child.id)}
               onToggleExpand={onToggleExpand}
+              onOpenEditModal={onOpenEditModal}
             />
           ))}
         </div>
@@ -336,7 +265,16 @@ export default function BucketListPage() {
   const [localExpandedItems, setLocalExpandedItems] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
-  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle } = useTheme()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<BucketListItem | null>(null)
+  const [modalFormData, setModalFormData] = useState({
+    title: '',
+    description: '',
+    priority: 'medium' as 'low' | 'medium' | 'high',
+    target_date: '',
+    progress: 0
+  })
+  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -495,6 +433,73 @@ export default function BucketListPage() {
     }
   }
 
+  // 편집 모달 열기
+  const openEditModal = (item: BucketListItem) => {
+    setEditingItem(item)
+    setModalFormData({
+      title: item.title,
+      description: item.description || '',
+      priority: item.priority,
+      target_date: item.target_date || '',
+      progress: item.progress || 0
+    })
+    setIsModalOpen(true)
+  }
+
+  // 편집 모달 닫기
+  const closeEditModal = () => {
+    setIsModalOpen(false)
+    setEditingItem(null)
+    setModalFormData({
+      title: '',
+      description: '',
+      priority: 'medium',
+      target_date: '',
+      progress: 0
+    })
+  }
+
+  // 편집 저장
+  const handleSaveEdit = async () => {
+    if (!editingItem || !modalFormData.title.trim()) return
+
+    const updates: BucketListUpdate = {
+      title: modalFormData.title.trim(),
+      description: modalFormData.description.trim() || null,
+      priority: modalFormData.priority,
+      target_date: modalFormData.target_date || null,
+      progress: modalFormData.progress
+    }
+
+    const { error } = await supabase
+      .from('bucketlist')
+      .update(updates)
+      .eq('id', editingItem.id)
+
+    if (!error) {
+      fetchItems()
+      closeEditModal()
+    }
+  }
+
+  // 모달에서 삭제
+  const handleModalDelete = async () => {
+    if (!editingItem) return
+    
+    if (confirm('정말 삭제하시겠습니까? 하위 항목도 모두 삭제됩니다.')) {
+      await handleDelete(editingItem.id)
+      closeEditModal()
+    }
+  }
+
+  // 모달에서 하위 항목 추가
+  const handleModalAddChild = async () => {
+    if (!editingItem) return
+    
+    await handleAddItem(editingItem.id)
+    closeEditModal()
+  }
+
 
   // 드래그 앤 드롭
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -618,12 +623,138 @@ export default function BucketListPage() {
                     onToggleComplete={toggleComplete}
                     isExpanded={localExpandedItems.has(item.id)}
                     onToggleExpand={toggleExpanded}
+                    onOpenEditModal={openEditModal}
                   />
                 ))
               )}
             </div>
           </SortableContext>
         </DndContext>
+
+        {/* 편집 모달 */}
+        {isModalOpen && editingItem && (
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} w-full max-w-md`}>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">버킷리스트 편집</h2>
+                  <button onClick={closeEditModal} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {/* 제목 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    제목 *
+                  </label>
+                  <input
+                    type="text"
+                    value={modalFormData.title}
+                    onChange={(e) => setModalFormData({ ...modalFormData, title: e.target.value })}
+                    className={getInputStyle()}
+                    placeholder="버킷리스트 제목"
+                  />
+                </div>
+
+                {/* 설명 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    설명
+                  </label>
+                  <textarea
+                    value={modalFormData.description}
+                    onChange={(e) => setModalFormData({ ...modalFormData, description: e.target.value })}
+                    className={getInputStyle()}
+                    rows={3}
+                    placeholder="상세 설명 (선택사항)"
+                  />
+                </div>
+
+                {/* 우선순위 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    우선순위
+                  </label>
+                  <select
+                    value={modalFormData.priority}
+                    onChange={(e) => setModalFormData({ ...modalFormData, priority: e.target.value as 'low' | 'medium' | 'high' })}
+                    className={getInputStyle()}
+                  >
+                    <option value="low">낮음</option>
+                    <option value="medium">보통</option>
+                    <option value="high">높음 ⭐</option>
+                  </select>
+                </div>
+
+                {/* 목표 날짜 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    목표 날짜
+                  </label>
+                  <input
+                    type="date"
+                    value={modalFormData.target_date}
+                    onChange={(e) => setModalFormData({ ...modalFormData, target_date: e.target.value })}
+                    className={getInputStyle()}
+                  />
+                </div>
+
+                {/* 진행률 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    진행률: {modalFormData.progress}%
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={modalFormData.progress}
+                    onChange={(e) => setModalFormData({ ...modalFormData, progress: parseInt(e.target.value) })}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* 추가 액션 버튼들 */}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={handleModalAddChild}
+                    className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    하위 항목 추가
+                  </button>
+                  <button
+                    onClick={handleModalDelete}
+                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    삭제
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
+                <button
+                  onClick={closeEditModal}
+                  className={`px-4 py-2 rounded-lg ${getCardStyle()} hover:opacity-80`}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={!modalFormData.title.trim()}
+                  className={`px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${getButtonStyle()}`}
+                >
+                  <Save className="h-4 w-4" />
+                  저장
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
