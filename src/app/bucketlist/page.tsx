@@ -1,29 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react'
-import { Target, Plus, ChevronRight, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, GripVertical, Edit2, X, Save } from 'lucide-react'
+import { Target, Plus, ChevronRight, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, ChevronUp, ChevronDown as ArrowDown, Edit2, X, Save } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+// DnD imports removed - using arrow buttons instead
 
 type BucketListItem = Database['public']['Tables']['bucketlist']['Row']
 type BucketListInsert = Database['public']['Tables']['bucketlist']['Insert']
@@ -43,6 +27,10 @@ interface BucketItemProps {
   isExpanded: boolean
   onToggleExpand: (id: string) => void
   onOpenEditModal: (item: BucketListItem) => void
+  onMoveUp: (item: BucketListItem) => void
+  onMoveDown: (item: BucketListItem) => void
+  isFirst: boolean
+  isLast: boolean
 }
 
 function BucketItem({
@@ -54,27 +42,16 @@ function BucketItem({
   onToggleComplete,
   isExpanded,
   onToggleExpand,
-  onOpenEditModal
+  onOpenEditModal,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast
 }: BucketItemProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editTitle, setEditTitle] = useState(item.title)
   const titleRef = useRef<HTMLInputElement>(null)
   const { getCardStyle } = useTheme()
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
 
   const hasChildren = item.children && item.children.length > 0
 
@@ -105,16 +82,10 @@ function BucketItem({
   }
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`${depth > 0 ? 'ml-4' : ''}`}
-    >
-      <div className={`group ${getCardStyle()} rounded-lg p-3 mb-2 hover:shadow-md transition-all ${
-        isDragging ? 'shadow-2xl ring-2 ring-blue-400' : ''
-      }`}>
+    <div className={`${depth > 0 ? 'ml-4' : ''}`}>
+      <div className={`group ${getCardStyle()} rounded-lg p-3 mb-2 hover:shadow-md transition-all`}>
         <div className="flex items-start">
-          {/* 드래그 핸들 & 확장/축소 - 모바일 최적화 */}
+          {/* 확장/축소 & 순서 변경 버튼 - 모바일 최적화 */}
           <div className="flex items-center">
             {hasChildren && (
               <button
@@ -129,15 +100,26 @@ function BucketItem({
                 )}
               </button>
             )}
-            <div
-              {...attributes}
-              {...listeners}
-              className={`min-w-[32px] min-h-[32px] p-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-all ${
-                !hasChildren ? 'ml-[28px]' : ''
-              }`}
-              aria-label="드래그 핸들"
-            >
-              <GripVertical className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+            {!hasChildren && <div className="w-[28px]" />}
+            
+            {/* 순서 변경 버튼 */}
+            <div className="flex flex-col ml-1">
+              <button
+                onClick={() => onMoveUp(item)}
+                disabled={isFirst}
+                className="min-w-[24px] min-h-[20px] p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="위로 이동"
+              >
+                <ChevronUp className="h-3.5 w-3.5 text-gray-500" />
+              </button>
+              <button
+                onClick={() => onMoveDown(item)}
+                disabled={isLast}
+                className="min-w-[24px] min-h-[20px] p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="아래로 이동"
+              >
+                <ArrowDown className="h-3.5 w-3.5 text-gray-500" />
+              </button>
             </div>
           </div>
 
@@ -237,7 +219,7 @@ function BucketItem({
       {/* 하위 항목 */}
       {hasChildren && isExpanded && (
         <div className="ml-2">
-          {item.children!.map(child => (
+          {item.children!.map((child, index) => (
             <BucketItem
               key={child.id}
               item={child}
@@ -249,6 +231,10 @@ function BucketItem({
               isExpanded={expandedItems.has(child.id)}
               onToggleExpand={onToggleExpand}
               onOpenEditModal={onOpenEditModal}
+              onMoveUp={onMoveUp}
+              onMoveDown={onMoveDown}
+              isFirst={index === 0}
+              isLast={index === item.children!.length - 1}
             />
           ))}
         </div>
@@ -274,12 +260,7 @@ export default function BucketListPage() {
     target_date: '',
     progress: 0
   })
-  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme(
     })
   )
 
@@ -501,40 +482,50 @@ export default function BucketListPage() {
   }
 
 
-  // 드래그 앤 드롭
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
+  // 순서 변경 함수들
+  const handleMoveUp = async (item: BucketListItem) => {
+    const siblings = items.filter(i => i.parent_id === item.parent_id)
+      .sort((a, b) => a.order_index - b.order_index)
+    
+    const currentIndex = siblings.findIndex(i => i.id === item.id)
+    if (currentIndex <= 0) return
+    
+    const prevItem = siblings[currentIndex - 1]
+    
+    // order_index 교환
+    await supabase
+      .from('bucketlist')
+      .update({ order_index: prevItem.order_index })
+      .eq('id', item.id)
+    
+    await supabase
+      .from('bucketlist')
+      .update({ order_index: item.order_index })
+      .eq('id', prevItem.id)
+    
+    fetchItems()
+  }
 
-    if (!over || active.id === over.id) return
-
-    const activeItem = items.find(item => item.id === active.id)
-    const overItem = items.find(item => item.id === over.id)
-
-    if (!activeItem || !overItem) return
-
-    // 같은 부모를 가진 항목들만 재정렬
-    if (activeItem.parent_id !== overItem.parent_id) return
-
-    const siblings = items.filter(item => item.parent_id === activeItem.parent_id)
-    const oldIndex = siblings.findIndex(item => item.id === active.id)
-    const newIndex = siblings.findIndex(item => item.id === over.id)
-
-    const newSiblings = arrayMove(siblings, oldIndex, newIndex)
-
-    // order_index 업데이트
-    const updates = newSiblings.map((item, index) => ({
-      id: item.id,
-      order_index: index
-    }))
-
-    // 데이터베이스 업데이트
-    for (const update of updates) {
-      await supabase
-        .from('bucketlist')
-        .update({ order_index: update.order_index })
-        .eq('id', update.id)
-    }
-
+  const handleMoveDown = async (item: BucketListItem) => {
+    const siblings = items.filter(i => i.parent_id === item.parent_id)
+      .sort((a, b) => a.order_index - b.order_index)
+    
+    const currentIndex = siblings.findIndex(i => i.id === item.id)
+    if (currentIndex < 0 || currentIndex >= siblings.length - 1) return
+    
+    const nextItem = siblings[currentIndex + 1]
+    
+    // order_index 교환
+    await supabase
+      .from('bucketlist')
+      .update({ order_index: nextItem.order_index })
+      .eq('id', item.id)
+    
+    await supabase
+      .from('bucketlist')
+      .update({ order_index: item.order_index })
+      .eq('id', nextItem.id)
+    
     fetchItems()
   }
 
@@ -595,41 +586,34 @@ export default function BucketListPage() {
         </div>
 
         {/* 버킷리스트 트리 */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={tree.map(item => item.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div>
-              {tree.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">버킷리스트가 없습니다</p>
-                  <p className="text-sm">새로운 목표를 추가해보세요</p>
-                </div>
-              ) : (
-                tree.map(item => (
-                  <BucketItem
-                    key={item.id}
-                    item={item}
-                    depth={0}
-                    onUpdate={handleUpdate}
-                    onDelete={handleDelete}
-                    onAddChild={handleAddItem}
-                    onToggleComplete={toggleComplete}
-                    isExpanded={localExpandedItems.has(item.id)}
-                    onToggleExpand={toggleExpanded}
-                    onOpenEditModal={openEditModal}
-                  />
-                ))
-              )}
+        <div>
+          {tree.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium mb-2">버킷리스트가 없습니다</p>
+              <p className="text-sm">새로운 목표를 추가해보세요</p>
             </div>
-          </SortableContext>
-        </DndContext>
+          ) : (
+            tree.map((item, index) => (
+              <BucketItem
+                key={item.id}
+                item={item}
+                depth={0}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+                onAddChild={handleAddItem}
+                onToggleComplete={toggleComplete}
+                isExpanded={localExpandedItems.has(item.id)}
+                onToggleExpand={toggleExpanded}
+                onOpenEditModal={openEditModal}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                isFirst={index === 0}
+                isLast={index === tree.length - 1}
+              />
+            ))
+          )}
+        </div>
 
         {/* 편집 모달 */}
         {isModalOpen && editingItem && (
