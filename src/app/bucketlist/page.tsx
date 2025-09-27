@@ -260,9 +260,7 @@ export default function BucketListPage() {
     target_date: '',
     progress: 0
   })
-  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme(
-    })
-  )
+  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
 
   // 전역 expandedItems를 로컬 상태와 동기화
   useEffect(() => {
