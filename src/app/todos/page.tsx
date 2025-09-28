@@ -283,6 +283,10 @@ export default function TodosPage() {
     setSelectedDate(currentDate.toISOString().split('T')[0])
   }
 
+  const goToToday = () => {
+    setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+  }
+
   const completedCount = todos.filter(todo => todo.completed).length
   const totalCount = todos.length
   const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
@@ -312,8 +316,19 @@ export default function TodosPage() {
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
-              <div className="text-lg font-semibold text-gray-900 flex-1 text-center">
-                {formatDate(selectedDate)}
+              <div className="flex-1 flex items-center justify-center space-x-2">
+                <div className="text-lg font-semibold text-gray-900">
+                  {formatDate(selectedDate)}
+                </div>
+                {selectedDate !== format(new Date(), 'yyyy-MM-dd') && (
+                  <button
+                    onClick={goToToday}
+                    className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
+                    title="오늘로 가기"
+                  >
+                    오늘
+                  </button>
+                )}
               </div>
               <button
                 onClick={goToNextDay}
