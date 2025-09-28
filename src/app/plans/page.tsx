@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo, memo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, memo, useCallback } from 'react'
 import { Plus, Trash2, Save, X, Clock, GripVertical, Sparkles, ChevronRight, ChevronDown } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
+import confetti from 'canvas-confetti'
 import { 
   DndContext, 
   closestCenter, 
@@ -71,6 +72,7 @@ const SortableItem = memo(function SortableItem({
   } = useSortable({ id: plan.id })
   
   const { getCardStyle } = useTheme()
+  const checkboxRef = React.useRef<HTMLDivElement>(null)
   
   const childSensors = useSensors(
     useSensor(PointerSensor),
@@ -121,12 +123,14 @@ const SortableItem = memo(function SortableItem({
               >
                 <GripVertical className="h-4 w-4" />
               </div>
-              <AnimatedCheckbox
-                checked={plan.completed}
-                onChange={() => onToggleComplete(plan.id, plan.completed)}
-                size="md"
-                className="mr-2"
-              />
+              <div ref={checkboxRef}>
+                <AnimatedCheckbox
+                  checked={plan.completed}
+                  onChange={() => onToggleComplete(plan.id, plan.completed, checkboxRef.current || undefined)}
+                  size="md"
+                  className="mr-2"
+                />
+              </div>
               <div className="flex-1">
                 <div 
                   className="cursor-pointer" 
@@ -427,7 +431,28 @@ export default function PlansPage() {
     }
   }
 
-  const handleToggleComplete = useCallback(async (id: string, completed: boolean) => {
+  const triggerConfetti = useCallback((element: HTMLElement) => {
+    const rect = element.getBoundingClientRect()
+    const x = (rect.left + rect.width / 2) / window.innerWidth
+    const y = (rect.top + rect.height / 2) / window.innerHeight
+
+    confetti({
+      particleCount: 30,
+      spread: 60,
+      origin: { x, y },
+      colors: ['#3b82f6', '#60a5fa', '#93c5fd'],
+      gravity: 1.2,
+      scalar: 0.8,
+      ticks: 150
+    })
+  }, [])
+
+  const handleToggleComplete = useCallback(async (id: string, completed: boolean, element?: HTMLElement) => {
+    // 완료 시 confetti 효과
+    if (!completed && element) {
+      triggerConfetti(element)
+    }
+
     // 낙관적 업데이트 - UI를 즉시 업데이트
     setPlans(prevPlans => 
       prevPlans.map(p => 
@@ -450,7 +475,7 @@ export default function PlansPage() {
         )
       )
     }
-  }, [])
+  }, [triggerConfetti])
 
   const handleDeletePlan = async (id: string) => {
     if (confirm('계획을 삭제하시겠습니까?')) {

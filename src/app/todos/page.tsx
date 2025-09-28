@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Calendar, Plus, Clock, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Calendar, Plus, Clock, FileText, ChevronLeft, ChevronRight, List, LayoutGrid } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { format } from 'date-fns'
@@ -25,6 +25,8 @@ export default function TodosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [newTodoTitle, setNewTodoTitle] = useState('')
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('day')
+  const [weekTodos, setWeekTodos] = useState<Record<string, Todo[]>>({})
   
   // 테마 시스템 사용
   const { getBackgroundStyle, getCardStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
@@ -40,6 +42,31 @@ export default function TodosPage() {
       console.error('Error fetching todos:', error)
     } else {
       setTodos(data || [])
+    }
+  }, [selectedDate])
+
+  const fetchWeekTodos = useCallback(async () => {
+    const weekStart = getWeekStart(selectedDate)
+    const dates = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(weekStart)
+      date.setDate(date.getDate() + i)
+      return format(date, 'yyyy-MM-dd')
+    })
+
+    const { data, error } = await supabase
+      .from('todos')
+      .select('*')
+      .in('date', dates)
+      .order('order_index', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching week todos:', error)
+    } else {
+      const grouped = dates.reduce((acc, date) => {
+        acc[date] = data?.filter(todo => todo.date === date) || []
+        return acc
+      }, {} as Record<string, Todo[]>)
+      setWeekTodos(grouped)
     }
   }, [selectedDate])
 
@@ -120,12 +147,16 @@ export default function TodosPage() {
 
   useEffect(() => {
     const loadData = async () => {
-      await fetchTodos()
+      if (viewMode === 'day') {
+        await fetchTodos()
+      } else {
+        await fetchWeekTodos()
+      }
       await fetchTemplates()
       await checkAndApplyActiveTemplate()
     }
     loadData()
-  }, [selectedDate, fetchTodos, fetchTemplates, checkAndApplyActiveTemplate])
+  }, [viewMode, selectedDate, fetchTodos, fetchWeekTodos, fetchTemplates, checkAndApplyActiveTemplate])
 
   const handleToggleComplete = async (id: string, completed: boolean) => {
     const { error } = await supabase
@@ -287,6 +318,41 @@ export default function TodosPage() {
     setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
   }
 
+  const getWeekStart = (dateString: string) => {
+    const date = new Date(dateString)
+    const day = date.getDay()
+    const diff = day === 0 ? -6 : 1 - day
+    const monday = new Date(date)
+    monday.setDate(date.getDate() + diff)
+    return format(monday, 'yyyy-MM-dd')
+  }
+
+  const goToPreviousWeek = () => {
+    const weekStart = new Date(getWeekStart(selectedDate))
+    weekStart.setDate(weekStart.getDate() - 7)
+    setSelectedDate(format(weekStart, 'yyyy-MM-dd'))
+  }
+
+  const goToNextWeek = () => {
+    const weekStart = new Date(getWeekStart(selectedDate))
+    weekStart.setDate(weekStart.getDate() + 7)
+    setSelectedDate(format(weekStart, 'yyyy-MM-dd'))
+  }
+
+  const weekDates = useMemo(() => {
+    const weekStart = getWeekStart(selectedDate)
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(weekStart)
+      date.setDate(date.getDate() + i)
+      return {
+        dateString: format(date, 'yyyy-MM-dd'),
+        displayDate: format(date, 'd일'),
+        dayOfWeek: format(date, 'E', { locale: ko }),
+        isToday: format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+      }
+    })
+  }, [selectedDate])
+
   const completedCount = todos.filter(todo => todo.completed).length
   const totalCount = todos.length
   const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
@@ -295,12 +361,40 @@ export default function TodosPage() {
     <div className={getBackgroundStyle()}>
       <div className="max-w-md mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Todo 리스트</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-gray-900">Todo 리스트</h1>
+            <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('day')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'day'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                title="일간 보기"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('week')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'week'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                title="주간 보기"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
           
           <div className={`${getCardStyle()} mb-4`}>
             <div className="flex items-center space-x-2 mb-2">
               <Calendar className="h-5 w-5 text-gray-500" />
-              <label className="text-sm font-medium text-gray-700">날짜 선택</label>
+              <label className="text-sm font-medium text-gray-700">
+                {viewMode === 'day' ? '날짜 선택' : '주간 선택'}
+              </label>
             </div>
             <input
               type="date"
@@ -310,15 +404,18 @@ export default function TodosPage() {
             />
             <div className="mt-3 flex items-center justify-between">
               <button
-                onClick={goToPreviousDay}
+                onClick={viewMode === 'day' ? goToPreviousDay : goToPreviousWeek}
                 className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                title="이전 날"
+                title={viewMode === 'day' ? '이전 날' : '이전 주'}
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <div className="flex-1 flex items-center justify-center space-x-2">
                 <div className="text-lg font-semibold text-gray-900">
-                  {formatDate(selectedDate)}
+                  {viewMode === 'day' 
+                    ? formatDate(selectedDate)
+                    : `${format(new Date(weekDates[0].dateString), 'M/d', { locale: ko })} - ${format(new Date(weekDates[6].dateString), 'M/d', { locale: ko })}`
+                  }
                 </div>
                 {selectedDate !== format(new Date(), 'yyyy-MM-dd') && (
                   <button
@@ -331,16 +428,16 @@ export default function TodosPage() {
                 )}
               </div>
               <button
-                onClick={goToNextDay}
+                onClick={viewMode === 'day' ? goToNextDay : goToNextWeek}
                 className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                title="다음 날"
+                title={viewMode === 'day' ? '다음 날' : '다음 주'}
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
             </div>
           </div>
 
-          {totalCount > 0 && (
+          {viewMode === 'day' && totalCount > 0 && (
             <div className={`${getCardStyle()} mb-4`}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">진행률</span>
@@ -414,30 +511,31 @@ export default function TodosPage() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          {todos.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>선택한 날짜에 할 일이 없습니다.</p>
-              <p className="text-sm">템플릿을 사용하거나 직접 추가해보세요.</p>
-            </div>
-          ) : (
-            todos.map((todo) => (
-              <div key={todo.id} className={getCardStyle()}>
-                <div className="flex items-start space-x-3">
-                  <AnimatedCheckbox
-                    checked={todo.completed}
-                    onChange={() => handleToggleComplete(todo.id, todo.completed)}
-                    size="md"
-                  />
-                  <div className="flex-1">
-                    <h3 className={`font-medium ${
-                      todo.completed
-                        ? 'text-gray-500 line-through'
-                        : 'text-gray-900'
-                    }`}>
-                      {todo.title}
-                    </h3>
+        {viewMode === 'day' ? (
+          <div className="space-y-2">
+            {todos.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>선택한 날짜에 할 일이 없습니다.</p>
+                <p className="text-sm">템플릿을 사용하거나 직접 추가해보세요.</p>
+              </div>
+            ) : (
+              todos.map((todo) => (
+                <div key={todo.id} className={getCardStyle()}>
+                  <div className="flex items-start space-x-3">
+                    <AnimatedCheckbox
+                      checked={todo.completed}
+                      onChange={() => handleToggleComplete(todo.id, todo.completed)}
+                      size="md"
+                    />
+                    <div className="flex-1">
+                      <h3 className={`font-medium ${
+                        todo.completed
+                          ? 'text-gray-500 line-through'
+                          : 'text-gray-900'
+                      }`}>
+                        {todo.title}
+                      </h3>
                     {todo.description && (
                       <p className="text-sm text-gray-600 mt-1">{todo.description}</p>
                     )}
@@ -452,7 +550,80 @@ export default function TodosPage() {
               </div>
             ))
           )}
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {weekDates.map((day) => {
+              const dayTodos = weekTodos[day.dateString] || []
+              const dayCompletedCount = dayTodos.filter(t => t.completed).length
+              const dayTotalCount = dayTodos.length
+              const dayCompletionPercentage = dayTotalCount > 0 ? Math.round((dayCompletedCount / dayTotalCount) * 100) : 0
+
+              return (
+                <div 
+                  key={day.dateString} 
+                  className={`${getCardStyle()} ${day.isToday ? 'ring-2 ring-blue-500' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <div className={`text-sm font-semibold ${day.isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                        {day.dayOfWeek}
+                      </div>
+                      <div className={`text-lg font-bold ${day.isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                        {day.displayDate}
+                      </div>
+                      {day.isToday && (
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                          오늘
+                        </span>
+                      )}
+                    </div>
+                    {dayTotalCount > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-600">{dayCompletedCount}/{dayTotalCount}</span>
+                        <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                          <div 
+                            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                            style={{ width: `${dayCompletionPercentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {dayTodos.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-2">할 일 없음</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {dayTodos.map((todo) => (
+                        <div key={todo.id} className="flex items-center space-x-2 py-1">
+                          <AnimatedCheckbox
+                            checked={todo.completed}
+                            onChange={() => {
+                              handleToggleComplete(todo.id, todo.completed)
+                              setTimeout(() => fetchWeekTodos(), 100)
+                            }}
+                            size="sm"
+                          />
+                          <span className={`text-sm flex-1 ${
+                            todo.completed
+                              ? 'text-gray-400 line-through'
+                              : 'text-gray-700'
+                          }`}>
+                            {todo.title}
+                          </span>
+                          {todo.template_id && (
+                            <FileText className="h-3 w-3 text-blue-400" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {isModalOpen && (
           <div className={getModalBackdropStyle()}>
