@@ -371,13 +371,23 @@ export default function PlansPage() {
           newOrderIndex = siblingPlans.length
         }
         
-        // 새 계획의 order_index 이상인 기존 형제들의 order_index 증가
+        // 새 계획의 order_index 이상인 기존 형제들의 order_index 증가 (Bulk UPDATE)
         const siblingsToUpdate = siblingPlans.filter(p => p.order_index >= newOrderIndex)
-        for (const plan of siblingsToUpdate) {
-          await supabase
-            .from('plans')
-            .update({ order_index: plan.order_index + 1 })
-            .eq('id', plan.id)
+        if (siblingsToUpdate.length > 0) {
+          const idsToUpdate = siblingsToUpdate.map(p => p.id)
+          const { error: updateError } = await supabase.rpc('increment_plan_order_index', {
+            plan_ids: idsToUpdate
+          })
+          
+          if (updateError) {
+            console.error('Bulk update error, falling back to individual updates:', updateError)
+            for (const plan of siblingsToUpdate) {
+              await supabase
+                .from('plans')
+                .update({ order_index: plan.order_index + 1 })
+                .eq('id', plan.id)
+            }
+          }
         }
         
         const planData = {
@@ -391,14 +401,24 @@ export default function PlansPage() {
           completed: false
         }
         
-        const { error } = await supabase
+        const { data: newPlan, error } = await supabase
           .from('plans')
           .insert(planData as PlanInsert)
+          .select()
+          .single()
 
         if (error) throw error
+        
+        // 낙관적 업데이트: 로컬 상태에 즉시 반영
+        const updatedSiblings = plans.map(p => 
+          siblingsToUpdate.some(s => s.id === p.id)
+            ? { ...p, order_index: p.order_index + 1 }
+            : p
+        )
+        setPlans([...updatedSiblings, newPlan])
+        setExpandedPlans(prev => new Set([...prev, newPlan.id]))
       }
 
-      await fetchPlans()
       closeModal()
     } catch (error) {
       console.error('Error saving plan:', error)

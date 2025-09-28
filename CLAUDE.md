@@ -27,6 +27,7 @@ npm run lint         # Run ESLint
 # 1. supabase-schema.sql (initial schema)
 # 2. migration-add-template-fields.sql (template enhancements)
 # 3. migration-add-plan-order.sql (plan ordering)
+# 4. migration-add-bulk-update-function.sql (bulk update performance)
 ```
 
 ## Architecture Overview
