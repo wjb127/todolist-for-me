@@ -33,7 +33,7 @@ type PlanInsert = Database['public']['Tables']['plans']['Insert']
 
 interface SortableItemProps {
   plan: Plan
-  onToggleComplete: (id: string, completed: boolean) => void
+  onToggleComplete: (id: string, completed: boolean, element?: HTMLElement) => void
   onEdit: (plan: Plan) => void
   onAddChild: (parentId: string) => void
   getPriorityColor: (priority: string) => string
