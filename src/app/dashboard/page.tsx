@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Star, Crown, Shield, Gem, Rocket, X, Palette } from 'lucide-react'
+import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Star, Crown, Shield, Gem, Rocket, X, Palette, StickyNote, Plus, Edit2, Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, subWeeks, subMonths, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -11,6 +11,8 @@ import YearlyContributionGraph from '@/components/dashboard/YearlyContributionGr
 
 type Todo = Database['public']['Tables']['todos']['Row']
 type Plan = Database['public']['Tables']['plans']['Row']
+type Note = Database['public']['Tables']['notes']['Row']
+type NoteInsert = Database['public']['Tables']['notes']['Insert']
 
 interface DailyStats {
   date: string
@@ -229,14 +231,145 @@ export default function DashboardPage() {
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
   const [showLevelModal, setShowLevelModal] = useState(false)
   
+  // 메모 관련 state
+  const [notes, setNotes] = useState<Note[]>([])
+  const [newNote, setNewNote] = useState('')
+  const [editingNote, setEditingNote] = useState<Note | null>(null)
+  const [isNotesExpanded, setIsNotesExpanded] = useState(false)
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
+  const [modalContent, setModalContent] = useState('')
+  const [isNoteLoading, setIsNoteLoading] = useState(false)
+  
   // 테마 시스템 사용
-  const { theme, setTheme, getBackgroundStyle, getCardStyle, getButtonStyle, getModalStyle, getModalBackdropStyle } = useTheme()
+  const { theme, setTheme, getBackgroundStyle, getCardStyle, getButtonStyle, getModalStyle, getModalBackdropStyle, getInputStyle } = useTheme()
 
   useEffect(() => {
     // 랜덤 명언 선택
     const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
     setCurrentQuote(randomQuote)
+    // 메모 가져오기
+    fetchNotes()
   }, [])
+  
+  // 메모 관련 함수들
+  const fetchNotes = async () => {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5) // 최근 5개만 표시
+
+    if (error) {
+      console.error('Error fetching notes:', error)
+    } else {
+      setNotes(data || [])
+    }
+  }
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return
+    
+    setIsNoteLoading(true)
+    const noteData: NoteInsert = {
+      content: newNote.trim()
+    }
+
+    const { data, error } = await supabase
+      .from('notes')
+      .insert(noteData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error adding note:', error)
+    } else if (data) {
+      setNotes([data, ...notes.slice(0, 4)]) // 최근 5개 유지
+      setNewNote('')
+    }
+    setIsNoteLoading(false)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleAddNote()
+    }
+  }
+
+  const openEditModal = (note: Note) => {
+    setEditingNote(note)
+    setModalContent(note.content)
+    setIsNoteModalOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingNote || !modalContent.trim()) return
+
+    setIsNoteLoading(true)
+    const { error } = await supabase
+      .from('notes')
+      .update({ content: modalContent.trim() })
+      .eq('id', editingNote.id)
+
+    if (error) {
+      console.error('Error updating note:', error)
+    } else {
+      setNotes(notes.map(n => 
+        n.id === editingNote.id 
+          ? { ...n, content: modalContent.trim(), updated_at: new Date().toISOString() }
+          : n
+      ))
+      closeNoteModal()
+    }
+    setIsNoteLoading(false)
+  }
+
+  const handleDeleteNote = async () => {
+    if (!editingNote) return
+    
+    if (confirm('이 메모를 삭제하시겠습니까?')) {
+      setIsNoteLoading(true)
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', editingNote.id)
+
+      if (error) {
+        console.error('Error deleting note:', error)
+      } else {
+        setNotes(notes.filter(n => n.id !== editingNote.id))
+        closeNoteModal()
+      }
+      setIsNoteLoading(false)
+    }
+  }
+
+  const closeNoteModal = () => {
+    setIsNoteModalOpen(false)
+    setEditingNote(null)
+    setModalContent('')
+  }
+
+  const formatNoteDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInMs = now.getTime() - date.getTime()
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60))
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    const diffInDays = Math.floor(diffInHours / 24)
+
+    if (diffInMinutes < 1) return '방금 전'
+    if (diffInMinutes < 60) return `${diffInMinutes}분 전`
+    if (diffInHours < 24) return `${diffInHours}시간 전`
+    if (diffInDays < 7) return `${diffInDays}일 전`
+    
+    return date.toLocaleDateString('ko-KR', { 
+      month: 'numeric', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
   const fetchData = useCallback(async () => {
     let startDate: Date, endDate: Date
@@ -1363,6 +1496,166 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* 메모 섹션 */}
+        <div className={`${getCardStyle()} mb-6`}>
+          <button
+            onClick={() => setIsNotesExpanded(!isNotesExpanded)}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <StickyNote className="h-5 w-5 text-amber-500" />
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-gray-900">빠른 메모</h3>
+                <p className="text-sm text-gray-600">최근 메모 {notes.length}개</p>
+              </div>
+            </div>
+            {isNotesExpanded ? (
+              <ChevronUp className="h-5 w-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
+
+          {/* 펼쳐진 메모 영역 */}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              isNotesExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className="px-4 pb-4 space-y-3">
+              {/* 새 메모 입력 영역 */}
+              <div className="flex space-x-2 pt-2">
+                <input
+                  type="text"
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="새 메모를 입력하세요..."
+                  className={`flex-1 ${getInputStyle()}`}
+                  disabled={isNoteLoading}
+                />
+                <button
+                  onClick={handleAddNote}
+                  disabled={!newNote.trim() || isNoteLoading}
+                  className={`px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${getButtonStyle()}`}
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* 메모 목록 */}
+              <div className="space-y-2">
+                {notes.length === 0 ? (
+                  <div className="text-center py-8">
+                    <StickyNote className="h-10 w-10 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-gray-500">아직 메모가 없습니다</p>
+                    <p className="text-xs text-gray-400 mt-1">위에서 첫 메모를 작성해보세요</p>
+                  </div>
+                ) : (
+                  notes.map((note) => (
+                    <div
+                      key={note.id}
+                      className="p-3 bg-amber-50 rounded-lg border border-amber-200 group hover:shadow-sm transition-shadow cursor-pointer"
+                      onClick={() => openEditModal(note)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 mr-2">
+                          <p className="text-sm text-gray-900 break-words line-clamp-2">
+                            {note.content}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatNoteDate(note.created_at)}
+                            {note.updated_at !== note.created_at && ' (수정됨)'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openEditModal(note)
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* 메모 페이지로 이동 */}
+              {notes.length > 0 && (
+                <button
+                  onClick={() => window.location.href = '/notes'}
+                  className="w-full py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  모든 메모 보기 →
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 메모 편집 모달 */}
+        {isNoteModalOpen && editingNote && (
+          <div className={getModalBackdropStyle()}>
+            <div className={`${getModalStyle()} w-full max-w-md`}>
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">메모 편집</h2>
+                  <button onClick={closeNoteModal} className="p-2 hover:bg-gray-100 rounded">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4">
+                <textarea
+                  value={modalContent}
+                  onChange={(e) => setModalContent(e.target.value)}
+                  className={`w-full ${getInputStyle()} min-h-[120px] resize-none`}
+                  placeholder="메모 내용을 입력하세요..."
+                  autoFocus
+                />
+                <p className="text-xs text-gray-400 mt-2">
+                  작성: {formatNoteDate(editingNote.created_at)}
+                  {editingNote.updated_at !== editingNote.created_at && 
+                    ` | 수정: ${formatNoteDate(editingNote.updated_at)}`
+                  }
+                </p>
+              </div>
+
+              <div className="p-4 border-t border-gray-200 flex justify-between">
+                <button
+                  onClick={handleDeleteNote}
+                  disabled={isNoteLoading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>삭제</span>
+                </button>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={closeNoteModal}
+                    disabled={isNoteLoading}
+                    className={`px-4 py-2 rounded-lg ${getCardStyle()} hover:opacity-80 disabled:opacity-50`}
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={!modalContent.trim() || isNoteLoading}
+                    className={`px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 ${getButtonStyle()}`}
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>저장</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 레벨 정보 모달 */}
         {showLevelModal && (

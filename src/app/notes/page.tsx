@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Edit2, Save, Trash2, X, StickyNote } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
