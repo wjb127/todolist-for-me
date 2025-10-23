@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, memo, useCallback } from 'react'
-import { Plus, Trash2, Save, X, Clock, Sparkles, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, Save, X, Clock, Sparkles, ChevronRight, ChevronDown, ChevronUp, Calendar, ChevronLeft } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import confetti from 'canvas-confetti'
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
@@ -173,6 +175,7 @@ export default function PlansPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending')
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -565,13 +568,39 @@ export default function PlansPage() {
       .sort((a, b) => a.order_index - b.order_index)
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return format(date, 'M월 d일 (E)', { locale: ko })
+  }
+
+  const goToPreviousDay = () => {
+    const currentDate = new Date(selectedDate)
+    currentDate.setDate(currentDate.getDate() - 1)
+    setSelectedDate(currentDate.toISOString().split('T')[0])
+  }
+
+  const goToNextDay = () => {
+    const currentDate = new Date(selectedDate)
+    currentDate.setDate(currentDate.getDate() + 1)
+    setSelectedDate(currentDate.toISOString().split('T')[0])
+  }
+
+  const goToToday = () => {
+    setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+  }
+
   const filteredPlans = useMemo(() => {
     return plans.filter(plan => {
-      if (filter === 'pending') return !plan.completed
-      if (filter === 'completed') return plan.completed
+      // 완료 상태 필터
+      if (filter === 'pending' && plan.completed) return false
+      if (filter === 'completed' && !plan.completed) return false
+      
+      // 날짜 필터 - due_date가 선택한 날짜와 같은 것만
+      if (plan.due_date && plan.due_date !== selectedDate) return false
+      
       return true
     })
-  }, [plans, filter])
+  }, [plans, filter, selectedDate])
 
   // 최상위 계획들만 가져오기 (부모가 없는 계획들)
   const topLevelPlans = useMemo(() => {
@@ -606,6 +635,49 @@ export default function PlansPage() {
             <Plus className="h-4 w-4" />
             <span>새 계획</span>
           </button>
+        </div>
+
+        <div className={`${getCardStyle()} mb-4`}>
+          <div className="flex items-center space-x-2 mb-2">
+            <Calendar className="h-5 w-5 text-gray-500" />
+            <label className="text-sm font-medium text-gray-700">날짜 선택</label>
+          </div>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className={getInputStyle()}
+          />
+          <div className="mt-3 flex items-center justify-between">
+            <button
+              onClick={goToPreviousDay}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="이전 날"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="flex-1 flex items-center justify-center space-x-2">
+              <div className="text-lg font-semibold text-gray-900">
+                {formatDate(selectedDate)}
+              </div>
+              {selectedDate !== format(new Date(), 'yyyy-MM-dd') && (
+                <button
+                  onClick={goToToday}
+                  className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
+                  title="오늘로 가기"
+                >
+                  오늘
+                </button>
+              )}
+            </div>
+            <button
+              onClick={goToNextDay}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="다음 날"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <div className={`${getCardStyle()} mb-6`}>
