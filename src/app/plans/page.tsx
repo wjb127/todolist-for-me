@@ -170,6 +170,13 @@ const PlanItem = memo(function PlanItem({
   )
 })
 
+// 한국 시간 기준 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+const getKoreanToday = () => {
+  const now = new Date()
+  const koreanTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)) // UTC+9
+  return koreanTime.toISOString().split('T')[0]
+}
+
 export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -179,7 +186,7 @@ export default function PlansPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    due_date: new Date().toISOString().split('T')[0], // 오늘 날짜로 기본 설정
+    due_date: getKoreanToday(), // 한국 시간 기준 오늘 날짜로 기본 설정
     priority: 'high' as 'low' | 'medium' | 'high',
     parent_id: null as string | null
   })
@@ -471,7 +478,7 @@ export default function PlansPage() {
     setFormData({
       title: plan?.title || '',
       description: plan?.description || '',
-      due_date: plan?.due_date || new Date().toISOString().split('T')[0],
+      due_date: plan?.due_date || getKoreanToday(),
       priority: plan?.priority || 'high',
       parent_id: plan?.parent_id || parentId || null
     })
@@ -494,7 +501,7 @@ export default function PlansPage() {
   const closeModal = () => {
     setIsModalOpen(false)
     setEditingPlan(null)
-    setFormData({ title: '', description: '', due_date: new Date().toISOString().split('T')[0], priority: 'high', parent_id: null })
+    setFormData({ title: '', description: '', due_date: getKoreanToday(), priority: 'high', parent_id: null })
     setAiSuggestion('')
     setIsAiLoading(false)
     setIsSaving(false)
