@@ -53,13 +53,14 @@ export default function YearlyContributionGraph({ type = 'all' }: YearlyContribu
     if (type === 'plans' || type === 'all') {
       const { data: plansData } = await supabase
         .from('plans')
-        .select('completed_at')
-        .not('completed_at', 'is', null)
-        .gte('completed_at', format(startDate, 'yyyy-MM-dd'))
-        .lte('completed_at', format(endDate, 'yyyy-MM-dd'))
+        .select('due_date, completed')
+        .eq('completed', true)
+        .not('due_date', 'is', null)
+        .gte('due_date', format(startDate, 'yyyy-MM-dd'))
+        .lte('due_date', format(endDate, 'yyyy-MM-dd'))
 
       plansData?.forEach(plan => {
-        const date = plan.completed_at!.split('T')[0]
+        const date = plan.due_date!
         const existing = contributionsMap.get(date) || { date, count: 0, todos: 0, plans: 0 }
         existing.plans = (existing.plans || 0) + 1
         existing.count = (existing.todos || 0) + existing.plans
