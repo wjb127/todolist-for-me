@@ -808,8 +808,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* GitHub 스타일 연간 잔디 */}
-        <YearlyContributionGraph />
+        {/* GitHub 스타일 연간 잔디 - Todo 달성 기록 */}
+        <YearlyContributionGraph type="todos" />
+
+        {/* GitHub 스타일 연간 잔디 - 계획 달성 기록 */}
+        <div className="mt-6">
+          <YearlyContributionGraph type="plans" />
+        </div>
 
         {/* 레벨 및 경험치 시스템 */}
         <div className={`${getCardStyle()} mb-6 mt-6`}>
