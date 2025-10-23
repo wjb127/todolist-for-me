@@ -60,24 +60,21 @@ const PlanItem = memo(function PlanItem({
       >
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-start space-x-2">
-              {/* 들여쓰기 */}
-              <div style={{ width: `${plan.depth * 24}px` }} />
-              
+            <div className="flex items-start space-x-1">
               {/* 펼치기/접기 버튼 */}
               {hasChildren && (
                 <button
                   onClick={() => onToggleExpanded(plan.id)}
-                  className="p-1 text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600"
                 >
                   {isExpanded ? (
-                    <ChevronDown className="h-6 w-6" />
+                    <ChevronDown className="h-4 w-4" />
                   ) : (
-                    <ChevronRight className="h-6 w-6" />
+                    <ChevronRight className="h-4 w-4" />
                   )}
                 </button>
               )}
-              {!hasChildren && <div className="w-6" />}
+              {!hasChildren && <div className="w-4" />}
               
               {/* 상하 이동 버튼 */}
               <div className="flex flex-col -space-y-1">
@@ -140,7 +137,7 @@ const PlanItem = memo(function PlanItem({
       
       {/* 하위 계획들 렌더링 */}
       {isExpanded && hasChildren && childrenPlans.length > 0 && (
-        <div className="ml-6 mt-2 space-y-2">
+        <div className="ml-4 mt-2 space-y-2">
           {childrenPlans.map((child, index) => {
             const childPlans = getChildPlansFn(child.id)
             return (
