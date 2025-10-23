@@ -162,18 +162,32 @@ export default function YearlyContributionGraph() {
     return (
       <div className="max-h-[600px] overflow-y-auto overflow-x-hidden pb-4">
         <div className="w-full">
-          {/* Week day labels at top */}
+          {/* Week day labels at top - 2주 분량 */}
           <div className="flex sticky top-0 bg-white dark:bg-gray-900 z-10 pb-2 mb-2 border-b border-gray-200">
             <div className="w-12 flex-shrink-0"></div>
-            <div className="flex gap-1">
-              {weekDays.map((day) => (
-                <div
-                  key={day}
-                  className="w-3 text-[10px] text-gray-600 text-center font-medium"
-                >
-                  {day}
-                </div>
-              ))}
+            <div className="flex gap-3">
+              {/* 첫 번째 주 */}
+              <div className="flex gap-1">
+                {weekDays.map((day) => (
+                  <div
+                    key={`week1-${day}`}
+                    className="w-3 text-[10px] text-gray-600 text-center font-medium"
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+              {/* 두 번째 주 */}
+              <div className="flex gap-1">
+                {weekDays.map((day) => (
+                  <div
+                    key={`week2-${day}`}
+                    className="w-3 text-[10px] text-gray-600 text-center font-medium"
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           
@@ -186,32 +200,65 @@ export default function YearlyContributionGraph() {
                   {months[month]}
                 </div>
                 
-                {/* Contribution grid for the month - week by week */}
+                {/* Contribution grid for the month - 2주씩 한 줄에 */}
                 <div className="flex-1">
                   <div className="space-y-1">
-                    {weeks.map((week, weekIndex) => (
-                      <div key={weekIndex} className="flex gap-1">
-                        {week.map((day, dayIndex) => {
-                          if (!day) {
-                            return <div key={`empty-${month}-${weekIndex}-${dayIndex}`} className="w-3 h-3" />
-                          }
+                    {Array.from({ length: Math.ceil(weeks.length / 2) }).map((_, rowIndex) => {
+                      const firstWeek = weeks[rowIndex * 2]
+                      const secondWeek = weeks[rowIndex * 2 + 1]
+                      
+                      return (
+                        <div key={rowIndex} className="flex gap-3">
+                          {/* 첫 번째 주 */}
+                          <div className="flex gap-1">
+                            {firstWeek?.map((day, dayIndex) => {
+                              if (!day) {
+                                return <div key={`empty-${month}-${rowIndex * 2}-${dayIndex}`} className="w-3 h-3" />
+                              }
+                              
+                              const dateStr = format(day, 'yyyy-MM-dd')
+                              const contribution = contributions.get(dateStr)
+                              const count = contribution?.count || 0
+                              
+                              return (
+                                <div
+                                  key={dateStr}
+                                  className={`w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 ${getContributionLevel(count)}`}
+                                  onMouseEnter={() => setHoveredDate(dateStr)}
+                                  onMouseLeave={() => setHoveredDate(null)}
+                                  title={`${format(day, 'yyyy년 M월 d일')}: ${count}개 완료`}
+                                />
+                              )
+                            })}
+                          </div>
                           
-                          const dateStr = format(day, 'yyyy-MM-dd')
-                          const contribution = contributions.get(dateStr)
-                          const count = contribution?.count || 0
-                          
-                          return (
-                            <div
-                              key={dateStr}
-                              className={`w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 ${getContributionLevel(count)}`}
-                              onMouseEnter={() => setHoveredDate(dateStr)}
-                              onMouseLeave={() => setHoveredDate(null)}
-                              title={`${format(day, 'yyyy년 M월 d일')}: ${count}개 완료`}
-                            />
-                          )
-                        })}
-                      </div>
-                    ))}
+                          {/* 두 번째 주 */}
+                          {secondWeek && (
+                            <div className="flex gap-1">
+                              {secondWeek.map((day, dayIndex) => {
+                                if (!day) {
+                                  return <div key={`empty-${month}-${rowIndex * 2 + 1}-${dayIndex}`} className="w-3 h-3" />
+                                }
+                                
+                                const dateStr = format(day, 'yyyy-MM-dd')
+                                const contribution = contributions.get(dateStr)
+                                const count = contribution?.count || 0
+                                
+                                return (
+                                  <div
+                                    key={dateStr}
+                                    className={`w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 ${getContributionLevel(count)}`}
+                                    onMouseEnter={() => setHoveredDate(dateStr)}
+                                    onMouseLeave={() => setHoveredDate(null)}
+                                    title={`${format(day, 'yyyy년 M월 d일')}: ${count}개 완료`}
+                                  />
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
