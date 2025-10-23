@@ -153,27 +153,30 @@ const PlanItem = memo(function PlanItem({
       {/* 하위 계획들 렌더링 */}
       {isExpanded && hasChildren && childrenPlans.length > 0 && (
         <div className="ml-6 mt-2 space-y-2">
-          {childrenPlans.map((child, index) => (
-            <PlanItem
-              key={child.id}
-              plan={child}
-              onToggleComplete={onToggleComplete}
-              onEdit={onEdit}
-              onAddChild={onAddChild}
-              onMoveUp={onMoveUp}
-              onMoveDown={onMoveDown}
-              getPriorityColor={getPriorityColor}
-              hasChildren={hasChildrenFn(child.id)}
-              isExpanded={expandedPlans.has(child.id)}
-              onToggleExpanded={onToggleExpanded}
-              childrenPlans={getChildPlansFn(child.id)}
-              hasChildrenFn={hasChildrenFn}
-              getChildPlansFn={getChildPlansFn}
-              expandedPlans={expandedPlans}
-              isFirst={index === 0}
-              isLast={index === childrenPlans.length - 1}
-            />
-          ))}
+          {childrenPlans.map((child, index) => {
+            const childPlans = getChildPlansFn(child.id)
+            return (
+              <PlanItem
+                key={child.id}
+                plan={child}
+                onToggleComplete={onToggleComplete}
+                onEdit={onEdit}
+                onAddChild={onAddChild}
+                onMoveUp={onMoveUp}
+                onMoveDown={onMoveDown}
+                getPriorityColor={getPriorityColor}
+                hasChildren={hasChildrenFn(child.id)}
+                isExpanded={expandedPlans.has(child.id)}
+                onToggleExpanded={onToggleExpanded}
+                childrenPlans={childPlans}
+                hasChildrenFn={hasChildrenFn}
+                getChildPlansFn={getChildPlansFn}
+                expandedPlans={expandedPlans}
+                isFirst={index === 0}
+                isLast={index === childrenPlans.length - 1}
+              />
+            )
+          })}
         </div>
       )}
     </div>
