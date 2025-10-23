@@ -13,7 +13,11 @@ interface ContributionData {
   plans?: number
 }
 
-export default function YearlyContributionGraph() {
+interface YearlyContributionGraphProps {
+  type?: 'todos' | 'plans' | 'all'
+}
+
+export default function YearlyContributionGraph({ type = 'all' }: YearlyContributionGraphProps) {
   const [contributions, setContributions] = useState<Map<string, ContributionData>>(new Map())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [hoveredDate, setHoveredDate] = useState<string | null>(null)
@@ -26,45 +30,49 @@ export default function YearlyContributionGraph() {
     const startDate = startOfYear(new Date(selectedYear, 0, 1))
     const endDate = endOfYear(new Date(selectedYear, 0, 1))
     
-    // Fetch todos for the year
-    const { data: todosData } = await supabase
-      .from('todos')
-      .select('date, completed')
-      .gte('date', format(startDate, 'yyyy-MM-dd'))
-      .lte('date', format(endDate, 'yyyy-MM-dd'))
-      .eq('completed', true)
-
-    // Fetch plans for the year
-    const { data: plansData } = await supabase
-      .from('plans')
-      .select('completed_at')
-      .not('completed_at', 'is', null)
-      .gte('completed_at', format(startDate, 'yyyy-MM-dd'))
-      .lte('completed_at', format(endDate, 'yyyy-MM-dd'))
-
-    // Process data
     const contributionsMap = new Map<string, ContributionData>()
     
-    todosData?.forEach(todo => {
-      const existing = contributionsMap.get(todo.date) || { date: todo.date, count: 0, todos: 0, plans: 0 }
-      existing.todos = (existing.todos || 0) + 1
-      existing.count = existing.todos + (existing.plans || 0)
-      contributionsMap.set(todo.date, existing)
-    })
+    // Fetch todos for the year (if type is 'todos' or 'all')
+    if (type === 'todos' || type === 'all') {
+      const { data: todosData } = await supabase
+        .from('todos')
+        .select('date, completed')
+        .gte('date', format(startDate, 'yyyy-MM-dd'))
+        .lte('date', format(endDate, 'yyyy-MM-dd'))
+        .eq('completed', true)
 
-    plansData?.forEach(plan => {
-      const date = plan.completed_at!.split('T')[0]
-      const existing = contributionsMap.get(date) || { date, count: 0, todos: 0, plans: 0 }
-      existing.plans = (existing.plans || 0) + 1
-      existing.count = (existing.todos || 0) + existing.plans
-      contributionsMap.set(date, existing)
-    })
+      todosData?.forEach(todo => {
+        const existing = contributionsMap.get(todo.date) || { date: todo.date, count: 0, todos: 0, plans: 0 }
+        existing.todos = (existing.todos || 0) + 1
+        existing.count = existing.todos + (existing.plans || 0)
+        contributionsMap.set(todo.date, existing)
+      })
+    }
+
+    // Fetch plans for the year (if type is 'plans' or 'all')
+    if (type === 'plans' || type === 'all') {
+      const { data: plansData } = await supabase
+        .from('plans')
+        .select('due_date, completed')
+        .eq('completed', true)
+        .not('due_date', 'is', null)
+        .gte('due_date', format(startDate, 'yyyy-MM-dd'))
+        .lte('due_date', format(endDate, 'yyyy-MM-dd'))
+
+      plansData?.forEach(plan => {
+        const date = plan.due_date!
+        const existing = contributionsMap.get(date) || { date, count: 0, todos: 0, plans: 0 }
+        existing.plans = (existing.plans || 0) + 1
+        existing.count = (existing.todos || 0) + existing.plans
+        contributionsMap.set(date, existing)
+      })
+    }
 
     setContributions(contributionsMap)
     
     // Calculate statistics
     calculateStatistics(contributionsMap)
-  }, [selectedYear])
+  }, [selectedYear, type])
 
   useEffect(() => {
     fetchYearlyData()
@@ -160,7 +168,7 @@ export default function YearlyContributionGraph() {
     const weekDays = ['일', '월', '화', '수', '목', '금', '토']
     
     return (
-      <div className="max-h-[600px] overflow-y-auto overflow-x-hidden pb-4">
+      <div className="pb-4">
         <div className="w-full">
           {/* Week day labels at top - 2주 분량 */}
           <div className="flex sticky top-0 bg-white dark:bg-gray-900 z-10 pb-2 mb-2 border-b border-gray-200">
@@ -303,8 +311,8 @@ export default function YearlyContributionGraph() {
     <div className={`${getCardStyle()} rounded-lg shadow-sm p-6`}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <span className="text-2xl">🌱</span>
-          연간 활동 기록
+          <span className="text-2xl">{type === 'todos' ? '📝' : type === 'plans' ? '🎯' : '🌱'}</span>
+          {type === 'todos' ? 'Todo 달성 기록' : type === 'plans' ? '계획 달성 기록' : '연간 활동 기록'}
         </h2>
         <select
           value={selectedYear}
@@ -326,8 +334,14 @@ export default function YearlyContributionGraph() {
             {format(new Date(hoveredDate), 'yyyy년 M월 d일 (E)', { locale: ko })}
           </div>
           <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-            {contributions.get(hoveredDate)!.todos || 0}개 할 일 완료
-            {contributions.get(hoveredDate)!.plans ? `, ${contributions.get(hoveredDate)!.plans}개 계획 완료` : ''}
+            {type === 'todos' && `${contributions.get(hoveredDate)!.todos || 0}개 할 일 완료`}
+            {type === 'plans' && `${contributions.get(hoveredDate)!.plans || 0}개 계획 완료`}
+            {type === 'all' && (
+              <>
+                {contributions.get(hoveredDate)!.todos || 0}개 할 일 완료
+                {contributions.get(hoveredDate)!.plans ? `, ${contributions.get(hoveredDate)!.plans}개 계획 완료` : ''}
+              </>
+            )}
           </div>
         </div>
       )}
