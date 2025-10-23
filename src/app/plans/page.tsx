@@ -119,11 +119,6 @@ const PlanItem = memo(function PlanItem({
                   }`}>
                     {plan.title}
                   </h3>
-                  {plan.due_date && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      마감일: {new Date(plan.due_date).toLocaleDateString('ko-KR')}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
