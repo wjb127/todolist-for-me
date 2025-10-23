@@ -168,7 +168,7 @@ export default function YearlyContributionGraph({ type = 'all' }: YearlyContribu
     const weekDays = ['일', '월', '화', '수', '목', '금', '토']
     
     return (
-      <div className="max-h-[600px] overflow-y-auto overflow-x-hidden pb-4">
+      <div className="pb-4">
         <div className="w-full">
           {/* Week day labels at top - 2주 분량 */}
           <div className="flex sticky top-0 bg-white dark:bg-gray-900 z-10 pb-2 mb-2 border-b border-gray-200">
