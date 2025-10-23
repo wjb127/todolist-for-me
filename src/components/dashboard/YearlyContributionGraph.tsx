@@ -127,8 +127,8 @@ export default function YearlyContributionGraph() {
     const yearEnd = endOfYear(new Date(selectedYear, 0, 1))
     const days = eachDayOfInterval({ start: yearStart, end: yearEnd })
     
-    // Group days by month
-    const monthsData: { month: number; days: (Date | null)[] }[] = []
+    // Group days by month and organize into weeks
+    const monthsData: { month: number; weeks: (Date | null)[][] }[] = []
     
     for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
       const monthStart = new Date(selectedYear, monthIndex, 1)
@@ -147,7 +147,13 @@ export default function YearlyContributionGraph() {
       // 실제 날짜들 추가
       monthDays.forEach(day => paddedDays.push(day))
       
-      monthsData.push({ month: monthIndex, days: paddedDays })
+      // 일주일씩 끊어서 2차원 배열로 만들기
+      const weeks: (Date | null)[][] = []
+      for (let i = 0; i < paddedDays.length; i += 7) {
+        weeks.push(paddedDays.slice(i, i + 7))
+      }
+      
+      monthsData.push({ month: monthIndex, weeks })
     }
     
     const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
@@ -160,12 +166,10 @@ export default function YearlyContributionGraph() {
           <div className="flex sticky top-0 bg-white dark:bg-gray-900 z-10 pb-2 mb-2 border-b border-gray-200">
             <div className="w-12 flex-shrink-0"></div>
             <div className="flex gap-1">
-              {weekDays.map((day, index) => (
+              {weekDays.map((day) => (
                 <div
                   key={day}
-                  className={`w-3 text-xs text-gray-600 text-center ${
-                    index % 2 === 1 ? '' : 'opacity-0'
-                  }`}
+                  className="w-3 text-[10px] text-gray-600 text-center font-medium"
                 >
                   {day}
                 </div>
@@ -174,36 +178,40 @@ export default function YearlyContributionGraph() {
           </div>
           
           {/* Months with contribution grids */}
-          <div className="space-y-2">
-            {monthsData.map(({ month, days }) => (
+          <div className="space-y-3">
+            {monthsData.map(({ month, weeks }) => (
               <div key={month} className="flex">
                 {/* Month label */}
                 <div className="w-12 flex-shrink-0 text-xs text-gray-600 pr-2 flex items-start pt-0.5">
                   {months[month]}
                 </div>
                 
-                {/* Contribution grid for the month */}
+                {/* Contribution grid for the month - week by week */}
                 <div className="flex-1">
-                  <div className="flex flex-wrap gap-1" style={{ width: 'fit-content' }}>
-                    {days.map((day, dayIndex) => {
-                      if (!day) {
-                        return <div key={`empty-${month}-${dayIndex}`} className="w-3 h-3" />
-                      }
-                      
-                      const dateStr = format(day, 'yyyy-MM-dd')
-                      const contribution = contributions.get(dateStr)
-                      const count = contribution?.count || 0
-                      
-                      return (
-                        <div
-                          key={dateStr}
-                          className={`w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 ${getContributionLevel(count)}`}
-                          onMouseEnter={() => setHoveredDate(dateStr)}
-                          onMouseLeave={() => setHoveredDate(null)}
-                          title={`${format(day, 'yyyy년 M월 d일')}: ${count}개 완료`}
-                        />
-                      )
-                    })}
+                  <div className="space-y-1">
+                    {weeks.map((week, weekIndex) => (
+                      <div key={weekIndex} className="flex gap-1">
+                        {week.map((day, dayIndex) => {
+                          if (!day) {
+                            return <div key={`empty-${month}-${weekIndex}-${dayIndex}`} className="w-3 h-3" />
+                          }
+                          
+                          const dateStr = format(day, 'yyyy-MM-dd')
+                          const contribution = contributions.get(dateStr)
+                          const count = contribution?.count || 0
+                          
+                          return (
+                            <div
+                              key={dateStr}
+                              className={`w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 ${getContributionLevel(count)}`}
+                              onMouseEnter={() => setHoveredDate(dateStr)}
+                              onMouseLeave={() => setHoveredDate(null)}
+                              title={`${format(day, 'yyyy년 M월 d일')}: ${count}개 완료`}
+                            />
+                          )
+                        })}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -211,7 +219,7 @@ export default function YearlyContributionGraph() {
           </div>
           
           {/* Legend and Statistics */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+          <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-2 text-xs text-gray-600">
               <span>적음</span>
               <div className="flex gap-1">
@@ -225,7 +233,7 @@ export default function YearlyContributionGraph() {
             </div>
             
             {/* Statistics */}
-            <div className="flex items-center gap-4 text-xs text-gray-600">
+            <div className="flex flex-wrap gap-3 text-xs text-gray-600">
               <div>
                 <span className="font-medium">{totalContributions}</span> 총 완료
               </div>
