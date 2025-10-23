@@ -310,10 +310,13 @@ export default function YearlyContributionGraph({ type = 'all' }: YearlyContribu
   return (
     <div className={`${getCardStyle()} rounded-lg shadow-sm p-6`}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <span className="text-2xl">{type === 'todos' ? '📝' : type === 'plans' ? '🎯' : '🌱'}</span>
-          {type === 'todos' ? 'Todo 달성 기록' : type === 'plans' ? '계획 달성 기록' : '연간 활동 기록'}
-        </h2>
+        <div className="flex flex-col">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <span className="text-2xl">{type === 'todos' ? '📝' : type === 'plans' ? '🎯' : '🌱'}</span>
+            {type === 'todos' ? 'Todo 달성 기록' : type === 'plans' ? '계획 달성 기록' : '연간 활동 기록'}
+          </h2>
+          <p className="text-sm text-gray-600 ml-9">총 {totalContributions}개 달성</p>
+        </div>
         <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
