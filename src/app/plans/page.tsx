@@ -1,28 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, memo, useCallback } from 'react'
-import { Plus, Trash2, Save, X, Clock, GripVertical, Sparkles, ChevronRight, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, Save, X, Clock, Sparkles, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import confetti from 'canvas-confetti'
-import { 
-  DndContext, 
-  closestCenter, 
-  KeyboardSensor, 
-  PointerSensor, 
-  useSensor, 
-  useSensors,
-  DragEndEvent
-} from '@dnd-kit/core'
-import { 
-  arrayMove, 
-  SortableContext, 
-  sortableKeyboardCoordinates, 
-  verticalListSortingStrategy 
-} from '@dnd-kit/sortable'
-import { 
-  useSortable 
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
@@ -31,68 +12,50 @@ import { useTheme } from '@/lib/context/ThemeContext'
 type Plan = Database['public']['Tables']['plans']['Row']
 type PlanInsert = Database['public']['Tables']['plans']['Insert']
 
-interface SortableItemProps {
+interface PlanItemProps {
   plan: Plan
   onToggleComplete: (id: string, completed: boolean, element?: HTMLElement) => void
   onEdit: (plan: Plan) => void
   onAddChild: (parentId: string) => void
+  onMoveUp: (planId: string, parentId: string | null) => void
+  onMoveDown: (planId: string, parentId: string | null) => void
   getPriorityColor: (priority: string) => string
   hasChildren: boolean
   isExpanded: boolean
   onToggleExpanded: (planId: string) => void
   childrenPlans?: Plan[]
-  onDragEnd: (event: DragEndEvent) => void
   hasChildrenFn: (planId: string) => boolean
   getChildPlansFn: (planId: string) => Plan[]
   expandedPlans: Set<string>
+  isFirst: boolean
+  isLast: boolean
 }
 
-const SortableItem = memo(function SortableItem({ 
+const PlanItem = memo(function PlanItem({ 
   plan, 
   onToggleComplete, 
   onEdit,
   onAddChild,
+  onMoveUp,
+  onMoveDown,
   getPriorityColor,
   hasChildren,
   isExpanded,
   onToggleExpanded,
   childrenPlans = [],
-  onDragEnd,
   hasChildrenFn,
   getChildPlansFn,
-  expandedPlans
-}: SortableItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: plan.id })
-  
+  expandedPlans,
+  isFirst,
+  isLast
+}: PlanItemProps) {
   const { getCardStyle } = useTheme()
   const checkboxRef = React.useRef<HTMLDivElement>(null)
-  
-  const childSensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
 
   return (
     <div>
       <div 
-        ref={setNodeRef} 
-        style={style} 
-        className={`${getCardStyle()} ${isDragging ? 'z-50' : ''}`}
+        className={getCardStyle()}
         data-plan-id={plan.id}
       >
         <div className="flex items-start justify-between">
@@ -116,13 +79,26 @@ const SortableItem = memo(function SortableItem({
               )}
               {!hasChildren && <div className="w-6" />}
               
-              <div 
-                {...attributes} 
-                {...listeners}
-                className="p-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex items-center"
-              >
-                <GripVertical className="h-4 w-4" />
+              {/* 상하 이동 버튼 */}
+              <div className="flex flex-col -space-y-1">
+                <button
+                  onClick={() => onMoveUp(plan.id, plan.parent_id)}
+                  disabled={isFirst}
+                  className={`p-0.5 ${isFirst ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                  title="위로 이동"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => onMoveDown(plan.id, plan.parent_id)}
+                  disabled={isLast}
+                  className={`p-0.5 ${isLast ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                  title="아래로 이동"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
               </div>
+              
               <div ref={checkboxRef}>
                 <AnimatedCheckbox
                   checked={plan.completed}
@@ -174,37 +150,30 @@ const SortableItem = memo(function SortableItem({
         </div>
       </div>
       
-      {/* 하위 계획들 렌더링 (드래그앤드롭 지원) */}
+      {/* 하위 계획들 렌더링 */}
       {isExpanded && hasChildren && childrenPlans.length > 0 && (
-        <div className="ml-6 mt-2">
-          <DndContext
-            sensors={childSensors}
-            collisionDetection={closestCenter}
-            onDragEnd={onDragEnd}
-          >
-            <SortableContext items={childrenPlans.map(child => child.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
-                {childrenPlans.map((child) => (
-                  <SortableItem
-                    key={child.id}
-                    plan={child}
-                    onToggleComplete={onToggleComplete}
-                    onEdit={onEdit}
-                    onAddChild={onAddChild}
-                    getPriorityColor={getPriorityColor}
-                    hasChildren={hasChildrenFn(child.id)}
-                    isExpanded={expandedPlans.has(child.id)}
-                    onToggleExpanded={onToggleExpanded}
-                    childrenPlans={getChildPlansFn(child.id)}
-                    hasChildrenFn={hasChildrenFn}
-                    getChildPlansFn={getChildPlansFn}
-                    expandedPlans={expandedPlans}
-                    onDragEnd={onDragEnd}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+        <div className="ml-6 mt-2 space-y-2">
+          {childrenPlans.map((child, index) => (
+            <PlanItem
+              key={child.id}
+              plan={child}
+              onToggleComplete={onToggleComplete}
+              onEdit={onEdit}
+              onAddChild={onAddChild}
+              onMoveUp={onMoveUp}
+              onMoveDown={onMoveDown}
+              getPriorityColor={getPriorityColor}
+              hasChildren={hasChildrenFn(child.id)}
+              isExpanded={expandedPlans.has(child.id)}
+              onToggleExpanded={onToggleExpanded}
+              childrenPlans={getChildPlansFn(child.id)}
+              hasChildrenFn={hasChildrenFn}
+              getChildPlansFn={getChildPlansFn}
+              expandedPlans={expandedPlans}
+              isFirst={index === 0}
+              isLast={index === childrenPlans.length - 1}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -231,13 +200,6 @@ export default function PlansPage() {
   // 테마 시스템 사용
   const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
-
   useEffect(() => {
     fetchPlans()
   }, [])
@@ -259,60 +221,81 @@ export default function PlansPage() {
     }
   }
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
-
-    if (!over || active.id === over.id) {
-      return
-    }
-
-    const activePlan = plans.find(p => p.id === active.id)
-    const overPlan = plans.find(p => p.id === over.id)
+  const handleMoveUp = async (planId: string, parentId: string | null) => {
+    const siblings = plans.filter(p => p.parent_id === parentId)
+    const currentIndex = siblings.findIndex(p => p.id === planId)
     
-    if (!activePlan || !overPlan) return
+    if (currentIndex <= 0) return // 이미 맨 위
     
-    // 같은 부모를 가진 계획들끼리만 순서 변경 허용
-    if (activePlan.parent_id !== overPlan.parent_id) {
-      return
-    }
-
-    // 같은 부모의 형제 계획들만 가져오기
-    const siblings = plans.filter(p => p.parent_id === activePlan.parent_id)
-    const oldIndex = siblings.findIndex(p => p.id === active.id)
-    const newIndex = siblings.findIndex(p => p.id === over.id)
+    const targetPlan = siblings[currentIndex]
+    const swapPlan = siblings[currentIndex - 1]
     
-    if (oldIndex === -1 || newIndex === -1) return
-
-    const reorderedSiblings = arrayMove(siblings, oldIndex, newIndex)
+    // 낙관적 업데이트
+    setPlans(prevPlans => 
+      prevPlans.map(p => {
+        if (p.id === targetPlan.id) {
+          return { ...p, order_index: swapPlan.order_index }
+        }
+        if (p.id === swapPlan.id) {
+          return { ...p, order_index: targetPlan.order_index }
+        }
+        return p
+      })
+    )
     
-    // 전체 plans 배열에서 해당 형제들의 order_index 업데이트
-    const updatedPlans = plans.map(plan => {
-      const siblingIndex = reorderedSiblings.findIndex(s => s.id === plan.id)
-      if (siblingIndex !== -1) {
-        return { ...plan, order_index: siblingIndex }
-      }
-      return plan
-    })
-    
-    setPlans(updatedPlans)
-
-    // Update order_index in database for siblings only
+    // 데이터베이스 업데이트
     try {
-      const updates = reorderedSiblings.map((plan, index) => ({
-        id: plan.id,
-        order_index: index
-      }))
-
-      for (const update of updates) {
-        await supabase
-          .from('plans')
-          .update({ order_index: update.order_index })
-          .eq('id', update.id)
-      }
+      await supabase
+        .from('plans')
+        .update({ order_index: swapPlan.order_index })
+        .eq('id', targetPlan.id)
+      
+      await supabase
+        .from('plans')
+        .update({ order_index: targetPlan.order_index })
+        .eq('id', swapPlan.id)
     } catch (error) {
-      console.error('Error updating plan order:', error)
-      // Revert on error
-      fetchPlans()
+      console.error('Error moving plan up:', error)
+      fetchPlans() // 에러 시 다시 로드
+    }
+  }
+
+  const handleMoveDown = async (planId: string, parentId: string | null) => {
+    const siblings = plans.filter(p => p.parent_id === parentId)
+    const currentIndex = siblings.findIndex(p => p.id === planId)
+    
+    if (currentIndex === -1 || currentIndex >= siblings.length - 1) return // 이미 맨 아래
+    
+    const targetPlan = siblings[currentIndex]
+    const swapPlan = siblings[currentIndex + 1]
+    
+    // 낙관적 업데이트
+    setPlans(prevPlans => 
+      prevPlans.map(p => {
+        if (p.id === targetPlan.id) {
+          return { ...p, order_index: swapPlan.order_index }
+        }
+        if (p.id === swapPlan.id) {
+          return { ...p, order_index: targetPlan.order_index }
+        }
+        return p
+      })
+    )
+    
+    // 데이터베이스 업데이트
+    try {
+      await supabase
+        .from('plans')
+        .update({ order_index: swapPlan.order_index })
+        .eq('id', targetPlan.id)
+      
+      await supabase
+        .from('plans')
+        .update({ order_index: targetPlan.order_index })
+        .eq('id', swapPlan.id)
+    } catch (error) {
+      console.error('Error moving plan down:', error)
+      fetchPlans() // 에러 시 다시 로드
     }
   }
 
@@ -672,34 +655,29 @@ export default function PlansPage() {
               <p className="text-sm">새로운 계획을 추가해보세요.</p>
             </div>
           ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={topLevelPlans.map(plan => plan.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-2">
-                  {topLevelPlans.map((plan) => (
-                    <SortableItem
-                      key={plan.id}
-                      plan={plan}
-                      onToggleComplete={handleToggleComplete}
-                      onEdit={openModal}
-                      onAddChild={(parentId) => openModal(undefined, parentId)}
-                      getPriorityColor={getPriorityColor}
-                      hasChildren={hasChildren(plan.id)}
-                      isExpanded={expandedPlans.has(plan.id)}
-                      onToggleExpanded={toggleExpanded}
-                      childrenPlans={getChildPlans(plan.id)}
-                      onDragEnd={handleDragEnd}
-                      hasChildrenFn={hasChildren}
-                      getChildPlansFn={getChildPlans}
-                      expandedPlans={expandedPlans}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+            <div className="space-y-2">
+              {topLevelPlans.map((plan, index) => (
+                <PlanItem
+                  key={plan.id}
+                  plan={plan}
+                  onToggleComplete={handleToggleComplete}
+                  onEdit={openModal}
+                  onAddChild={(parentId) => openModal(undefined, parentId)}
+                  onMoveUp={handleMoveUp}
+                  onMoveDown={handleMoveDown}
+                  getPriorityColor={getPriorityColor}
+                  hasChildren={hasChildren(plan.id)}
+                  isExpanded={expandedPlans.has(plan.id)}
+                  onToggleExpanded={toggleExpanded}
+                  childrenPlans={getChildPlans(plan.id)}
+                  hasChildrenFn={hasChildren}
+                  getChildPlansFn={getChildPlans}
+                  expandedPlans={expandedPlans}
+                  isFirst={index === 0}
+                  isLast={index === topLevelPlans.length - 1}
+                />
+              ))}
+            </div>
           )}
         </div>
 
