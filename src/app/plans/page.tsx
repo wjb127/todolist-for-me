@@ -134,13 +134,6 @@ const PlanItem = memo(function PlanItem({
             >
               <Plus className="h-4 w-4" />
             </button>
-            <div className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(plan.priority)}`}>
-              <span>
-                {plan.priority === 'high' && '높음'}
-                {plan.priority === 'medium' && '보통'}
-                {plan.priority === 'low' && '낮음'}
-              </span>
-            </div>
           </div>
         </div>
       </div>
@@ -187,7 +180,7 @@ export default function PlansPage() {
     title: '',
     description: '',
     due_date: new Date().toISOString().split('T')[0], // 오늘 날짜로 기본 설정
-    priority: 'medium' as 'low' | 'medium' | 'high',
+    priority: 'high' as 'low' | 'medium' | 'high',
     parent_id: null as string | null
   })
   const [isAiLoading, setIsAiLoading] = useState(false)
@@ -479,7 +472,7 @@ export default function PlansPage() {
       title: plan?.title || '',
       description: plan?.description || '',
       due_date: plan?.due_date || new Date().toISOString().split('T')[0],
-      priority: plan?.priority || 'medium',
+      priority: plan?.priority || 'high',
       parent_id: plan?.parent_id || parentId || null
     })
     setIsModalOpen(true)
@@ -501,7 +494,7 @@ export default function PlansPage() {
   const closeModal = () => {
     setIsModalOpen(false)
     setEditingPlan(null)
-    setFormData({ title: '', description: '', due_date: new Date().toISOString().split('T')[0], priority: 'medium', parent_id: null })
+    setFormData({ title: '', description: '', due_date: new Date().toISOString().split('T')[0], priority: 'high', parent_id: null })
     setAiSuggestion('')
     setIsAiLoading(false)
     setIsSaving(false)
