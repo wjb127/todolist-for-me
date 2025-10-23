@@ -61,9 +61,6 @@ const PlanItem = memo(function PlanItem({
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-start space-x-1">
-              {/* 들여쓰기 */}
-              <div style={{ width: `${plan.depth * 24}px` }} />
-              
               {/* 펼치기/접기 버튼 */}
               {hasChildren && (
                 <button
@@ -140,7 +137,7 @@ const PlanItem = memo(function PlanItem({
       
       {/* 하위 계획들 렌더링 */}
       {isExpanded && hasChildren && childrenPlans.length > 0 && (
-        <div className="ml-6 mt-2 space-y-2">
+        <div className="ml-4 mt-2 space-y-2">
           {childrenPlans.map((child, index) => {
             const childPlans = getChildPlansFn(child.id)
             return (
