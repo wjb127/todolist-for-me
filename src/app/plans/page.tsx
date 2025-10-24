@@ -31,6 +31,7 @@ interface PlanItemProps {
   expandedPlans: Set<string>
   isFirst: boolean
   isLast: boolean
+  isMoving: boolean
 }
 
 const PlanItem = memo(function PlanItem({ 
@@ -49,7 +50,8 @@ const PlanItem = memo(function PlanItem({
   getChildPlansFn,
   expandedPlans,
   isFirst,
-  isLast
+  isLast,
+  isMoving
 }: PlanItemProps) {
   const { getCardStyle } = useTheme()
   const checkboxRef = React.useRef<HTMLDivElement>(null)
@@ -82,16 +84,16 @@ const PlanItem = memo(function PlanItem({
               <div className="flex flex-col -space-y-1">
                 <button
                   onClick={() => onMoveUp(plan.id, plan.parent_id)}
-                  disabled={isFirst}
-                  className={`p-0.5 ${isFirst ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                  disabled={isFirst || isMoving}
+                  className={`p-0.5 ${isFirst || isMoving ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
                   title="위로 이동"
                 >
                   <ChevronUp className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => onMoveDown(plan.id, plan.parent_id)}
-                  disabled={isLast}
-                  className={`p-0.5 ${isLast ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                  disabled={isLast || isMoving}
+                  className={`p-0.5 ${isLast || isMoving ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
                   title="아래로 이동"
                 >
                   <ChevronDown className="h-4 w-4" />
@@ -161,6 +163,7 @@ const PlanItem = memo(function PlanItem({
                 expandedPlans={expandedPlans}
                 isFirst={index === 0}
                 isLast={index === childrenPlans.length - 1}
+                isMoving={isMoving}
               />
             )
           })}
@@ -194,6 +197,7 @@ export default function PlansPage() {
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
+  const [isMoving, setIsMoving] = useState(false) // 상하 이동 중 상태
   
   // 테마 시스템 사용
   const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
@@ -220,7 +224,11 @@ export default function PlansPage() {
   }
 
   const handleMoveUp = async (planId: string, parentId: string | null) => {
-    const siblings = plans.filter(p => p.parent_id === parentId)
+    // 이미 이동 중이면 무시 (연속 클릭 방지)
+    if (isMoving) return
+    
+    // filteredPlans에서 형제 노드 찾기 (필터링된 데이터 기준으로 이동)
+    const siblings = filteredPlans.filter(p => p.parent_id === parentId)
     const currentIndex = siblings.findIndex(p => p.id === planId)
     
     if (currentIndex <= 0) return // 이미 맨 위
@@ -228,7 +236,9 @@ export default function PlansPage() {
     const targetPlan = siblings[currentIndex]
     const swapPlan = siblings[currentIndex - 1]
     
-    // 낙관적 업데이트
+    setIsMoving(true)
+    
+    // 낙관적 업데이트 - UI 즉시 반영
     setPlans(prevPlans => 
       prevPlans.map(p => {
         if (p.id === targetPlan.id) {
@@ -241,25 +251,33 @@ export default function PlansPage() {
       })
     )
     
-    // 데이터베이스 업데이트
+    // 데이터베이스 업데이트 - 트랜잭션 함수 사용
     try {
-      await supabase
-        .from('plans')
-        .update({ order_index: swapPlan.order_index })
-        .eq('id', targetPlan.id)
+      const { error } = await supabase.rpc('swap_plan_order', {
+        plan_id_1: targetPlan.id,
+        plan_id_2: swapPlan.id
+      })
       
-      await supabase
-        .from('plans')
-        .update({ order_index: targetPlan.order_index })
-        .eq('id', swapPlan.id)
+      if (error) throw error
+      
+      // 성공 후 데이터 재로드 (다른 변경사항 반영)
+      await fetchPlans()
     } catch (error) {
       console.error('Error moving plan up:', error)
-      fetchPlans() // 에러 시 다시 로드
+      alert('계획 이동 중 오류가 발생했습니다. 다시 시도해주세요.')
+      // 에러 발생 시 데이터 재로드하여 롤백
+      await fetchPlans()
+    } finally {
+      setIsMoving(false)
     }
   }
 
   const handleMoveDown = async (planId: string, parentId: string | null) => {
-    const siblings = plans.filter(p => p.parent_id === parentId)
+    // 이미 이동 중이면 무시 (연속 클릭 방지)
+    if (isMoving) return
+    
+    // filteredPlans에서 형제 노드 찾기 (필터링된 데이터 기준으로 이동)
+    const siblings = filteredPlans.filter(p => p.parent_id === parentId)
     const currentIndex = siblings.findIndex(p => p.id === planId)
     
     if (currentIndex === -1 || currentIndex >= siblings.length - 1) return // 이미 맨 아래
@@ -267,7 +285,9 @@ export default function PlansPage() {
     const targetPlan = siblings[currentIndex]
     const swapPlan = siblings[currentIndex + 1]
     
-    // 낙관적 업데이트
+    setIsMoving(true)
+    
+    // 낙관적 업데이트 - UI 즉시 반영
     setPlans(prevPlans => 
       prevPlans.map(p => {
         if (p.id === targetPlan.id) {
@@ -280,20 +300,24 @@ export default function PlansPage() {
       })
     )
     
-    // 데이터베이스 업데이트
+    // 데이터베이스 업데이트 - 트랜잭션 함수 사용
     try {
-      await supabase
-        .from('plans')
-        .update({ order_index: swapPlan.order_index })
-        .eq('id', targetPlan.id)
+      const { error } = await supabase.rpc('swap_plan_order', {
+        plan_id_1: targetPlan.id,
+        plan_id_2: swapPlan.id
+      })
       
-      await supabase
-        .from('plans')
-        .update({ order_index: targetPlan.order_index })
-        .eq('id', swapPlan.id)
+      if (error) throw error
+      
+      // 성공 후 데이터 재로드 (다른 변경사항 반영)
+      await fetchPlans()
     } catch (error) {
       console.error('Error moving plan down:', error)
-      fetchPlans() // 에러 시 다시 로드
+      alert('계획 이동 중 오류가 발생했습니다. 다시 시도해주세요.')
+      // 에러 발생 시 데이터 재로드하여 롤백
+      await fetchPlans()
+    } finally {
+      setIsMoving(false)
     }
   }
 
@@ -742,6 +766,7 @@ export default function PlansPage() {
                   expandedPlans={expandedPlans}
                   isFirst={index === 0}
                   isLast={index === topLevelPlans.length - 1}
+                  isMoving={isMoving}
                 />
               ))}
             </div>
