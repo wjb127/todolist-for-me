@@ -5,12 +5,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ErrorScreen from './ErrorScreen';
 import { parseWebViewMessage, WebToNativeMessageType } from '../utils/webview-bridge';
 
-// 환경에 따라 URL 변경
-// 개발: ngrok URL 또는 로컬 IP 사용
-// 프로덕션: 실제 배포된 URL
-const WEB_APP_URL = __DEV__ 
-  ? 'http://localhost:3000'  // 개발 환경 (나중에 ngrok URL로 변경)
-  : 'https://your-app.vercel.app';  // 프로덕션 (실제 URL로 변경)
+// Vercel 배포 URL (실제 URL로 변경하세요)
+// 개발 환경에서도 Vercel URL을 사용하면 별도 터널링 불필요
+const VERCEL_URL = 'https://your-app.vercel.app'; // 👈 실제 Vercel URL로 변경
+
+// 로컬 개발 시에만 localhost 사용하려면 __DEV__를 true로 설정
+const USE_LOCALHOST = false; // true면 localhost:3000, false면 Vercel URL
+
+const WEB_APP_URL = __DEV__ && USE_LOCALHOST
+  ? 'http://localhost:3000'  // 로컬 개발용 (ngrok 필요)
+  : VERCEL_URL;  // Vercel 배포 URL (추천)
 
 export default function WebViewScreen() {
   const webViewRef = useRef<WebView>(null);

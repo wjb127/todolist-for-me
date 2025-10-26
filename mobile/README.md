@@ -11,27 +11,21 @@ cd mobile
 npm install
 ```
 
-### 2. 개발 서버 실행
+### 2. Vercel URL 설정 (필수!)
 
-#### 웹 앱 먼저 실행 (필수!)
+**이미 Vercel에 배포된 URL을 사용하세요 (ngrok 불필요!)**
 
-```bash
-# 프로젝트 루트에서
-npm run dev
+`components/WebViewScreen.tsx` 파일 수정:
+
+```typescript
+const VERCEL_URL = 'https://your-actual-vercel-url.vercel.app'; // 👈 실제 URL로 변경
 ```
 
-또는 ngrok으로 터널링:
+Vercel URL 확인 방법:
+- Vercel 대시보드: https://vercel.com/dashboard
+- 또는 `vercel ls` 명령어
 
-```bash
-# 터미널 1: 웹 앱 실행
-npm run dev
-
-# 터미널 2: ngrok 터널
-ngrok http 3000
-# 나온 https URL을 components/WebViewScreen.tsx의 WEB_APP_URL에 입력
-```
-
-#### 모바일 앱 실행
+### 3. 모바일 앱 실행
 
 ```bash
 cd mobile
@@ -47,6 +41,22 @@ npm run android
 
 # 실제 디바이스 (Expo Go 앱 필요)
 # QR 코드 스캔
+```
+
+### 4. 로컬 개발 (선택사항)
+
+웹 앱을 실시간으로 테스트해야 하는 경우에만:
+
+```bash
+# WebViewScreen.tsx에서 설정
+const USE_LOCALHOST = true;
+
+# 웹 앱 실행 (프로젝트 루트)
+npm run dev
+
+# ngrok 터널링
+ngrok http 3000
+# 나온 URL을 VERCEL_URL에 입력
 ```
 
 ## 📱 개발 환경 설정

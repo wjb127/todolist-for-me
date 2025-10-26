@@ -55,3 +55,7 @@ web-build/
 *.swo
 *~
 
+# Environment variables
+.env
+.env.local
+
