@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { format, subDays, startOfYear, endOfYear, eachDayOfInterval, getDay, differenceInWeeks } from 'date-fns'
+import { format, subDays, startOfYear, endOfYear, eachDayOfInterval, getDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
 import { useTheme } from '@/lib/context/ThemeContext'
@@ -133,10 +133,6 @@ export default function YearlyContributionGraph({ type = 'all' }: YearlyContribu
   }
 
   const renderYearGrid = () => {
-    const yearStart = startOfYear(new Date(selectedYear, 0, 1))
-    const yearEnd = endOfYear(new Date(selectedYear, 0, 1))
-    const days = eachDayOfInterval({ start: yearStart, end: yearEnd })
-    
     // Group days by month and organize into weeks
     const monthsData: { month: number; weeks: (Date | null)[][] }[] = []
     
