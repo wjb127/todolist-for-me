@@ -40,7 +40,6 @@ export default function YearlyContributionGraph({ type = 'all' }: YearlyContribu
         .gte('date', format(startDate, 'yyyy-MM-dd'))
         .lte('date', format(endDate, 'yyyy-MM-dd'))
         .eq('completed', true)
-        .limit(100000) // 1000개 기본 제한 해제
 
       todosData?.forEach(todo => {
         const existing = contributionsMap.get(todo.date) || { date: todo.date, count: 0, todos: 0, plans: 0 }
@@ -59,7 +58,6 @@ export default function YearlyContributionGraph({ type = 'all' }: YearlyContribu
         .not('due_date', 'is', null)
         .gte('due_date', format(startDate, 'yyyy-MM-dd'))
         .lte('due_date', format(endDate, 'yyyy-MM-dd'))
-        .limit(100000) // 1000개 기본 제한 해제
 
       plansData?.forEach(plan => {
         const date = plan.due_date!

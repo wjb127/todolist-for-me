@@ -390,12 +390,10 @@ export default function DashboardPage() {
         .from('todos')
         .select('*')
         .gte('date', format(startDate, 'yyyy-MM-dd'))
-        .lte('date', format(endDate, 'yyyy-MM-dd'))
-        .limit(100000), // 1000개 기본 제한 해제
+        .lte('date', format(endDate, 'yyyy-MM-dd')),
       supabase
         .from('plans')
         .select('*')
-        .limit(100000) // 1000개 기본 제한 해제
     ])
 
     if (todosResponse.error) {
