@@ -385,36 +385,69 @@ export default function DashboardPage() {
       endDate = endOfMonth(selectedDate)
     }
 
-    const [todosResponse, plansResponse] = await Promise.all([
-      supabase
+    // Pagination을 사용하여 모든 todos 가져오기
+    let allTodos: Todo[] = []
+    let todosPage = 0
+    const pageSize = 1000
+    let hasTodosMore = true
+
+    while (hasTodosMore) {
+      const { data: todosData, error: todosError } = await supabase
         .from('todos')
         .select('*')
         .gte('date', format(startDate, 'yyyy-MM-dd'))
         .lte('date', format(endDate, 'yyyy-MM-dd'))
-        .limit(100000), // 1000개 기본 제한 해제
-      supabase
-        .from('plans')
-        .select('*')
-        .limit(100000) // 1000개 기본 제한 해제
-    ])
+        .range(todosPage * pageSize, (todosPage + 1) * pageSize - 1)
 
-    if (todosResponse.error) {
-      console.error('Error fetching todos:', todosResponse.error)
-    } else {
-      if (viewMode === 'daily') {
-        calculateDailyStats(todosResponse.data || [], selectedDate)
-      } else if (viewMode === 'weekly') {
-        calculateWeeklyStats(todosResponse.data || [], startDate, endDate)
-      } else if (viewMode === 'monthly') {
-        calculateMonthlyStats(todosResponse.data || [], startDate, endDate)
+      if (todosError) {
+        console.error('Error fetching todos:', todosError)
+        break
+      }
+
+      if (todosData && todosData.length > 0) {
+        allTodos = [...allTodos, ...todosData]
+        hasTodosMore = todosData.length === pageSize
+        todosPage++
+      } else {
+        hasTodosMore = false
       }
     }
 
-    if (plansResponse.error) {
-      console.error('Error fetching plans:', plansResponse.error)
-    } else {
-      setPlans(plansResponse.data || [])
+    // Pagination을 사용하여 모든 plans 가져오기
+    let allPlans: Plan[] = []
+    let plansPage = 0
+    let hasPlansMore = true
+
+    while (hasPlansMore) {
+      const { data: plansData, error: plansError } = await supabase
+        .from('plans')
+        .select('*')
+        .range(plansPage * pageSize, (plansPage + 1) * pageSize - 1)
+
+      if (plansError) {
+        console.error('Error fetching plans:', plansError)
+        break
+      }
+
+      if (plansData && plansData.length > 0) {
+        allPlans = [...allPlans, ...plansData]
+        hasPlansMore = plansData.length === pageSize
+        plansPage++
+      } else {
+        hasPlansMore = false
+      }
     }
+
+    // 데이터 처리
+    if (viewMode === 'daily') {
+      calculateDailyStats(allTodos, selectedDate)
+    } else if (viewMode === 'weekly') {
+      calculateWeeklyStats(allTodos, startDate, endDate)
+    } else if (viewMode === 'monthly') {
+      calculateMonthlyStats(allTodos, startDate, endDate)
+    }
+
+    setPlans(allPlans)
   }, [selectedDate, viewMode])
 
   const calculateDailyStats = (todoData: Todo[], selectedDay: Date) => {
