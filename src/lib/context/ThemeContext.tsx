@@ -72,7 +72,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       case 'minimalism':
         return 'bg-white border border-gray-300 rounded-lg p-2 hover:bg-gray-50'
       default:
-        return 'bg-white rounded-lg shadow-sm p-2 hover:shadow-md'
+        return 'bg-white border border-gray-200 rounded-lg shadow-sm p-2 hover:shadow-md'
     }
   }
 
