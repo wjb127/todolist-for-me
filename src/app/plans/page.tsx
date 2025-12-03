@@ -185,7 +185,7 @@ export default function PlansPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending')
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [selectedDate, setSelectedDate] = useState(getKoreanToday())
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -617,7 +617,7 @@ export default function PlansPage() {
   }
 
   const goToToday = () => {
-    setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+    setSelectedDate(getKoreanToday())
   }
 
   const filteredPlans = useMemo(() => {
@@ -691,7 +691,7 @@ export default function PlansPage() {
               <div className="text-lg font-semibold text-gray-900">
                 {formatDate(selectedDate)}
               </div>
-              {selectedDate !== format(new Date(), 'yyyy-MM-dd') && (
+              {selectedDate !== getKoreanToday() && (
                 <button
                   onClick={goToToday}
                   className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
