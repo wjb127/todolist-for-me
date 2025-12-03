@@ -796,6 +796,12 @@ export default function PlansPage() {
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && formData.title && !isSaving) {
+                        e.preventDefault()
+                        handleSavePlan()
+                      }
+                    }}
                     className={getInputStyle()}
                     placeholder="계획 제목을 입력하세요"
                   />
