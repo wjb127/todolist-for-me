@@ -244,9 +244,11 @@ export default function PlansPage() {
   const handleMoveUp = async (planId: string, parentId: string | null) => {
     // 이미 이동 중이면 무시 (연속 클릭 방지)
     if (isMoving) return
-    
-    // filteredPlans에서 형제 노드 찾기 (필터링된 데이터 기준으로 이동)
-    const siblings = filteredPlans.filter(p => p.parent_id === parentId)
+
+    // filteredPlans에서 형제 노드 찾기 (정렬 필수!)
+    const siblings = filteredPlans
+      .filter(p => p.parent_id === parentId)
+      .sort((a, b) => a.order_index - b.order_index)
     const currentIndex = siblings.findIndex(p => p.id === planId)
     
     if (currentIndex <= 0) return // 이미 맨 위
@@ -293,9 +295,11 @@ export default function PlansPage() {
   const handleMoveDown = async (planId: string, parentId: string | null) => {
     // 이미 이동 중이면 무시 (연속 클릭 방지)
     if (isMoving) return
-    
-    // filteredPlans에서 형제 노드 찾기 (필터링된 데이터 기준으로 이동)
-    const siblings = filteredPlans.filter(p => p.parent_id === parentId)
+
+    // filteredPlans에서 형제 노드 찾기 (정렬 필수!)
+    const siblings = filteredPlans
+      .filter(p => p.parent_id === parentId)
+      .sort((a, b) => a.order_index - b.order_index)
     const currentIndex = siblings.findIndex(p => p.id === planId)
     
     if (currentIndex === -1 || currentIndex >= siblings.length - 1) return // 이미 맨 아래
@@ -370,12 +374,14 @@ export default function PlansPage() {
           )
         )
       } else {
-        // 새 계획 추가 시 같은 부모의 자식들 중에서 order_index 계산
-        const siblingPlans = plans.filter(p => 
-          (p.parent_id === formData.parent_id) || 
-          (p.parent_id === null && formData.parent_id === null)
-        )
-        
+        // 새 계획 추가 시 같은 부모 + 같은 날짜의 형제들 중에서 order_index 계산
+        const siblingPlans = plans.filter(p => {
+          const sameParent = (p.parent_id === formData.parent_id) ||
+            (p.parent_id === null && formData.parent_id === null)
+          const sameDate = p.due_date === formData.due_date
+          return sameParent && sameDate
+        })
+
         // 부모의 depth를 기반으로 새 계획의 depth 계산
         let newDepth = 0
         if (formData.parent_id) {
@@ -384,39 +390,21 @@ export default function PlansPage() {
             newDepth = parentPlan.depth + 1
           }
         }
-        
+
+        // order_index 계산: 높음은 min-1, 보통은 max+1
         let newOrderIndex = 0
-        if (formData.priority === 'high') {
-          // 높음: 같은 부모 하위에서 맨 앞에 배치
-          newOrderIndex = 0
-        } else if (formData.priority === 'medium') {
-          // 보통: 높음 다음에 배치
-          const highPrioritySiblings = siblingPlans.filter(p => p.priority === 'high')
-          newOrderIndex = highPrioritySiblings.length
-        } else {
-          // 낮음: 같은 부모 하위에서 맨 뒤에 배치
-          newOrderIndex = siblingPlans.length
-        }
-        
-        // 새 계획의 order_index 이상인 기존 형제들의 order_index 증가 (Bulk UPDATE)
-        const siblingsToUpdate = siblingPlans.filter(p => p.order_index >= newOrderIndex)
-        if (siblingsToUpdate.length > 0) {
-          const idsToUpdate = siblingsToUpdate.map(p => p.id)
-          const { error: updateError } = await supabase.rpc('increment_plan_order_index', {
-            plan_ids: idsToUpdate
-          })
-          
-          if (updateError) {
-            console.error('Bulk update error, falling back to individual updates:', updateError)
-            for (const plan of siblingsToUpdate) {
-              await supabase
-                .from('plans')
-                .update({ order_index: plan.order_index + 1 })
-                .eq('id', plan.id)
-            }
+        if (siblingPlans.length > 0) {
+          const orderIndices = siblingPlans.map(p => p.order_index)
+          if (formData.priority === 'high') {
+            // 높음: 현재 날짜 구간에서 제일 낮은 order_index - 1
+            newOrderIndex = Math.min(...orderIndices) - 1
+          } else {
+            // 보통: 현재 날짜 구간에서 제일 높은 order_index + 1
+            newOrderIndex = Math.max(...orderIndices) + 1
           }
         }
-        
+        // 형제가 없으면 기본값 0 사용
+
         const planData = {
           title: formData.title,
           description: formData.description || null,
@@ -427,7 +415,7 @@ export default function PlansPage() {
           depth: newDepth,
           completed: false
         }
-        
+
         const { data: newPlan, error } = await supabase
           .from('plans')
           .insert(planData as PlanInsert)
@@ -435,14 +423,9 @@ export default function PlansPage() {
           .single()
 
         if (error) throw error
-        
+
         // 낙관적 업데이트: 로컬 상태에 즉시 반영
-        const updatedSiblings = plans.map(p => 
-          siblingsToUpdate.some(s => s.id === p.id)
-            ? { ...p, order_index: p.order_index + 1 }
-            : p
-        )
-        setPlans([...updatedSiblings, newPlan])
+        setPlans([...plans, newPlan])
         setExpandedPlans(prev => new Set([...prev, newPlan.id]))
       }
 
@@ -917,7 +900,6 @@ export default function PlansPage() {
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
                     className={getInputStyle()}
                   >
-                    <option value="low">낮음</option>
                     <option value="medium">보통</option>
                     <option value="high">높음</option>
                   </select>
