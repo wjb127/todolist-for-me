@@ -173,11 +173,29 @@ const PlanItem = memo(function PlanItem({
   )
 })
 
-// 한국 시간 기준 오늘 날짜를 YYYY-MM-DD 형식으로 반환
-const getKoreanToday = () => {
-  const now = new Date()
-  const koreanTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)) // UTC+9
-  return koreanTime.toISOString().split('T')[0]
+// 한국 시간 기준 날짜를 YYYY-MM-DD 형식으로 반환
+const formatToKoreanDateString = (date: Date): string => {
+  const formatter = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+  const parts = formatter.formatToParts(date)
+  const year = parts.find(p => p.type === 'year')?.value
+  const month = parts.find(p => p.type === 'month')?.value
+  const day = parts.find(p => p.type === 'day')?.value
+  return `${year}-${month}-${day}`
+}
+
+// 한국 시간 기준 오늘 날짜
+const getKoreanToday = () => formatToKoreanDateString(new Date())
+
+// 한국 시간 기준 날짜 이동 (days: 양수면 미래, 음수면 과거)
+const addDaysKorean = (dateString: string, days: number): string => {
+  const [year, month, day] = dateString.split('-').map(Number)
+  const date = new Date(year, month - 1, day + days)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 export default function PlansPage() {
@@ -605,15 +623,11 @@ export default function PlansPage() {
   }
 
   const goToPreviousDay = () => {
-    const currentDate = new Date(selectedDate)
-    currentDate.setDate(currentDate.getDate() - 1)
-    setSelectedDate(currentDate.toISOString().split('T')[0])
+    setSelectedDate(addDaysKorean(selectedDate, -1))
   }
 
   const goToNextDay = () => {
-    const currentDate = new Date(selectedDate)
-    currentDate.setDate(currentDate.getDate() + 1)
-    setSelectedDate(currentDate.toISOString().split('T')[0])
+    setSelectedDate(addDaysKorean(selectedDate, 1))
   }
 
   const goToToday = () => {
