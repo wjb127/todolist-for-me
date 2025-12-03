@@ -691,14 +691,10 @@ export default function PlansPage() {
               <div className="text-lg font-semibold text-gray-900">
                 {formatDate(selectedDate)}
               </div>
-              {selectedDate !== getKoreanToday() && (
-                <button
-                  onClick={goToToday}
-                  className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
-                  title="오늘로 가기"
-                >
+              {selectedDate === getKoreanToday() && (
+                <span className="px-2 py-0.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-full">
                   오늘
-                </button>
+                </span>
               )}
             </div>
             <button
