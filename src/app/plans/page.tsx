@@ -502,7 +502,7 @@ export default function PlansPage() {
     setFormData({
       title: plan?.title || '',
       description: plan?.description || '',
-      due_date: plan?.due_date || getKoreanToday(),
+      due_date: plan?.due_date || selectedDate,
       priority: plan?.priority || 'high',
       parent_id: plan?.parent_id || parentId || null
     })
@@ -525,7 +525,7 @@ export default function PlansPage() {
   const closeModal = () => {
     setIsModalOpen(false)
     setEditingPlan(null)
-    setFormData({ title: '', description: '', due_date: getKoreanToday(), priority: 'high', parent_id: null })
+    setFormData({ title: '', description: '', due_date: selectedDate, priority: 'high', parent_id: null })
     setAiSuggestion('')
     setIsAiLoading(false)
     setIsSaving(false)
