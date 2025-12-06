@@ -6,7 +6,6 @@ import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 
 type Todo = Database['public']['Tables']['todos']['Row']
@@ -32,16 +31,13 @@ export default function TodosPage() {
   const { getBackgroundStyle, getCardStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
 
   const fetchTodos = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('todos')
-      .select('*')
-      .eq('date', selectedDate)
-      .order('order_index', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching todos:', error)
-    } else {
+    try {
+      const res = await fetch(`/api/todos?date=${selectedDate}`)
+      if (!res.ok) throw new Error('Failed to fetch todos')
+      const data = await res.json()
       setTodos(data || [])
+    } catch (error) {
+      console.error('Error fetching todos:', error)
     }
   }, [selectedDate])
 
@@ -53,97 +49,44 @@ export default function TodosPage() {
       return format(date, 'yyyy-MM-dd')
     })
 
-    const { data, error } = await supabase
-      .from('todos')
-      .select('*')
-      .in('date', dates)
-      .order('order_index', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching week todos:', error)
-    } else {
+    try {
+      const res = await fetch(`/api/todos?dates=${dates.join(',')}`)
+      if (!res.ok) throw new Error('Failed to fetch week todos')
+      const data = await res.json()
       const grouped = dates.reduce((acc, date) => {
-        acc[date] = data?.filter(todo => todo.date === date) || []
+        acc[date] = data?.filter((todo: Todo) => todo.date === date) || []
         return acc
       }, {} as Record<string, Todo[]>)
       setWeekTodos(grouped)
+    } catch (error) {
+      console.error('Error fetching week todos:', error)
     }
   }, [selectedDate])
 
   const fetchTemplates = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('templates')
-      .select('*')
-      .order('title', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching templates:', error)
-    } else {
+    try {
+      const res = await fetch('/api/templates')
+      if (!res.ok) throw new Error('Failed to fetch templates')
+      const data = await res.json()
       setTemplates(data || [])
+    } catch (error) {
+      console.error('Error fetching templates:', error)
     }
   }, [])
 
   const checkAndApplyActiveTemplate = useCallback(async () => {
     try {
-      // 활성화된 템플릿 찾기
-      const { data: activeTemplate, error } = await supabase
-        .from('templates')
-        .select('*')
-        .eq('is_active', true)
-        .single()
+      const res = await fetch('/api/templates/check-active', { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to check active template')
+      const result = await res.json()
 
-      if (error || !activeTemplate) return
-
-      // 템플릿 적용 시작 날짜부터 미래 30일까지 확인하여 자동 생성
-      const startDate = activeTemplate.applied_from_date || new Date().toISOString().split('T')[0]
-      const today = new Date().toISOString().split('T')[0]
-      const start = new Date(Math.max(new Date(startDate).getTime(), new Date(today).getTime()))
-      
-      // 오늘부터 앞으로 3개월간 확인
-      for (let i = 0; i < 90; i++) {
-        const currentDate = new Date(start)
-        currentDate.setDate(start.getDate() + i)
-        const dateString = currentDate.toISOString().split('T')[0]
-        
-        // 해당 날짜에 이미 해당 템플릿의 todos가 있는지 확인
-        const { data: existingTodos } = await supabase
-          .from('todos')
-          .select('id')
-          .eq('date', dateString)
-          .eq('template_id', activeTemplate.id)
-
-        // 이미 todos가 있으면 스킵
-        if (existingTodos && existingTodos.length > 0) continue
-
-        // 템플릿으로부터 todos 자동 생성
-        const newTodos = activeTemplate.items.map((item: TemplateItem, index: number) => ({
-          template_id: activeTemplate.id,
-          date: dateString,
-          title: item.title,
-          description: item.description || null,
-          completed: false,
-          order_index: index
-        }))
-
-        if (newTodos.length > 0) {
-          const { error: insertError } = await supabase
-            .from('todos')
-            .insert(newTodos)
-
-          if (insertError) {
-            console.error('Error auto-creating todos from template:', insertError)
-          }
-        }
-      }
-      
-      // 현재 선택된 날짜에 대한 todos를 다시 fetch
-      if (selectedDate >= startDate) {
+      if (result.applied) {
         fetchTodos()
       }
     } catch (error) {
       console.error('Error checking active template:', error)
     }
-  }, [selectedDate, fetchTodos])
+  }, [fetchTodos])
 
   useEffect(() => {
     const loadData = async () => {
@@ -159,15 +102,16 @@ export default function TodosPage() {
   }, [viewMode, selectedDate, fetchTodos, fetchWeekTodos, fetchTemplates, checkAndApplyActiveTemplate])
 
   const handleToggleComplete = async (id: string, completed: boolean) => {
-    const { error } = await supabase
-      .from('todos')
-      .update({ completed: !completed })
-      .eq('id', id)
-
-    if (error) {
-      console.error('Error updating todo:', error)
-    } else {
+    try {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !completed })
+      })
+      if (!res.ok) throw new Error('Failed to update todo')
       await fetchTodos()
+    } catch (error) {
+      console.error('Error updating todo:', error)
     }
   }
 
@@ -177,7 +121,7 @@ export default function TodosPage() {
     const template = templates.find(t => t.id === selectedTemplate)
     if (!template) return
 
-    const newTodos = template.items.map((item, index) => ({
+    const newTodos = template.items.map((item: TemplateItem, index: number) => ({
       template_id: template.id,
       date: selectedDate,
       title: item.title,
@@ -186,16 +130,18 @@ export default function TodosPage() {
       order_index: todos.length + index
     }))
 
-    const { error } = await supabase
-      .from('todos')
-      .insert(newTodos)
-
-    if (error) {
-      console.error('Error adding todos from template:', error)
-    } else {
+    try {
+      const res = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTodos)
+      })
+      if (!res.ok) throw new Error('Failed to add todos from template')
       await fetchTodos()
       setIsModalOpen(false)
       setSelectedTemplate('')
+    } catch (error) {
+      console.error('Error adding todos from template:', error)
     }
   }
 
@@ -205,68 +151,9 @@ export default function TodosPage() {
 
     if (confirm(`"${template.title}" 템플릿을 활성화하시겠습니까? 기존 활성 템플릿은 비활성화되고 오늘부터의 모든 할 일이 대체됩니다.`)) {
       try {
-        // 모든 템플릿을 비활성화
-        await supabase
-          .from('templates')
-          .update({ is_active: false, applied_from_date: null })
-          .neq('id', '')
+        const res = await fetch(`/api/templates/${templateId}/activate`, { method: 'POST' })
+        if (!res.ok) throw new Error('Failed to activate template')
 
-        // 오늘부터 3개월 후까지의 모든 기존 todo들을 삭제
-        const today = new Date().toISOString().split('T')[0]
-        const endDate = new Date()
-        endDate.setMonth(endDate.getMonth() + 3)
-        const endDateString = endDate.toISOString().split('T')[0]
-        
-        await supabase
-          .from('todos')
-          .delete()
-          .gte('date', today)
-          .lte('date', endDateString)
-
-        // 선택한 템플릿을 활성화
-        const { error } = await supabase
-          .from('templates')
-          .update({ 
-            is_active: true, 
-            applied_from_date: today 
-          })
-          .eq('id', templateId)
-
-        if (error) throw error
-
-        // 오늘부터 앞으로 3개월간의 todos를 생성
-        const createTodos: Array<{
-          template_id: string
-          date: string
-          title: string
-          description: string | null
-          completed: boolean
-          order_index: number
-        }> = []
-        
-        for (let i = 0; i < 90; i++) {
-          const currentDate = new Date(today)
-          currentDate.setDate(currentDate.getDate() + i)
-          const dateString = currentDate.toISOString().split('T')[0]
-          
-          template.items.forEach((item, index) => {
-            createTodos.push({
-              template_id: template.id,
-              date: dateString,
-              title: item.title,
-              description: item.description || null,
-              completed: false,
-              order_index: index
-            })
-          })
-        }
-        
-        if (createTodos.length > 0) {
-          await supabase
-            .from('todos')
-            .insert(createTodos)
-        }
-        
         await fetchTemplates()
         await fetchTodos()
         alert('템플릿이 성공적으로 활성화되었습니다!')
@@ -280,20 +167,22 @@ export default function TodosPage() {
   const handleAddSingleTodo = async () => {
     if (!newTodoTitle.trim()) return
 
-    const { error } = await supabase
-      .from('todos')
-      .insert({
-        date: selectedDate,
-        title: newTodoTitle,
-        completed: false,
-        order_index: todos.length
+    try {
+      const res = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: selectedDate,
+          title: newTodoTitle,
+          completed: false,
+          order_index: todos.length
+        })
       })
-
-    if (error) {
-      console.error('Error adding todo:', error)
-    } else {
+      if (!res.ok) throw new Error('Failed to add todo')
       await fetchTodos()
       setNewTodoTitle('')
+    } catch (error) {
+      console.error('Error adding todo:', error)
     }
   }
 

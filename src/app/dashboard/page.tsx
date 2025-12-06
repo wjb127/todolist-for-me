@@ -5,7 +5,6 @@ import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, T
 import { useTheme } from '@/lib/context/ThemeContext'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, subWeeks, subMonths, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 import YearlyContributionGraph from '@/components/dashboard/YearlyContributionGraph'
 
@@ -253,38 +252,32 @@ export default function DashboardPage() {
   
   // 메모 관련 함수들
   const fetchNotes = async () => {
-    const { data, error } = await supabase
-      .from('notes')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5) // 최근 5개만 표시
-
-    if (error) {
+    try {
+      const res = await fetch('/api/notes')
+      if (!res.ok) throw new Error('Failed to fetch notes')
+      const data = await res.json()
+      setNotes((data || []).slice(0, 5)) // 최근 5개만 표시
+    } catch (error) {
       console.error('Error fetching notes:', error)
-    } else {
-      setNotes(data || [])
     }
   }
 
   const handleAddNote = async () => {
     if (!newNote.trim()) return
-    
+
     setIsNoteLoading(true)
-    const noteData: NoteInsert = {
-      content: newNote.trim()
-    }
-
-    const { data, error } = await supabase
-      .from('notes')
-      .insert(noteData)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error adding note:', error)
-    } else if (data) {
+    try {
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newNote.trim() })
+      })
+      if (!res.ok) throw new Error('Failed to add note')
+      const data = await res.json()
       setNotes([data, ...notes.slice(0, 4)]) // 최근 5개 유지
       setNewNote('')
+    } catch (error) {
+      console.error('Error adding note:', error)
     }
     setIsNoteLoading(false)
   }
@@ -306,39 +299,38 @@ export default function DashboardPage() {
     if (!editingNote || !modalContent.trim()) return
 
     setIsNoteLoading(true)
-    const { error } = await supabase
-      .from('notes')
-      .update({ content: modalContent.trim() })
-      .eq('id', editingNote.id)
+    try {
+      const res = await fetch(`/api/notes/${editingNote.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: modalContent.trim() })
+      })
+      if (!res.ok) throw new Error('Failed to update note')
 
-    if (error) {
-      console.error('Error updating note:', error)
-    } else {
-      setNotes(notes.map(n => 
-        n.id === editingNote.id 
+      setNotes(notes.map(n =>
+        n.id === editingNote.id
           ? { ...n, content: modalContent.trim(), updated_at: new Date().toISOString() }
           : n
       ))
       closeNoteModal()
+    } catch (error) {
+      console.error('Error updating note:', error)
     }
     setIsNoteLoading(false)
   }
 
   const handleDeleteNote = async () => {
     if (!editingNote) return
-    
+
     if (confirm('이 메모를 삭제하시겠습니까?')) {
       setIsNoteLoading(true)
-      const { error } = await supabase
-        .from('notes')
-        .delete()
-        .eq('id', editingNote.id)
-
-      if (error) {
-        console.error('Error deleting note:', error)
-      } else {
+      try {
+        const res = await fetch(`/api/notes/${editingNote.id}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Failed to delete note')
         setNotes(notes.filter(n => n.id !== editingNote.id))
         closeNoteModal()
+      } catch (error) {
+        console.error('Error deleting note:', error)
       }
       setIsNoteLoading(false)
     }
@@ -385,69 +377,24 @@ export default function DashboardPage() {
       endDate = endOfMonth(selectedDate)
     }
 
-    // Pagination을 사용하여 모든 todos 가져오기
-    let allTodos: Todo[] = []
-    let todosPage = 0
-    const pageSize = 1000
-    let hasTodosMore = true
+    try {
+      const res = await fetch(`/api/dashboard/stats?startDate=${format(startDate, 'yyyy-MM-dd')}&endDate=${format(endDate, 'yyyy-MM-dd')}`)
+      if (!res.ok) throw new Error('Failed to fetch dashboard stats')
+      const { todos: allTodos, plans: allPlans } = await res.json()
 
-    while (hasTodosMore) {
-      const { data: todosData, error: todosError } = await supabase
-        .from('todos')
-        .select('*')
-        .gte('date', format(startDate, 'yyyy-MM-dd'))
-        .lte('date', format(endDate, 'yyyy-MM-dd'))
-        .range(todosPage * pageSize, (todosPage + 1) * pageSize - 1)
-
-      if (todosError) {
-        console.error('Error fetching todos:', todosError)
-        break
+      // 데이터 처리
+      if (viewMode === 'daily') {
+        calculateDailyStats(allTodos, selectedDate)
+      } else if (viewMode === 'weekly') {
+        calculateWeeklyStats(allTodos, startDate, endDate)
+      } else if (viewMode === 'monthly') {
+        calculateMonthlyStats(allTodos, startDate, endDate)
       }
 
-      if (todosData && todosData.length > 0) {
-        allTodos = [...allTodos, ...todosData]
-        hasTodosMore = todosData.length === pageSize
-        todosPage++
-      } else {
-        hasTodosMore = false
-      }
+      setPlans(allPlans)
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
     }
-
-    // Pagination을 사용하여 모든 plans 가져오기
-    let allPlans: Plan[] = []
-    let plansPage = 0
-    let hasPlansMore = true
-
-    while (hasPlansMore) {
-      const { data: plansData, error: plansError } = await supabase
-        .from('plans')
-        .select('*')
-        .range(plansPage * pageSize, (plansPage + 1) * pageSize - 1)
-
-      if (plansError) {
-        console.error('Error fetching plans:', plansError)
-        break
-      }
-
-      if (plansData && plansData.length > 0) {
-        allPlans = [...allPlans, ...plansData]
-        hasPlansMore = plansData.length === pageSize
-        plansPage++
-      } else {
-        hasPlansMore = false
-      }
-    }
-
-    // 데이터 처리
-    if (viewMode === 'daily') {
-      calculateDailyStats(allTodos, selectedDate)
-    } else if (viewMode === 'weekly') {
-      calculateWeeklyStats(allTodos, startDate, endDate)
-    } else if (viewMode === 'monthly') {
-      calculateMonthlyStats(allTodos, startDate, endDate)
-    }
-
-    setPlans(allPlans)
   }, [selectedDate, viewMode])
 
   const calculateDailyStats = (todoData: Todo[], selectedDay: Date) => {

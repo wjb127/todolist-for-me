@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, Save, X, CheckCircle, Calendar, Eye, Search, Filter, Clock, BarChart3, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/lib/context/ThemeContext'
-import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 import NotionStyleEditor, { TemplateItem } from '@/components/templates/NotionStyleEditor'
 
@@ -34,15 +33,13 @@ export default function TemplatesPage() {
   }, [])
 
   const fetchTemplates = async () => {
-    const { data, error } = await supabase
-      .from('templates')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching templates:', error)
-    } else {
+    try {
+      const res = await fetch('/api/templates')
+      if (!res.ok) throw new Error('Failed to fetch templates')
+      const data = await res.json()
       setTemplates(data || [])
+    } catch (error) {
+      console.error('Error fetching templates:', error)
     }
   }
 
@@ -76,12 +73,13 @@ export default function TemplatesPage() {
         items: template.items
       }
 
-      const { error } = await supabase
-        .from('templates')
-        .insert(duplicatedTemplate as TemplateInsert)
+      const res = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(duplicatedTemplate)
+      })
+      if (!res.ok) throw new Error('Failed to duplicate template')
 
-      if (error) throw error
-      
       await fetchTemplates()
       alert('템플릿이 복사되었습니다!')
     } catch (error) {
@@ -94,40 +92,11 @@ export default function TemplatesPage() {
     if (confirm(`"${template.title}" 템플릿을 오늘부터 적용하시겠습니까? 기존 활성 템플릿은 비활성화되고 오늘부터의 모든 할 일이 대체됩니다.`)) {
       setIsApplying(true)
       try {
-        // 모든 템플릿을 비활성화
-        await supabase
-          .from('templates')
-          .update({ is_active: false, applied_from_date: null })
-          .neq('id', '')
+        const res = await fetch(`/api/templates/${template.id}/activate`, { method: 'POST' })
+        if (!res.ok) throw new Error('Failed to apply template')
 
-        // 오늘부터 3개월 후까지의 모든 기존 todo들을 삭제
-        const today = new Date().toISOString().split('T')[0]
-        const endDate = new Date()
-        endDate.setMonth(endDate.getMonth() + 3)
-        const endDateString = endDate.toISOString().split('T')[0]
-        
-        await supabase
-          .from('todos')
-          .delete()
-          .gte('date', today)
-          .lte('date', endDateString)
-
-        // 선택한 템플릿을 활성화
-        const { error } = await supabase
-          .from('templates')
-          .update({ 
-            is_active: true, 
-            applied_from_date: today 
-          })
-          .eq('id', template.id)
-
-        if (error) throw error
-
-        // 오늘부터 앞으로 3개월간의 todos를 생성
-        await createTodosFromTemplate(template, today, true)
-        
         await fetchTemplates()
-        
+
         // Todo 페이지로 리다이렉트
         router.push('/todos')
         alert('템플릿이 성공적으로 적용되었습니다!')
@@ -142,76 +111,16 @@ export default function TemplatesPage() {
 
 
 
-  const createTodosFromTemplate = async (template: Template, startDate: string, replaceAll: boolean = false) => {
-    const todos: Array<{
-      template_id: string
-      date: string
-      title: string
-      description: string | null
-      completed: boolean
-      order_index: number
-    }> = []
-    const start = new Date(startDate)
-    
-    // 일괄 적용인 경우 3개월(90일), 개별 적용인 경우 30일
-    const dayCount = replaceAll ? 90 : 30
-    
-    for (let i = 0; i < dayCount; i++) {
-      const currentDate = new Date(start)
-      currentDate.setDate(start.getDate() + i)
-      const dateString = currentDate.toISOString().split('T')[0]
-      
-      // 일괄 적용이 아닌 경우에만 기존 todos 확인
-      if (!replaceAll) {
-        // 해당 날짜에 이미 todos가 있는지 확인
-        const { data: existingTodos } = await supabase
-          .from('todos')
-          .select('id')
-          .eq('date', dateString)
-          .eq('template_id', template.id)
-        
-        // 이미 해당 템플릿의 todos가 있으면 스킵
-        if (existingTodos && existingTodos.length > 0) continue
-      }
-      
-      template.items
-        .sort((a, b) => a.order_index - b.order_index)
-        .forEach((item) => {
-          todos.push({
-            template_id: template.id,
-            date: dateString,
-            title: item.title,
-            description: item.description || null,
-            completed: false,
-            order_index: item.order_index
-          })
-        })
-    }
-    
-    if (todos.length > 0) {
-      const { error } = await supabase
-        .from('todos')
-        .insert(todos)
-      
-      if (error) {
-        console.error('Error creating todos from template:', error)
-      }
-    }
-  }
-
   const handleDeactivateTemplate = async (template: Template) => {
     if (confirm(`"${template.title}" 템플릿 적용을 중단하시겠습니까?`)) {
       try {
-        const { error } = await supabase
-          .from('templates')
-          .update({ 
-            is_active: false, 
-            applied_from_date: null 
-          })
-          .eq('id', template.id)
+        const res = await fetch(`/api/templates/${template.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_active: false, applied_from_date: null })
+        })
+        if (!res.ok) throw new Error('Failed to deactivate template')
 
-        if (error) throw error
-        
         await fetchTemplates()
         alert('템플릿 적용이 중단되었습니다.')
       } catch (error) {
@@ -224,51 +133,33 @@ export default function TemplatesPage() {
   const handleSaveTemplate = async () => {
     try {
       if (editingTemplate) {
-        const { error } = await supabase
-          .from('templates')
-          .update({
+        const res = await fetch(`/api/templates/${editingTemplate.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             title: formData.title,
             description: formData.description,
             items: formData.items
           })
-          .eq('id', editingTemplate.id)
+        })
+        if (!res.ok) throw new Error('Failed to update template')
 
-        if (error) throw error
-
-        // 만약 수정된 템플릿이 활성 상태라면, 오늘부터의 todos를 다시 생성
+        // 만약 수정된 템플릿이 활성 상태라면, 다시 활성화하여 todos를 갱신
         if (editingTemplate.is_active && editingTemplate.applied_from_date) {
-          const today = new Date().toISOString().split('T')[0]
-          const endDate = new Date()
-          endDate.setMonth(endDate.getMonth() + 3)
-          const endDateString = endDate.toISOString().split('T')[0]
-          
-          // 오늘부터 미래의 todos 삭제
-          await supabase
-            .from('todos')
-            .delete()
-            .eq('template_id', editingTemplate.id)
-            .gte('date', today)
-            .lte('date', endDateString)
-          
-          // 업데이트된 템플릿으로 다시 생성
-          const updatedTemplate = {
-            ...editingTemplate,
-            title: formData.title,
-            description: formData.description,
-            items: formData.items
-          }
-          await createTodosFromTemplate(updatedTemplate, today, true)
+          const activateRes = await fetch(`/api/templates/${editingTemplate.id}/activate`, { method: 'POST' })
+          if (!activateRes.ok) throw new Error('Failed to reactivate template')
         }
       } else {
-        const { error } = await supabase
-          .from('templates')
-          .insert({
+        const res = await fetch('/api/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             title: formData.title,
             description: formData.description,
             items: formData.items
-          } as TemplateInsert)
-
-        if (error) throw error
+          })
+        })
+        if (!res.ok) throw new Error('Failed to create template')
       }
 
       await fetchTemplates()
@@ -280,15 +171,12 @@ export default function TemplatesPage() {
 
   const handleDeleteTemplate = async (id: string) => {
     if (confirm('템플릿을 삭제하시겠습니까?')) {
-      const { error } = await supabase
-        .from('templates')
-        .delete()
-        .eq('id', id)
-
-      if (error) {
-        console.error('Error deleting template:', error)
-      } else {
+      try {
+        const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Failed to delete template')
         await fetchTemplates()
+      } catch (error) {
+        console.error('Error deleting template:', error)
       }
     }
   }

@@ -7,7 +7,6 @@ import confetti from 'canvas-confetti'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
-import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 import { useTheme } from '@/lib/context/ThemeContext'
 
@@ -225,19 +224,16 @@ export default function PlansPage() {
   }, [])
 
   const fetchPlans = async () => {
-    const { data, error } = await supabase
-      .from('plans')
-      .select('*')
-      .order('parent_id', { ascending: true })
-      .order('order_index', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching plans:', error)
-    } else {
+    try {
+      const res = await fetch('/api/plans')
+      if (!res.ok) throw new Error('Failed to fetch plans')
+      const data = await res.json()
       setPlans(data || [])
       // 모든 계획을 기본적으로 펼친 상태로 설정
-      const allPlanIds = new Set(data?.map(p => p.id) || [])
+      const allPlanIds = new Set<string>(data?.map((p: Plan) => p.id) || [])
       setExpandedPlans(allPlanIds)
+    } catch (error) {
+      console.error('Error fetching plans:', error)
     }
   }
 
@@ -271,15 +267,16 @@ export default function PlansPage() {
       })
     )
     
-    // 데이터베이스 업데이트 - 트랜잭션 함수 사용
+    // 데이터베이스 업데이트 - API 호출
     try {
-      const { error } = await supabase.rpc('swap_plan_order', {
-        plan_id_1: targetPlan.id,
-        plan_id_2: swapPlan.id
+      const res = await fetch('/api/plans/swap-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId1: targetPlan.id, planId2: swapPlan.id })
       })
-      
-      if (error) throw error
-      
+
+      if (!res.ok) throw new Error('Failed to swap order')
+
       // 성공 후 데이터 재로드 (다른 변경사항 반영)
       await fetchPlans()
     } catch (error) {
@@ -301,16 +298,16 @@ export default function PlansPage() {
       .filter(p => p.parent_id === parentId)
       .sort((a, b) => a.order_index - b.order_index)
     const currentIndex = siblings.findIndex(p => p.id === planId)
-    
+
     if (currentIndex === -1 || currentIndex >= siblings.length - 1) return // 이미 맨 아래
-    
+
     const targetPlan = siblings[currentIndex]
     const swapPlan = siblings[currentIndex + 1]
-    
+
     setIsMoving(true)
-    
+
     // 낙관적 업데이트 - UI 즉시 반영
-    setPlans(prevPlans => 
+    setPlans(prevPlans =>
       prevPlans.map(p => {
         if (p.id === targetPlan.id) {
           return { ...p, order_index: swapPlan.order_index }
@@ -321,16 +318,17 @@ export default function PlansPage() {
         return p
       })
     )
-    
-    // 데이터베이스 업데이트 - 트랜잭션 함수 사용
+
+    // 데이터베이스 업데이트 - API 호출
     try {
-      const { error } = await supabase.rpc('swap_plan_order', {
-        plan_id_1: targetPlan.id,
-        plan_id_2: swapPlan.id
+      const res = await fetch('/api/plans/swap-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId1: targetPlan.id, planId2: swapPlan.id })
       })
-      
-      if (error) throw error
-      
+
+      if (!res.ok) throw new Error('Failed to swap order')
+
       // 성공 후 데이터 재로드 (다른 변경사항 반영)
       await fetchPlans()
     } catch (error) {
@@ -345,7 +343,7 @@ export default function PlansPage() {
 
   const handleSavePlan = async () => {
     if (isSaving) return
-    
+
     setIsSaving(true)
     try {
       if (editingPlan) {
@@ -357,18 +355,19 @@ export default function PlansPage() {
           parent_id: formData.parent_id,
           order_index: editingPlan.order_index
         }
-        
-        const { error } = await supabase
-          .from('plans')
-          .update(planData)
-          .eq('id', editingPlan.id)
 
-        if (error) throw error
-        
+        const res = await fetch(`/api/plans/${editingPlan.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(planData)
+        })
+
+        if (!res.ok) throw new Error('Failed to update plan')
+
         // 편집된 계획만 로컬 상태에서 직접 업데이트
-        setPlans(prevPlans => 
-          prevPlans.map(p => 
-            p.id === editingPlan.id 
+        setPlans(prevPlans =>
+          prevPlans.map(p =>
+            p.id === editingPlan.id
               ? { ...p, ...planData }
               : p
           )
@@ -416,13 +415,14 @@ export default function PlansPage() {
           completed: false
         }
 
-        const { data: newPlan, error } = await supabase
-          .from('plans')
-          .insert(planData as PlanInsert)
-          .select()
-          .single()
+        const res = await fetch('/api/plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(planData)
+        })
 
-        if (error) throw error
+        if (!res.ok) throw new Error('Failed to create plan')
+        const newPlan = await res.json()
 
         // 낙관적 업데이트: 로컬 상태에 즉시 반영
         setPlans([...plans, newPlan])
@@ -460,23 +460,26 @@ export default function PlansPage() {
     }
 
     // 낙관적 업데이트 - UI를 즉시 업데이트
-    setPlans(prevPlans => 
-      prevPlans.map(p => 
+    setPlans(prevPlans =>
+      prevPlans.map(p =>
         p.id === id ? { ...p, completed: !completed } : p
       )
     )
-    
-    // 백그라운드에서 데이터베이스 업데이트
-    const { error } = await supabase
-      .from('plans')
-      .update({ completed: !completed })
-      .eq('id', id)
 
-    if (error) {
+    // 백그라운드에서 데이터베이스 업데이트
+    try {
+      const res = await fetch(`/api/plans/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !completed })
+      })
+
+      if (!res.ok) throw new Error('Failed to update plan')
+    } catch (error) {
       console.error('Error updating plan:', error)
       // 에러 발생 시 롤백
-      setPlans(prevPlans => 
-        prevPlans.map(p => 
+      setPlans(prevPlans =>
+        prevPlans.map(p =>
           p.id === id ? { ...p, completed: completed } : p
         )
       )
@@ -485,15 +488,12 @@ export default function PlansPage() {
 
   const handleDeletePlan = async (id: string) => {
     if (confirm('계획을 삭제하시겠습니까?')) {
-      const { error } = await supabase
-        .from('plans')
-        .delete()
-        .eq('id', id)
-
-      if (error) {
-        console.error('Error deleting plan:', error)
-      } else {
+      try {
+        const res = await fetch(`/api/plans/${id}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Failed to delete plan')
         await fetchPlans()
+      } catch (error) {
+        console.error('Error deleting plan:', error)
       }
     }
   }

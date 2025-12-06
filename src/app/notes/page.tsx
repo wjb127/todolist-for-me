@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Save, Trash2, X, StickyNote } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 import { useTheme } from '@/lib/context/ThemeContext'
 
@@ -24,37 +23,36 @@ export default function NotesPage() {
   }, [])
 
   const fetchNotes = async () => {
-    const { data, error } = await supabase
-      .from('notes')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching notes:', error)
-    } else {
+    try {
+      const res = await fetch('/api/notes')
+      if (!res.ok) throw new Error('Failed to fetch notes')
+      const data = await res.json()
       setNotes(data || [])
+    } catch (error) {
+      console.error('Error fetching notes:', error)
     }
   }
 
   const handleAddNote = async () => {
     if (!newNote.trim()) return
-    
+
     setIsLoading(true)
     const noteData: NoteInsert = {
       content: newNote.trim()
     }
 
-    const { data, error } = await supabase
-      .from('notes')
-      .insert(noteData)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error adding note:', error)
-    } else if (data) {
+    try {
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(noteData)
+      })
+      if (!res.ok) throw new Error('Failed to add note')
+      const data = await res.json()
       setNotes([data, ...notes])
       setNewNote('')
+    } catch (error) {
+      console.error('Error adding note:', error)
     }
     setIsLoading(false)
   }
@@ -76,39 +74,38 @@ export default function NotesPage() {
     if (!editingNote || !modalContent.trim()) return
 
     setIsLoading(true)
-    const { error } = await supabase
-      .from('notes')
-      .update({ content: modalContent.trim() })
-      .eq('id', editingNote.id)
+    try {
+      const res = await fetch(`/api/notes/${editingNote.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: modalContent.trim() })
+      })
+      if (!res.ok) throw new Error('Failed to update note')
 
-    if (error) {
-      console.error('Error updating note:', error)
-    } else {
-      setNotes(notes.map(n => 
-        n.id === editingNote.id 
+      setNotes(notes.map(n =>
+        n.id === editingNote.id
           ? { ...n, content: modalContent.trim(), updated_at: new Date().toISOString() }
           : n
       ))
       closeModal()
+    } catch (error) {
+      console.error('Error updating note:', error)
     }
     setIsLoading(false)
   }
 
   const handleDeleteNote = async () => {
     if (!editingNote) return
-    
+
     if (confirm('이 메모를 삭제하시겠습니까?')) {
       setIsLoading(true)
-      const { error } = await supabase
-        .from('notes')
-        .delete()
-        .eq('id', editingNote.id)
-
-      if (error) {
-        console.error('Error deleting note:', error)
-      } else {
+      try {
+        const res = await fetch(`/api/notes/${editingNote.id}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Failed to delete note')
         setNotes(notes.filter(n => n.id !== editingNote.id))
         closeModal()
+      } catch (error) {
+        console.error('Error deleting note:', error)
       }
       setIsLoading(false)
     }

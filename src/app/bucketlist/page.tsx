@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react'
 import { Target, Plus, ChevronRight, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, ChevronUp, ChevronDown as ArrowDown, Edit2, X, Save } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
-import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/database.types'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -269,24 +268,16 @@ export default function BucketListPage() {
 
   // 데이터 불러오기
   const fetchItems = useCallback(async () => {
-    const query = supabase
-      .from('bucketlist')
-      .select('*')
-      .order('order_index', { ascending: true })
-
-    if (!showCompleted) {
-      query.eq('completed', false)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error fetching bucketlist:', error)
-    } else {
+    try {
+      const res = await fetch(`/api/bucketlist?showCompleted=${showCompleted}`)
+      if (!res.ok) throw new Error('Failed to fetch bucketlist')
+      const data = await res.json()
       setItems(data || [])
       // 기본적으로 모든 항목 펼치기
-      const allIds = new Set(data?.map(item => item.id) || [])
+      const allIds = new Set<string>(data?.map((item: BucketListItem) => item.id) || [])
       setLocalExpandedItems(allIds)
+    } catch (error) {
+      console.error('Error fetching bucketlist:', error)
     }
   }, [showCompleted])
 
@@ -360,13 +351,15 @@ export default function BucketListPage() {
 
   // 업데이트
   const handleUpdate = async (id: string, updates: BucketListUpdate) => {
-    const { error } = await supabase
-      .from('bucketlist')
-      .update(updates)
-      .eq('id', id)
-
-    if (!error) {
-      fetchItems()
+    try {
+      const res = await fetch(`/api/bucketlist/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      })
+      if (res.ok) fetchItems()
+    } catch (error) {
+      console.error('Error updating item:', error)
     }
   }
 
@@ -391,24 +384,25 @@ export default function BucketListPage() {
       progress: 0
     }
 
-    const { error } = await supabase
-      .from('bucketlist')
-      .insert(newItem)
-
-    if (!error) {
-      fetchItems()
+    try {
+      const res = await fetch('/api/bucketlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newItem)
+      })
+      if (res.ok) fetchItems()
+    } catch (error) {
+      console.error('Error adding item:', error)
     }
   }
 
   // 항목 삭제
   const handleDelete = async (itemId: string) => {
-    const { error } = await supabase
-      .from('bucketlist')
-      .delete()
-      .eq('id', itemId)
-
-    if (!error) {
-      fetchItems()
+    try {
+      const res = await fetch(`/api/bucketlist/${itemId}`, { method: 'DELETE' })
+      if (res.ok) fetchItems()
+    } catch (error) {
+      console.error('Error deleting item:', error)
     }
   }
 
@@ -450,14 +444,18 @@ export default function BucketListPage() {
       progress: modalFormData.progress
     }
 
-    const { error } = await supabase
-      .from('bucketlist')
-      .update(updates)
-      .eq('id', editingItem.id)
-
-    if (!error) {
-      fetchItems()
-      closeEditModal()
+    try {
+      const res = await fetch(`/api/bucketlist/${editingItem.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      })
+      if (res.ok) {
+        fetchItems()
+        closeEditModal()
+      }
+    } catch (error) {
+      console.error('Error saving edit:', error)
     }
   }
 
@@ -484,47 +482,55 @@ export default function BucketListPage() {
   const handleMoveUp = async (item: BucketListItem) => {
     const siblings = items.filter(i => i.parent_id === item.parent_id)
       .sort((a, b) => a.order_index - b.order_index)
-    
+
     const currentIndex = siblings.findIndex(i => i.id === item.id)
     if (currentIndex <= 0) return
-    
+
     const prevItem = siblings[currentIndex - 1]
-    
+
     // order_index 교환
-    await supabase
-      .from('bucketlist')
-      .update({ order_index: prevItem.order_index })
-      .eq('id', item.id)
-    
-    await supabase
-      .from('bucketlist')
-      .update({ order_index: item.order_index })
-      .eq('id', prevItem.id)
-    
-    fetchItems()
+    try {
+      await fetch(`/api/bucketlist/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_index: prevItem.order_index })
+      })
+      await fetch(`/api/bucketlist/${prevItem.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_index: item.order_index })
+      })
+      fetchItems()
+    } catch (error) {
+      console.error('Error moving item:', error)
+    }
   }
 
   const handleMoveDown = async (item: BucketListItem) => {
     const siblings = items.filter(i => i.parent_id === item.parent_id)
       .sort((a, b) => a.order_index - b.order_index)
-    
+
     const currentIndex = siblings.findIndex(i => i.id === item.id)
     if (currentIndex < 0 || currentIndex >= siblings.length - 1) return
-    
+
     const nextItem = siblings[currentIndex + 1]
-    
+
     // order_index 교환
-    await supabase
-      .from('bucketlist')
-      .update({ order_index: nextItem.order_index })
-      .eq('id', item.id)
-    
-    await supabase
-      .from('bucketlist')
-      .update({ order_index: item.order_index })
-      .eq('id', nextItem.id)
-    
-    fetchItems()
+    try {
+      await fetch(`/api/bucketlist/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_index: nextItem.order_index })
+      })
+      await fetch(`/api/bucketlist/${nextItem.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_index: item.order_index })
+      })
+      fetchItems()
+    } catch (error) {
+      console.error('Error moving item:', error)
+    }
   }
 
   const tree = getFilteredTree()
