@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { format, subDays, startOfYear, endOfYear, eachDayOfInterval, getDay } from 'date-fns'
+import { format, subDays, eachDayOfInterval, getDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { supabase } from '@/lib/supabase/client'
 import { useTheme } from '@/lib/context/ThemeContext'
 
 interface ContributionData {
@@ -27,85 +26,42 @@ export default function YearlyContributionGraph({ type = 'all' }: YearlyContribu
   const { getCardStyle } = useTheme()
 
   const fetchYearlyData = useCallback(async () => {
-    const startDate = startOfYear(new Date(selectedYear, 0, 1))
-    const endDate = endOfYear(new Date(selectedYear, 0, 1))
-    
-    const contributionsMap = new Map<string, ContributionData>()
-    
-    // Fetch todos for the year (if type is 'todos' or 'all')
-    if (type === 'todos' || type === 'all') {
-      // Pagination을 사용하여 모든 데이터 가져오기
-      let allTodos: Array<{ date: string; completed: boolean }> = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-
-      while (hasMore) {
-        const { data: todosData } = await supabase
-          .from('todos')
-          .select('date, completed')
-          .gte('date', format(startDate, 'yyyy-MM-dd'))
-          .lte('date', format(endDate, 'yyyy-MM-dd'))
-          .eq('completed', true)
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-
-        if (todosData && todosData.length > 0) {
-          allTodos = [...allTodos, ...todosData]
-          hasMore = todosData.length === pageSize
-          page++
-        } else {
-          hasMore = false
-        }
+    try {
+      const res = await fetch(`/api/dashboard/yearly?year=${selectedYear}&type=${type}`)
+      if (!res.ok) throw new Error('Failed to fetch yearly data')
+      
+      const data = await res.json()
+      const contributionsMap = new Map<string, ContributionData>()
+      
+      // Process todos
+      if (data.todos) {
+        data.todos.forEach((todo: { date: string; completed: boolean }) => {
+          const existing = contributionsMap.get(todo.date) || { date: todo.date, count: 0, todos: 0, plans: 0 }
+          existing.todos = (existing.todos || 0) + 1
+          existing.count = existing.todos + (existing.plans || 0)
+          contributionsMap.set(todo.date, existing)
+        })
       }
 
-      allTodos.forEach(todo => {
-        const existing = contributionsMap.get(todo.date) || { date: todo.date, count: 0, todos: 0, plans: 0 }
-        existing.todos = (existing.todos || 0) + 1
-        existing.count = existing.todos + (existing.plans || 0)
-        contributionsMap.set(todo.date, existing)
-      })
-    }
-
-    // Fetch plans for the year (if type is 'plans' or 'all')
-    if (type === 'plans' || type === 'all') {
-      // Pagination을 사용하여 모든 데이터 가져오기
-      let allPlans: Array<{ due_date: string | null; completed: boolean }> = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-
-      while (hasMore) {
-        const { data: plansData } = await supabase
-          .from('plans')
-          .select('due_date, completed')
-          .eq('completed', true)
-          .not('due_date', 'is', null)
-          .gte('due_date', format(startDate, 'yyyy-MM-dd'))
-          .lte('due_date', format(endDate, 'yyyy-MM-dd'))
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-
-        if (plansData && plansData.length > 0) {
-          allPlans = [...allPlans, ...plansData]
-          hasMore = plansData.length === pageSize
-          page++
-        } else {
-          hasMore = false
-        }
+      // Process plans
+      if (data.plans) {
+        data.plans.forEach((plan: { due_date: string | null; completed: boolean }) => {
+          if (plan.due_date) {
+            const existing = contributionsMap.get(plan.due_date) || { date: plan.due_date, count: 0, todos: 0, plans: 0 }
+            existing.plans = (existing.plans || 0) + 1
+            existing.count = (existing.todos || 0) + existing.plans
+            contributionsMap.set(plan.due_date, existing)
+          }
+        })
       }
 
-      allPlans.forEach(plan => {
-        const date = plan.due_date!
-        const existing = contributionsMap.get(date) || { date, count: 0, todos: 0, plans: 0 }
-        existing.plans = (existing.plans || 0) + 1
-        existing.count = (existing.todos || 0) + existing.plans
-        contributionsMap.set(date, existing)
-      })
+      setContributions(contributionsMap)
+      
+      // Calculate statistics
+      calculateStatistics(contributionsMap)
+    } catch (error) {
+      console.error('Error fetching yearly data:', error)
     }
-
-    setContributions(contributionsMap)
-    
-    // Calculate statistics
-    calculateStatistics(contributionsMap)
   }, [selectedYear, type])
 
   useEffect(() => {
