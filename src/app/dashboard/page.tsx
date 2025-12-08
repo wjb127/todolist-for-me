@@ -7,11 +7,22 @@ import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMont
 import { ko } from 'date-fns/locale'
 import { Database } from '@/lib/database.types'
 import YearlyContributionGraph from '@/components/dashboard/YearlyContributionGraph'
+import LevelCard from '@/components/dashboard/LevelCard'
+import { 
+  getLevelInfo, 
+  todoDailyLevels, 
+  todoWeeklyLevels, 
+  todoMonthlyLevels,
+  planDailyLevels,
+  planWeeklyLevels,
+  planMonthlyLevels,
+  UserLevel,
+  LevelData
+} from '@/lib/levelSystem'
 
 type Todo = Database['public']['Tables']['todos']['Row']
 type Plan = Database['public']['Tables']['plans']['Row']
 type Note = Database['public']['Tables']['notes']['Row']
-type NoteInsert = Database['public']['Tables']['notes']['Insert']
 
 interface DailyStats {
   date: string
@@ -43,13 +54,6 @@ interface MotivationalQuote {
   author: string
 }
 
-interface UserLevel {
-  level: number
-  currentXP: number
-  xpToNext: number
-  title: string
-}
-
 interface Achievement {
   id: string
   title: string
@@ -71,61 +75,6 @@ const motivationalQuotes: MotivationalQuote[] = [
   { text: "당신이 할 수 있다고 믿든 없다고 믿든, 당신이 옳습니다.", author: "헨리 포드" },
   { text: "이것 역시 곧 지나가리라.", author: "페르시아 우화" },
 ]
-
-// 레벨별 정보 시스템
-interface LevelData {
-  level: number
-  title: string
-  icon: React.ComponentType<{ className?: string }>
-  color: string
-  description: string
-  xpRequired: number
-}
-
-const levelData: LevelData[] = [
-  { level: 1, title: "새내기", icon: Target, color: "text-gray-500", description: "할 일 관리의 첫 걸음을 시작했습니다", xpRequired: 0 },
-  { level: 2, title: "초보자", icon: Star, color: "text-blue-500", description: "기본적인 할 일 관리를 익혔습니다", xpRequired: 10 },
-  { level: 3, title: "학습자", icon: Award, color: "text-green-500", description: "꾸준히 할 일을 실행하고 있습니다", xpRequired: 40 },
-  { level: 4, title: "실행가", icon: Zap, color: "text-yellow-500", description: "생산성이 눈에 띄게 향상되었습니다", xpRequired: 90 },
-  { level: 5, title: "전문가", icon: Trophy, color: "text-orange-500", description: "할 일 관리의 전문성을 갖췄습니다", xpRequired: 160 },
-  { level: 6, title: "숙련자", icon: Crown, color: "text-purple-500", description: "뛰어난 생산성을 보여주고 있습니다", xpRequired: 250 },
-  { level: 7, title: "달인", icon: Gem, color: "text-pink-500", description: "할 일 관리의 달인이 되었습니다", xpRequired: 360 },
-  { level: 8, title: "거장", icon: Shield, color: "text-indigo-500", description: "최고 수준의 생산성을 달성했습니다", xpRequired: 490 },
-  { level: 9, title: "전설", icon: Rocket, color: "text-amber-500", description: "전설적인 생산성의 소유자입니다", xpRequired: 640 },
-  { level: 10, title: "신화", icon: Sparkles, color: "text-violet-500", description: "신화적 존재로 거듭났습니다", xpRequired: 810 }
-]
-
-// 레벨 시스템 설정
-const getLevelInfo = (totalCompleted: number): UserLevel => {
-  // 현재 레벨 찾기
-  let currentLevel = levelData[0]
-  for (let i = levelData.length - 1; i >= 0; i--) {
-    if (totalCompleted >= levelData[i].xpRequired) {
-      currentLevel = levelData[i]
-      break
-    }
-  }
-  
-  // 다음 레벨 정보
-  const nextLevelIndex = Math.min(currentLevel.level, levelData.length - 1)
-  const nextLevel = levelData[nextLevelIndex]
-  const nextLevelXP = nextLevel ? nextLevel.xpRequired : currentLevel.xpRequired
-  
-  const currentXP = totalCompleted - currentLevel.xpRequired
-  const xpToNext = nextLevelXP - totalCompleted
-  
-  return { 
-    level: currentLevel.level, 
-    currentXP: Math.max(0, currentXP), 
-    xpToNext: Math.max(0, xpToNext), 
-    title: currentLevel.title 
-  }
-}
-
-// 현재 레벨의 아이콘과 색상 가져오기
-const getCurrentLevelData = (level: number): LevelData => {
-  return levelData.find(data => data.level === level) || levelData[0]
-}
 
 // 성취 시스템
 const achievements: Achievement[] = [
@@ -228,7 +177,14 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [currentQuote, setCurrentQuote] = useState<MotivationalQuote | null>(null)
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
-  const [showLevelModal, setShowLevelModal] = useState(false)
+  const [selectedLevelSystem, setSelectedLevelSystem] = useState<{
+    title: string
+    levels: LevelData[]
+    currentLevel: UserLevel
+    totalXP: number
+    type: 'todo' | 'plan'
+    period: 'daily' | 'weekly' | 'monthly'
+  } | null>(null)
   
   // 메모 관련 state
   const [notes, setNotes] = useState<Note[]>([])
@@ -659,8 +615,6 @@ export default function DashboardPage() {
     return todayStats.completed * 30 // 대략적인 전체 완료 수 추정
   })()
   
-  const userLevel = getLevelInfo(totalCompletedEver)
-  
   const currentStreak = (() => {
     if (currentStats && 'dailyStats' in currentStats) {
       return calculateStreak(currentStats.dailyStats)
@@ -798,47 +752,198 @@ export default function DashboardPage() {
           <YearlyContributionGraph type="plans" />
         </div>
 
-        {/* 레벨 및 경험치 시스템 */}
-        <div className={`${getCardStyle()} mb-6 mt-6`}>
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => setShowLevelModal(true)}
-              className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
-            >
-              <div className="relative">
-                {(() => {
-                  const LevelIcon = getCurrentLevelData(userLevel.level).icon
-                  return <LevelIcon className={`h-8 w-8 ${getCurrentLevelData(userLevel.level).color}`} />
-                })()}
-                <div className="absolute -top-1 -right-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {userLevel.level}
-                </div>
-              </div>
-              <div className="text-left">
-                <h2 className="text-lg font-bold text-gray-800">{userLevel.title}</h2>
-                <p className="text-sm text-gray-600">레벨 {userLevel.level}</p>
-              </div>
-            </button>
-            <div className="text-right">
-              <p className="text-sm text-gray-600">XP</p>
-              <p className="text-lg font-bold text-gray-800">{totalCompletedEver}</p>
-            </div>
-          </div>
+        {/* 6가지 레벨 시스템 */}
+        <div className="mt-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">🎮 레벨 시스템</h2>
           
-          {/* 경험치 바 */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-gray-600">
-              <span>현재 레벨 진행도</span>
-              <span>{userLevel.currentXP} / {userLevel.currentXP + userLevel.xpToNext}</span>
+          {/* Todo 레벨 시스템 */}
+          <div className="mb-6">
+            <div className="flex items-center space-x-2 mb-3">
+              <Sparkles className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-bold text-gray-900">할 일 레벨</h3>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
-                className="bg-amber-400 h-3 rounded-full transition-all duration-1000"
-                style={{ width: `${(userLevel.currentXP / (userLevel.currentXP + userLevel.xpToNext)) * 100}%` }}
+            <div className="grid grid-cols-1 gap-3">
+              <LevelCard
+                title="일간 레벨"
+                subtitle="오늘 완료한 할 일"
+                level={getLevelInfo(todayStats.completed, todoDailyLevels)}
+                totalXP={todayStats.completed}
+                icon="☀️"
+                accentColor="bg-blue-500"
+                onClick={() => setSelectedLevelSystem({
+                  title: '할 일 일간 레벨',
+                  levels: todoDailyLevels,
+                  currentLevel: getLevelInfo(todayStats.completed, todoDailyLevels),
+                  totalXP: todayStats.completed,
+                  type: 'todo',
+                  period: 'daily'
+                })}
+              />
+              <LevelCard
+                title="주간 레벨"
+                subtitle="이번 주 완료한 할 일"
+                level={getLevelInfo(
+                  weeklyStats ? weeklyStats.totalCompleted : 0,
+                  todoWeeklyLevels
+                )}
+                totalXP={weeklyStats ? weeklyStats.totalCompleted : 0}
+                icon="📅"
+                accentColor="bg-green-500"
+                onClick={() => setSelectedLevelSystem({
+                  title: '할 일 주간 레벨',
+                  levels: todoWeeklyLevels,
+                  currentLevel: getLevelInfo(
+                    weeklyStats ? weeklyStats.totalCompleted : 0,
+                    todoWeeklyLevels
+                  ),
+                  totalXP: weeklyStats ? weeklyStats.totalCompleted : 0,
+                  type: 'todo',
+                  period: 'weekly'
+                })}
+              />
+              <LevelCard
+                title="월간 레벨"
+                subtitle="이번 달 완료한 할 일"
+                level={getLevelInfo(
+                  monthlyStats ? monthlyStats.totalCompleted : 0,
+                  todoMonthlyLevels
+                )}
+                totalXP={monthlyStats ? monthlyStats.totalCompleted : 0}
+                icon="🗓️"
+                accentColor="bg-purple-500"
+                onClick={() => setSelectedLevelSystem({
+                  title: '할 일 월간 레벨',
+                  levels: todoMonthlyLevels,
+                  currentLevel: getLevelInfo(
+                    monthlyStats ? monthlyStats.totalCompleted : 0,
+                    todoMonthlyLevels
+                  ),
+                  totalXP: monthlyStats ? monthlyStats.totalCompleted : 0,
+                  type: 'todo',
+                  period: 'monthly'
+                })}
               />
             </div>
-            <div className="text-center text-xs text-gray-600">
-              다음 레벨까지 {userLevel.xpToNext}XP 남음
+          </div>
+
+          {/* Plans 레벨 시스템 */}
+          <div>
+            <div className="flex items-center space-x-2 mb-3">
+              <Target className="h-5 w-5 text-purple-600" />
+              <h3 className="text-lg font-bold text-gray-900">계획 레벨</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <LevelCard
+                title="일간 레벨"
+                subtitle="오늘 완료한 계획"
+                level={getLevelInfo(
+                  plans.filter(p => {
+                    const today = format(new Date(), 'yyyy-MM-dd')
+                    return p.completed && p.updated_at?.startsWith(today)
+                  }).length,
+                  planDailyLevels
+                )}
+                totalXP={plans.filter(p => {
+                  const today = format(new Date(), 'yyyy-MM-dd')
+                  return p.completed && p.updated_at?.startsWith(today)
+                }).length}
+                icon="🌟"
+                accentColor="bg-orange-500"
+                onClick={() => {
+                  const dailyPlans = plans.filter(p => {
+                    const today = format(new Date(), 'yyyy-MM-dd')
+                    return p.completed && p.updated_at?.startsWith(today)
+                  }).length
+                  setSelectedLevelSystem({
+                    title: '계획 일간 레벨',
+                    levels: planDailyLevels,
+                    currentLevel: getLevelInfo(dailyPlans, planDailyLevels),
+                    totalXP: dailyPlans,
+                    type: 'plan',
+                    period: 'daily'
+                  })
+                }}
+              />
+              <LevelCard
+                title="주간 레벨"
+                subtitle="이번 주 완료한 계획"
+                level={getLevelInfo(
+                  plans.filter(p => {
+                    if (!p.completed || !p.updated_at) return false
+                    const updatedDate = new Date(p.updated_at)
+                    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+                    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
+                    return updatedDate >= weekStart && updatedDate <= weekEnd
+                  }).length,
+                  planWeeklyLevels
+                )}
+                totalXP={plans.filter(p => {
+                  if (!p.completed || !p.updated_at) return false
+                  const updatedDate = new Date(p.updated_at)
+                  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+                  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
+                  return updatedDate >= weekStart && updatedDate <= weekEnd
+                }).length}
+                icon="🎯"
+                accentColor="bg-pink-500"
+                onClick={() => {
+                  const weeklyPlans = plans.filter(p => {
+                    if (!p.completed || !p.updated_at) return false
+                    const updatedDate = new Date(p.updated_at)
+                    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+                    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
+                    return updatedDate >= weekStart && updatedDate <= weekEnd
+                  }).length
+                  setSelectedLevelSystem({
+                    title: '계획 주간 레벨',
+                    levels: planWeeklyLevels,
+                    currentLevel: getLevelInfo(weeklyPlans, planWeeklyLevels),
+                    totalXP: weeklyPlans,
+                    type: 'plan',
+                    period: 'weekly'
+                  })
+                }}
+              />
+              <LevelCard
+                title="월간 레벨"
+                subtitle="이번 달 완료한 계획"
+                level={getLevelInfo(
+                  plans.filter(p => {
+                    if (!p.completed || !p.updated_at) return false
+                    const updatedDate = new Date(p.updated_at)
+                    const monthStart = startOfMonth(new Date())
+                    const monthEnd = endOfMonth(new Date())
+                    return updatedDate >= monthStart && updatedDate <= monthEnd
+                  }).length,
+                  planMonthlyLevels
+                )}
+                totalXP={plans.filter(p => {
+                  if (!p.completed || !p.updated_at) return false
+                  const updatedDate = new Date(p.updated_at)
+                  const monthStart = startOfMonth(new Date())
+                  const monthEnd = endOfMonth(new Date())
+                  return updatedDate >= monthStart && updatedDate <= monthEnd
+                }).length}
+                icon="🏆"
+                accentColor="bg-indigo-500"
+                onClick={() => {
+                  const monthlyPlans = plans.filter(p => {
+                    if (!p.completed || !p.updated_at) return false
+                    const updatedDate = new Date(p.updated_at)
+                    const monthStart = startOfMonth(new Date())
+                    const monthEnd = endOfMonth(new Date())
+                    return updatedDate >= monthStart && updatedDate <= monthEnd
+                  }).length
+                  setSelectedLevelSystem({
+                    title: '계획 월간 레벨',
+                    levels: planMonthlyLevels,
+                    currentLevel: getLevelInfo(monthlyPlans, planMonthlyLevels),
+                    totalXP: monthlyPlans,
+                    type: 'plan',
+                    period: 'monthly'
+                  })
+                }}
+              />
             </div>
           </div>
         </div>
@@ -1644,17 +1749,17 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* 레벨 정보 모달 */}
-        {showLevelModal && (
+        {/* 레벨 상세 정보 모달 */}
+        {selectedLevelSystem && (
           <div className={getModalBackdropStyle()}>
-            <div className={`${getModalStyle()} max-w-md w-full p-6`}>
+            <div className={`${getModalStyle()} max-w-md w-full p-6 max-h-[90vh] overflow-y-auto`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">레벨 시스템</h3>
+                <h3 className="text-lg font-bold text-gray-900">{selectedLevelSystem.title}</h3>
                 <button
-                  onClick={() => setShowLevelModal(false)}
+                  onClick={() => setSelectedLevelSystem(null)}
                   className="p-1 text-gray-400 hover:text-gray-600 rounded"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
@@ -1662,26 +1767,46 @@ export default function DashboardPage() {
               <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
                 <div className="flex items-center space-x-3 mb-2">
                   {(() => {
-                    const LevelIcon = getCurrentLevelData(userLevel.level).icon
-                    return <LevelIcon className={`h-8 w-8 ${getCurrentLevelData(userLevel.level).color}`} />
+                    const LevelIcon = selectedLevelSystem.currentLevel.icon
+                    return <LevelIcon className={`h-8 w-8 ${selectedLevelSystem.currentLevel.color}`} />
                   })()}
                   <div>
-                    <h4 className="text-lg font-bold text-gray-900">{userLevel.title}</h4>
-                    <p className="text-sm text-gray-600">레벨 {userLevel.level}</p>
+                    <h4 className="text-lg font-bold text-gray-900">{selectedLevelSystem.currentLevel.title}</h4>
+                    <p className="text-sm text-gray-600">레벨 {selectedLevelSystem.currentLevel.level}</p>
                   </div>
                 </div>
-                <p className="text-sm text-gray-700">{getCurrentLevelData(userLevel.level).description}</p>
+                <p className="text-sm text-gray-700 mb-3">{selectedLevelSystem.currentLevel.description}</p>
+                
+                {/* 통계 정보 */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="bg-white/50 rounded-lg p-2">
+                    <p className="text-xs text-gray-600">총 완료</p>
+                    <p className="text-lg font-bold text-gray-900">{selectedLevelSystem.totalXP}</p>
+                  </div>
+                  <div className="bg-white/50 rounded-lg p-2">
+                    <p className="text-xs text-gray-600">다음 레벨까지</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {selectedLevelSystem.currentLevel.xpToNext > 0 ? selectedLevelSystem.currentLevel.xpToNext : '최고'}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="mt-3">
                   <div className="flex justify-between text-xs text-gray-600 mb-1">
-                    <span>현재 XP: {totalCompletedEver}</span>
-                    <span>다음 레벨까지: {userLevel.xpToNext}XP</span>
+                    <span>진행도</span>
+                    <span>
+                      {selectedLevelSystem.currentLevel.xpToNext > 0
+                        ? `${Math.round((selectedLevelSystem.currentLevel.currentXP / (selectedLevelSystem.currentLevel.currentXP + selectedLevelSystem.currentLevel.xpToNext)) * 100)}%`
+                        : '100%'
+                      }
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-1000"
                       style={{ 
-                        width: userLevel.xpToNext > 0 
-                          ? `${Math.max(10, (userLevel.currentXP / (userLevel.currentXP + userLevel.xpToNext)) * 100)}%`
+                        width: selectedLevelSystem.currentLevel.xpToNext > 0 
+                          ? `${Math.max(5, (selectedLevelSystem.currentLevel.currentXP / (selectedLevelSystem.currentLevel.currentXP + selectedLevelSystem.currentLevel.xpToNext)) * 100)}%`
                           : '100%'
                       }}
                     />
@@ -1691,11 +1816,11 @@ export default function DashboardPage() {
 
               {/* 모든 레벨 목록 */}
               <div>
-                <h4 className="text-md font-semibold text-gray-800 mb-3">모든 칭호</h4>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {levelData.map((data) => {
-                    const isUnlocked = totalCompletedEver >= data.xpRequired
-                    const isCurrent = data.level === userLevel.level
+                <h4 className="text-md font-semibold text-gray-800 mb-3">모든 레벨</h4>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {selectedLevelSystem.levels.map((data) => {
+                    const isUnlocked = selectedLevelSystem.totalXP >= data.xpRequired
+                    const isCurrent = data.level === selectedLevelSystem.currentLevel.level
                     const IconComponent = data.icon
                     
                     return (
@@ -1709,7 +1834,7 @@ export default function DashboardPage() {
                               : 'bg-gray-50 border-gray-200'
                         }`}
                       >
-                        <div className="relative">
+                        <div className="relative flex-shrink-0">
                           <IconComponent 
                             className={`h-6 w-6 ${
                               isUnlocked ? data.color : 'text-gray-400'
@@ -1721,14 +1846,14 @@ export default function DashboardPage() {
                             </div>
                           )}
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2">
-                            <h5 className={`font-semibold ${
+                            <h5 className={`font-semibold text-sm ${
                               isUnlocked ? 'text-gray-900' : 'text-gray-500'
                             }`}>
                               {data.title}
                             </h5>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
+                            <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
                               isCurrent 
                                 ? 'bg-blue-100 text-blue-700'
                                 : isUnlocked 
@@ -1746,7 +1871,7 @@ export default function DashboardPage() {
                           <p className={`text-xs mt-1 ${
                             isUnlocked ? 'text-gray-500' : 'text-gray-400'
                           }`}>
-                            필요 XP: {data.xpRequired}
+                            필요: {data.xpRequired}개
                           </p>
                         </div>
                       </div>
@@ -1758,7 +1883,7 @@ export default function DashboardPage() {
               {/* 닫기 버튼 */}
               <div className="mt-6 flex justify-center">
                 <button
-                  onClick={() => setShowLevelModal(false)}
+                  onClick={() => setSelectedLevelSystem(null)}
                   className={`px-6 py-2 rounded-lg ${getButtonStyle()}`}
                 >
                   닫기
