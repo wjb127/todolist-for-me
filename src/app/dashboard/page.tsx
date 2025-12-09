@@ -67,6 +67,29 @@ interface Achievement {
   progressText?: string
 }
 
+interface AchievementMetrics {
+  totalTodos: number
+  completedTodos: number
+  daysWithTodos: number
+  perfectDays: number
+  longestStreak: number
+  currentStreak: number
+  currentWeekCompleted: number
+  currentWeekTotal: number
+  currentMonthCompleted: number
+  currentMonthTotal: number
+  templateCompleted: number
+  plansCompleted: number
+  weekRange: {
+    start: string
+    end: string
+  }
+  monthRange: {
+    start: string
+    end: string
+  }
+}
+
 const motivationalQuotes: MotivationalQuote[] = [
   { text: "성공은 매일의 작은 노력들이 쌓여서 만들어집니다.", author: "로버트 콜리어" },
   { text: "오늘의 할 일을 내일로 미루지 마세요.", author: "벤자민 프랭클린" },
@@ -149,6 +172,54 @@ const achievements: Achievement[] = [
     icon: '🎯',
     unlocked: false,
     rarity: 'rare'
+  },
+  {
+    id: 'plan_starter',
+    title: '계획 입문자',
+    description: '첫 번째 계획을 완료했습니다',
+    icon: '🧭',
+    unlocked: false,
+    rarity: 'common'
+  },
+  {
+    id: 'plan_master',
+    title: '계획 완주자',
+    description: '5개의 계획을 완료했습니다',
+    icon: '🗂️',
+    unlocked: false,
+    rarity: 'rare'
+  },
+  {
+    id: 'template_specialist',
+    title: '템플릿 스페셜리스트',
+    description: '템플릿을 활용해 10개 할 일을 완료했습니다',
+    icon: '🧩',
+    unlocked: false,
+    rarity: 'rare'
+  },
+  {
+    id: 'consistency_builder',
+    title: '꾸준함의 시작',
+    description: '3일 연속 80% 이상 완료했습니다',
+    icon: '📅',
+    unlocked: false,
+    rarity: 'common'
+  },
+  {
+    id: 'weekly_finisher',
+    title: '주간 집중러',
+    description: '이번 주 완료율 80%를 달성했습니다',
+    icon: '📈',
+    unlocked: false,
+    rarity: 'rare'
+  },
+  {
+    id: 'monthly_finisher',
+    title: '월간 성실왕',
+    description: '이번 달 완료율 70%를 달성했습니다',
+    icon: '🗓️',
+    unlocked: false,
+    rarity: 'epic'
   }
 ]
 
@@ -194,6 +265,7 @@ export default function DashboardPage() {
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
   const [modalContent, setModalContent] = useState('')
   const [isNoteLoading, setIsNoteLoading] = useState(false)
+  const [achievementMetrics, setAchievementMetrics] = useState<AchievementMetrics | null>(null)
   
   // 테마 시스템 사용
   const { theme, setTheme, getBackgroundStyle, getCardStyle, getButtonStyle, getModalStyle, getModalBackdropStyle, getInputStyle } = useTheme()
@@ -204,6 +276,21 @@ export default function DashboardPage() {
     setCurrentQuote(randomQuote)
     // 메모 가져오기
     fetchNotes()
+  }, [])
+
+  useEffect(() => {
+    const fetchAchievementMetrics = async () => {
+      try {
+        const res = await fetch('/api/dashboard/achievements')
+        if (!res.ok) throw new Error('Failed to fetch achievement metrics')
+        const data: AchievementMetrics = await res.json()
+        setAchievementMetrics(data)
+      } catch (error) {
+        console.error('Error fetching achievement metrics:', error)
+      }
+    }
+
+    fetchAchievementMetrics()
   }, [])
   
   // 메모 관련 함수들
@@ -606,21 +693,74 @@ export default function DashboardPage() {
   }
 
   const todayStats = getTodayStats()
-  
+
   // 게이미피케이션 요소 계산
   const totalCompletedEver = (() => {
+    if (achievementMetrics) {
+      return achievementMetrics.completedTodos
+    }
     if (currentStats && 'totalCompleted' in currentStats) {
       return currentStats.totalCompleted * 4
     }
     return todayStats.completed * 30 // 대략적인 전체 완료 수 추정
   })()
-  
+
   const currentStreak = (() => {
+    if (achievementMetrics) {
+      return achievementMetrics.currentStreak
+    }
     if (currentStats && 'dailyStats' in currentStats) {
       return calculateStreak(currentStats.dailyStats)
     }
     return 0
   })()
+
+  const longestStreak = achievementMetrics?.longestStreak ?? currentStreak
+  const plansCompletedOverall = achievementMetrics?.plansCompleted ?? completedPlans
+  const perfectDays = achievementMetrics?.perfectDays ?? (() => {
+    if (currentStats && 'dailyStats' in currentStats) {
+      return currentStats.dailyStats.filter(d => d.completionRate === 100).length
+    }
+    return todayStats.completionRate === 100 ? 1 : 0
+  })()
+
+  const weeklyTotals = (() => {
+    if (achievementMetrics) {
+      return {
+        completed: achievementMetrics.currentWeekCompleted,
+        total: achievementMetrics.currentWeekTotal
+      }
+    }
+
+    if (currentStats && 'totalCompleted' in currentStats) {
+      return {
+        completed: currentStats.totalCompleted,
+        total: currentStats.totalTodos
+      }
+    }
+
+    return { completed: 0, total: 0 }
+  })()
+
+  const monthlyTotals = (() => {
+    if (achievementMetrics) {
+      return {
+        completed: achievementMetrics.currentMonthCompleted,
+        total: achievementMetrics.currentMonthTotal
+      }
+    }
+
+    if (monthlyStats) {
+      return {
+        completed: monthlyStats.totalCompleted,
+        total: monthlyStats.totalTodos
+      }
+    }
+
+    return { completed: 0, total: 0 }
+  })()
+
+  const templateCompleted = achievementMetrics?.templateCompleted ?? Math.floor(totalCompletedEver * 0.6)
   
   // 성취 해제 계산
   const unlockedAchievements = achievements.map(achievement => {
@@ -634,35 +774,23 @@ export default function DashboardPage() {
         unlocked = totalCompletedEver >= 1
         progress = Math.min(totalCompletedEver, 1)
         total = 1
-        progressText = `첨 번째 할 일 완료: ${progress}/${total}`
+        progressText = `첫 번째 할 일 완료: ${progress}/${total}`
         break
       case 'perfectionist':
-        const perfectDays = (() => {
-          if (currentStats && 'dailyStats' in currentStats) {
-            return currentStats.dailyStats.filter(d => d.completionRate === 100).length
-          }
-          return todayStats.completionRate === 100 ? 1 : 0
-        })()
         unlocked = perfectDays >= 1
         progress = Math.min(perfectDays, 1)
         total = 1
         progressText = `100% 완료 달성 일수: ${progress}/${total}`
         break
       case 'streak_master':
-        unlocked = currentStreak >= 7
-        progress = Math.min(currentStreak, 7)
+        unlocked = longestStreak >= 7
+        progress = Math.min(longestStreak, 7)
         total = 7
         progressText = `연속 달성 일수: ${progress}/${total}일`
         break
       case 'productive_week':
-        const weeklyCompleted = (() => {
-          if (currentStats && 'totalCompleted' in currentStats) {
-            return currentStats.totalCompleted
-          }
-          return 0
-        })()
-        unlocked = weeklyCompleted >= 50
-        progress = Math.min(weeklyCompleted, 50)
+        unlocked = weeklyTotals.completed >= 50
+        progress = Math.min(weeklyTotals.completed, 50)
         total = 50
         progressText = `주간 완료 수: ${progress}/${total}개`
         break
@@ -673,8 +801,8 @@ export default function DashboardPage() {
         progressText = `총 완료 수: ${progress}/${total}개`
         break
       case 'planning_pro':
-        unlocked = completedPlans >= 10
-        progress = Math.min(completedPlans, 10)
+        unlocked = plansCompletedOverall >= 10
+        progress = Math.min(plansCompletedOverall, 10)
         total = 10
         progressText = `완료한 계획: ${progress}/${total}개`
         break
@@ -692,12 +820,51 @@ export default function DashboardPage() {
         progressText = `밤 11시 이후 완료: ${progress}/${total}번`
         break
       case 'template_master':
-        const templateCompleted = Math.floor(totalCompletedEver * 0.6) // 템플릿 기반 완료 수 추정
         unlocked = templateCompleted >= 100
         progress = Math.min(templateCompleted, 100)
         total = 100
-        progressText = `템플릿 기반 완룼: ${progress}/${total}개`
+        progressText = `템플릿 기반 완료: ${progress}/${total}개`
         break
+      case 'plan_starter':
+        unlocked = plansCompletedOverall >= 1
+        progress = Math.min(plansCompletedOverall, 1)
+        total = 1
+        progressText = `완료한 계획: ${progress}/${total}개`
+        break
+      case 'plan_master':
+        unlocked = plansCompletedOverall >= 5
+        progress = Math.min(plansCompletedOverall, 5)
+        total = 5
+        progressText = `완료한 계획: ${progress}/${total}개`
+        break
+      case 'template_specialist':
+        unlocked = templateCompleted >= 10
+        progress = Math.min(templateCompleted, 10)
+        total = 10
+        progressText = `템플릿 기반 완료: ${progress}/${total}개`
+        break
+      case 'consistency_builder':
+        unlocked = currentStreak >= 3
+        progress = Math.min(currentStreak, 3)
+        total = 3
+        progressText = `연속 달성 일수: ${progress}/${total}일`
+        break
+      case 'weekly_finisher': {
+        const weeklyRate = weeklyTotals.total > 0 ? Math.round((weeklyTotals.completed / weeklyTotals.total) * 100) : 0
+        unlocked = weeklyRate >= 80
+        progress = Math.min(weeklyRate, 100)
+        total = 100
+        progressText = `이번 주 완료율: ${weeklyRate}%`
+        break
+      }
+      case 'monthly_finisher': {
+        const monthlyRate = monthlyTotals.total > 0 ? Math.round((monthlyTotals.completed / monthlyTotals.total) * 100) : 0
+        unlocked = monthlyRate >= 70
+        progress = Math.min(monthlyRate, 100)
+        total = 100
+        progressText = `이번 달 완료율: ${monthlyRate}%`
+        break
+      }
       default:
         unlocked = Math.random() > 0.7
         progress = unlocked ? 1 : 0
@@ -1511,7 +1678,7 @@ export default function DashboardPage() {
           </div>
           
           <div className="grid grid-cols-3 gap-2">
-            {unlockedAchievements.slice(0, 9).map((achievement) => {
+            {unlockedAchievements.map((achievement) => {
               const getRarityColor = (rarity: string) => {
                 switch (rarity) {
                   case 'legendary': return 'from-purple-500 to-pink-500 border-purple-300'
