@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, memo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react'
 import { Plus, Trash2, Save, X, Clock, Sparkles, ChevronRight, ChevronDown, ChevronUp, Calendar, ChevronLeft } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import confetti from 'canvas-confetti'
@@ -215,13 +215,24 @@ export default function PlansPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
   const [isMoving, setIsMoving] = useState(false) // 상하 이동 중 상태
-  
+  const titleInputRef = useRef<HTMLInputElement>(null)
+
   // 테마 시스템 사용
   const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
 
   useEffect(() => {
     fetchPlans()
   }, [])
+
+  // 모달이 열릴 때 제목 입력 필드에 포커스
+  useEffect(() => {
+    if (isModalOpen && titleInputRef.current) {
+      // 약간의 딜레이 후 포커스 (모달 애니메이션 고려)
+      setTimeout(() => {
+        titleInputRef.current?.focus()
+      }, 50)
+    }
+  }, [isModalOpen])
 
   const fetchPlans = async () => {
     try {
@@ -786,6 +797,7 @@ export default function PlansPage() {
                     계획 제목 *
                   </label>
                   <input
+                    ref={titleInputRef}
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
