@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react'
-import { Plus, Trash2, Save, X, Clock, Sparkles, ChevronRight, ChevronDown, ChevronUp, Calendar, ChevronLeft } from 'lucide-react'
+import { Plus, Trash2, Save, X, Clock, Sparkles, ChevronRight, ChevronDown, ChevronUp, Calendar, ChevronLeft, RefreshCw } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import confetti from 'canvas-confetti'
 import { format } from 'date-fns'
@@ -215,6 +215,7 @@ export default function PlansPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
   const [isMoving, setIsMoving] = useState(false) // 상하 이동 중 상태
+  const [isRefreshing, setIsRefreshing] = useState(false) // 새로고침 중 상태
   const titleInputRef = useRef<HTMLInputElement>(null)
 
   // 테마 시스템 사용
@@ -245,6 +246,15 @@ export default function PlansPage() {
       setExpandedPlans(allPlanIds)
     } catch (error) {
       console.error('Error fetching plans:', error)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await fetchPlans()
+    } finally {
+      setIsRefreshing(false)
     }
   }
 
@@ -667,13 +677,23 @@ export default function PlansPage() {
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">계획</h1>
-          <button
-            onClick={() => openModal()}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${getButtonStyle()}`}
-          >
-            <Plus className="h-4 w-4" />
-            <span>새 계획</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className={`p-2 rounded-lg ${getButtonStyle()} disabled:opacity-50 disabled:cursor-not-allowed`}
+              title="새로고침"
+            >
+              <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={() => openModal()}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${getButtonStyle()}`}
+            >
+              <Plus className="h-4 w-4" />
+              <span>새 계획</span>
+            </button>
+          </div>
         </div>
 
         <div className={`${getCardStyle()} mb-4`}>
