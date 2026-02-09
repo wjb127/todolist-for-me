@@ -80,24 +80,24 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const getBackgroundStyle = () => {
     switch (theme) {
       case 'neumorphism':
-        return 'min-h-screen neumorphism-bg px-6 pt-4 pb-24'
+        return 'min-h-screen neumorphism-bg p-4 pb-24'
       case 'glassmorphism':
-        return 'min-h-screen glassmorphism-bg px-6 pt-4 pb-24'
+        return 'min-h-screen glassmorphism-bg p-4 pb-24'
       default:
-        return 'min-h-screen bg-surface px-6 pt-4 pb-24'
+        return 'min-h-screen bg-surface p-4 pb-24'
     }
   }
 
   const getCardStyle = () => {
     switch (theme) {
       case 'neumorphism':
-        return 'neumorphism-card rounded-xl p-4 overflow-hidden'
+        return 'neumorphism-card rounded-xl p-4'
       case 'glassmorphism':
-        return 'glassmorphism-card rounded-xl p-4 overflow-hidden'
+        return 'glassmorphism-card rounded-xl p-4'
       case 'minimalism':
-        return 'bg-surface-card border border-outline rounded-xl p-4 overflow-hidden'
+        return 'bg-surface-card border border-outline rounded-xl p-4'
       default:
-        return 'bg-surface-card rounded-xl shadow-lg p-4 overflow-hidden'
+        return 'bg-surface-card rounded-xl shadow-lg p-4'
     }
   }
 
@@ -117,11 +117,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const getInputStyle = () => {
     switch (theme) {
       case 'neumorphism':
-        return 'neumorphism-input w-full max-w-full box-border px-3 py-2 rounded-lg text-ink'
+        return 'neumorphism-input w-full px-3 py-2 rounded-lg'
       case 'glassmorphism':
-        return 'glassmorphism-input w-full max-w-full box-border px-3 py-2 rounded-lg text-ink'
+        return 'glassmorphism-input w-full px-3 py-2 rounded-lg'
       default:
-        return 'w-full max-w-full box-border px-3 py-2 border border-outline-strong rounded-lg bg-surface-card text-ink focus:outline-none focus:ring-2 focus:ring-accent'
+        return 'w-full px-3 py-2 border border-outline-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-accent'
     }
   }
 

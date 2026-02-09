@@ -248,7 +248,7 @@ export default function TodosPage() {
 
   return (
     <div className={getBackgroundStyle()}>
-      <div className="max-w-md mx-auto overflow-x-hidden">
+      <div className="max-w-md mx-auto">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-ink">Todo 리스트</h1>
