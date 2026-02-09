@@ -474,12 +474,20 @@ export default function DashboardPage() {
   }
 
   // GitHub 잔디밭 스타일 컴포넌트
-  const GitHubCalendar = ({ dailyStats }: { dailyStats: DailyStats[] }) => {
-    const getIntensityColor = (completionRate: number) => {
-      if (completionRate === 0) return 'bg-surface-hover'
-      if (completionRate < 25) return 'bg-green-200'
-      if (completionRate < 50) return 'bg-green-300'
-      if (completionRate < 75) return 'bg-green-400'
+  const GitHubCalendar = ({ dailyStats, type = 'todo' }: { dailyStats: DailyStats[], type?: 'todo' | 'plan' }) => {
+    const getIntensityColor = (completed: number) => {
+      if (completed === 0) return 'bg-surface-hover'
+      if (type === 'plan') {
+        // 계획: 0, 1, 2~3, 4~5, 6+
+        if (completed <= 1) return 'bg-green-200'
+        if (completed <= 3) return 'bg-green-300'
+        if (completed <= 5) return 'bg-green-400'
+        return 'bg-green-500'
+      }
+      // Todo: 0, 1~12, 13~24, 25~36, 37+
+      if (completed <= 12) return 'bg-green-200'
+      if (completed <= 24) return 'bg-green-300'
+      if (completed <= 36) return 'bg-green-400'
       return 'bg-green-500'
     }
 
@@ -535,8 +543,8 @@ export default function DashboardPage() {
             <div key={index} className="aspect-square p-1">
               {day ? (
                 <div
-                  className={`w-full h-full rounded-sm ${getIntensityColor(day.stats.completionRate)} border border-outline flex items-center justify-center text-xs font-medium ${
-                    day.stats.completionRate > 0 ? 'text-white' : 'text-ink-muted'
+                  className={`w-full h-full rounded-sm ${getIntensityColor(day.stats.completed)} border border-outline flex items-center justify-center text-xs font-medium ${
+                    day.stats.completed > 0 ? 'text-white' : 'text-ink-muted'
                   }`}
                   title={`${format(day.date, 'M월 d일', { locale: ko })}: ${day.stats.completed}/${day.stats.total} (${day.stats.completionRate}%)`}
                 >

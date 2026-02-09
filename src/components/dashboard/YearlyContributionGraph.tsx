@@ -114,9 +114,17 @@ export default function YearlyContributionGraph({ type = 'all' }: YearlyContribu
 
   const getContributionLevel = (count: number): string => {
     if (count === 0) return 'bg-surface-hover'
-    if (count <= 2) return 'bg-green-200'
-    if (count <= 4) return 'bg-green-400'
-    if (count <= 6) return 'bg-green-500'
+    if (type === 'plans') {
+      // 계획: 0, 1, 2~3, 4~5, 6+
+      if (count <= 1) return 'bg-green-200'
+      if (count <= 3) return 'bg-green-400'
+      if (count <= 5) return 'bg-green-500'
+      return 'bg-green-600'
+    }
+    // Todo: 0, 1~12, 13~24, 25~36, 37+
+    if (count <= 12) return 'bg-green-200'
+    if (count <= 24) return 'bg-green-400'
+    if (count <= 36) return 'bg-green-500'
     return 'bg-green-600'
   }
 
