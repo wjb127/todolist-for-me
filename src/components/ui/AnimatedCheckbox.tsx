@@ -11,11 +11,11 @@ interface AnimatedCheckboxProps {
   className?: string
 }
 
-export default function AnimatedCheckbox({ 
-  checked, 
-  onChange, 
+export default function AnimatedCheckbox({
+  checked,
+  onChange,
   size = 'md',
-  className = '' 
+  className = ''
 }: AnimatedCheckboxProps) {
   const { triggerCheckboxEffect, isAnimating } = useCheckboxEffects()
   const [showCelebration, setShowCelebration] = useState(false)
@@ -31,11 +31,11 @@ export default function AnimatedCheckbox({
     const newChecked = !checked
     onChange(newChecked)
     triggerCheckboxEffect(newChecked)
-    
+
     if (newChecked) {
       // Show celebration effect
       setShowCelebration(true)
-      
+
       // Generate particles for celebration
       const newParticles = Array.from({ length: 6 }, (_, i) => ({
         id: Date.now() + i,
@@ -43,7 +43,7 @@ export default function AnimatedCheckbox({
         y: Math.random() * 40 - 20
       }))
       setParticles(newParticles)
-      
+
       setTimeout(() => {
         setShowCelebration(false)
         setParticles([])
@@ -59,16 +59,16 @@ export default function AnimatedCheckbox({
         className={`
           relative flex items-center justify-center rounded-md border-2 transition-all duration-200
           ${sizeClasses[size]}
-          ${checked 
-            ? 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-600 shadow-sm' 
-            : 'bg-white border-gray-300 hover:border-gray-400'
+          ${checked
+            ? 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-600 shadow-sm'
+            : 'bg-surface-card border-outline-strong hover:border-outline-strong'
           }
           ${isAnimating ? 'scale-110 rotate-12' : 'scale-100 rotate-0'}
           active:scale-95
         `}
       >
         {checked && (
-          <Check 
+          <Check
             className={`
               text-white absolute
               ${size === 'sm' ? 'w-3 h-3' : size === 'md' ? 'w-3.5 h-3.5' : 'w-4 h-4'}

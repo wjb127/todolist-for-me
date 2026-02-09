@@ -33,9 +33,9 @@ interface PlanItemProps {
   isMoving: boolean
 }
 
-const PlanItem = memo(function PlanItem({ 
-  plan, 
-  onToggleComplete, 
+const PlanItem = memo(function PlanItem({
+  plan,
+  onToggleComplete,
   onEdit,
   onAddChild,
   onMoveUp,
@@ -57,7 +57,7 @@ const PlanItem = memo(function PlanItem({
 
   return (
     <div>
-      <div 
+      <div
         className={getCardStyle()}
         data-plan-id={plan.id}
       >
@@ -68,7 +68,7 @@ const PlanItem = memo(function PlanItem({
               {hasChildren && (
                 <button
                   onClick={() => onToggleExpanded(plan.id)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-ink-muted hover:text-ink-secondary"
                 >
                   {isExpanded ? (
                     <ChevronDown className="h-4 w-4" />
@@ -78,13 +78,13 @@ const PlanItem = memo(function PlanItem({
                 </button>
               )}
               {!hasChildren && <div className="w-4" />}
-              
+
               {/* 상하 이동 버튼 */}
               <div className="flex flex-col -space-y-1">
                 <button
                   onClick={() => onMoveUp(plan.id, plan.parent_id)}
                   disabled={isFirst || isMoving}
-                  className={`p-0.5 ${isFirst || isMoving ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-0.5 ${isFirst || isMoving ? 'text-outline-strong cursor-not-allowed' : 'text-ink-muted hover:text-ink-secondary'}`}
                   title="위로 이동"
                 >
                   <ChevronUp className="h-4 w-4" />
@@ -92,13 +92,13 @@ const PlanItem = memo(function PlanItem({
                 <button
                   onClick={() => onMoveDown(plan.id, plan.parent_id)}
                   disabled={isLast || isMoving}
-                  className={`p-0.5 ${isLast || isMoving ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-0.5 ${isLast || isMoving ? 'text-outline-strong cursor-not-allowed' : 'text-ink-muted hover:text-ink-secondary'}`}
                   title="아래로 이동"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
               </div>
-              
+
               <div ref={checkboxRef}>
                 <AnimatedCheckbox
                   checked={plan.completed}
@@ -108,14 +108,14 @@ const PlanItem = memo(function PlanItem({
                 />
               </div>
               <div className="flex-1">
-                <div 
-                  className="cursor-pointer" 
+                <div
+                  className="cursor-pointer"
                   onClick={() => onEdit(plan)}
                 >
                   <h3 className={`font-semibold ${
                     plan.completed
-                      ? 'text-gray-500 line-through'
-                      : 'text-gray-900'
+                      ? 'text-ink-muted line-through'
+                      : 'text-ink'
                   }`}>
                     {plan.title}
                   </h3>
@@ -137,7 +137,7 @@ const PlanItem = memo(function PlanItem({
           </div>
         </div>
       </div>
-      
+
       {/* 하위 계획들 렌더링 */}
       {isExpanded && hasChildren && childrenPlans.length > 0 && (
         <div className="ml-4 mt-2 space-y-2">
@@ -267,16 +267,16 @@ export default function PlansPage() {
       .filter(p => p.parent_id === parentId)
       .sort((a, b) => a.order_index - b.order_index)
     const currentIndex = siblings.findIndex(p => p.id === planId)
-    
+
     if (currentIndex <= 0) return // 이미 맨 위
-    
+
     const targetPlan = siblings[currentIndex]
     const swapPlan = siblings[currentIndex - 1]
-    
+
     setIsMoving(true)
-    
+
     // 낙관적 업데이트 - UI 즉시 반영
-    setPlans(prevPlans => 
+    setPlans(prevPlans =>
       prevPlans.map(p => {
         if (p.id === targetPlan.id) {
           return { ...p, order_index: swapPlan.order_index }
@@ -287,7 +287,7 @@ export default function PlansPage() {
         return p
       })
     )
-    
+
     // 데이터베이스 업데이트 - API 호출
     try {
       const res = await fetch('/api/plans/swap-order', {
@@ -529,15 +529,15 @@ export default function PlansPage() {
       parent_id: plan?.parent_id || parentId || null
     })
     setIsModalOpen(true)
-    
+
     // 하위 계획 추가시 해당 부모 계획으로 스크롤
     if (parentId) {
       setTimeout(() => {
         const parentElement = document.querySelector(`[data-plan-id="${parentId}"]`)
         if (parentElement) {
-          parentElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
+          parentElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
           })
         }
       }, 100)
@@ -614,7 +614,7 @@ export default function PlansPage() {
   const hasChildren = (planId: string): boolean => {
     return filteredPlans.some(plan => plan.parent_id === planId)
   }
-  
+
   const getChildPlans = (planId: string): Plan[] => {
     return filteredPlans
       .filter(plan => plan.parent_id === planId)
@@ -643,10 +643,10 @@ export default function PlansPage() {
       // 완료 상태 필터
       if (filter === 'pending' && plan.completed) return false
       if (filter === 'completed' && !plan.completed) return false
-      
+
       // 날짜 필터 - due_date가 선택한 날짜와 같은 것만
       if (plan.due_date && plan.due_date !== selectedDate) return false
-      
+
       return true
     })
   }, [plans, filter, selectedDate])
@@ -663,7 +663,7 @@ export default function PlansPage() {
       case 'high': return 'text-red-600 bg-red-50'
       case 'medium': return 'text-yellow-600 bg-yellow-50'
       case 'low': return 'text-green-600 bg-green-50'
-      default: return 'text-gray-600 bg-gray-50'
+      default: return 'text-ink-secondary bg-surface-hover'
     }
   }
 
@@ -676,7 +676,7 @@ export default function PlansPage() {
     <div className={getBackgroundStyle()}>
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">계획</h1>
+          <h1 className="text-2xl font-bold text-ink">계획</h1>
           <div className="flex items-center space-x-2">
             <button
               onClick={handleRefresh}
@@ -698,8 +698,8 @@ export default function PlansPage() {
 
         <div className={`${getCardStyle()} mb-4`}>
           <div className="flex items-center space-x-2 mb-2">
-            <Calendar className="h-5 w-5 text-gray-500" />
-            <label className="text-sm font-medium text-gray-700">날짜 선택</label>
+            <Calendar className="h-5 w-5 text-ink-muted" />
+            <label className="text-sm font-medium text-ink-secondary">날짜 선택</label>
           </div>
           <input
             type="date"
@@ -710,24 +710,24 @@ export default function PlansPage() {
           <div className="mt-3 flex items-center justify-between">
             <button
               onClick={goToPreviousDay}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-ink-muted hover:text-ink-secondary hover:bg-surface-hover rounded-lg transition-colors"
               title="이전 날"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <div className="flex-1 flex items-center justify-center space-x-2">
-              <div className="text-lg font-semibold text-gray-900">
+              <div className="text-lg font-semibold text-ink">
                 {formatDate(selectedDate)}
               </div>
               {selectedDate === getKoreanToday() && (
-                <span className="px-2 py-0.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-full">
+                <span className="px-2 py-0.5 text-xs font-medium text-accent bg-accent-soft rounded-full">
                   오늘
                 </span>
               )}
             </div>
             <button
               onClick={goToNextDay}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-ink-muted hover:text-ink-secondary hover:bg-surface-hover rounded-lg transition-colors"
               title="다음 날"
             >
               <ChevronRight className="h-5 w-5" />
@@ -737,12 +737,12 @@ export default function PlansPage() {
 
         <div className={`${getCardStyle()} mb-6`}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700">전체 현황</span>
-            <span className="text-sm text-gray-600">{completedCount}/{totalCount}</span>
+            <span className="text-sm font-medium text-ink-secondary">전체 현황</span>
+            <span className="text-sm text-ink-secondary">{completedCount}/{totalCount}</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+          <div className="w-full bg-track rounded-full h-2">
+            <div
+              className="bg-accent h-2 rounded-full transition-all duration-300"
               style={{ width: totalCount > 0 ? `${(completedCount / totalCount) * 100}%` : '0%' }}
             />
           </div>
@@ -764,7 +764,7 @@ export default function PlansPage() {
 
         <div className="space-y-4">
           {topLevelPlans.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-ink-muted">
               <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>계획이 없습니다.</p>
               <p className="text-sm">새로운 계획을 추가해보세요.</p>
@@ -800,12 +800,12 @@ export default function PlansPage() {
         {isModalOpen && (
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-4 border-b border-outline">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">
                     {editingPlan ? '계획 편집' : '새 계획'}
                   </h2>
-                  <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded">
+                  <button onClick={closeModal} className="p-2 hover:bg-surface-hover rounded">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -813,7 +813,7 @@ export default function PlansPage() {
 
               <div className="p-4 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-secondary mb-1">
                     계획 제목 *
                   </label>
                   <input
@@ -831,10 +831,10 @@ export default function PlansPage() {
                     placeholder="계획 제목을 입력하세요"
                   />
                 </div>
-                
+
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-ink-secondary">
                       계획 내용
                     </label>
                     <button
@@ -854,7 +854,7 @@ export default function PlansPage() {
                     rows={aiSuggestion ? 8 : 3}
                     placeholder="계획에 대한 상세 설명을 입력하세요 (선택사항)"
                   />
-                  
+
                   {/* AI 추천 결과 */}
                   {aiSuggestion && (
                     <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
@@ -888,7 +888,7 @@ export default function PlansPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-secondary mb-1">
                     마감일
                   </label>
                   <input
@@ -900,7 +900,7 @@ export default function PlansPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-secondary mb-1">
                     상위 계획
                   </label>
                   <select
@@ -910,7 +910,7 @@ export default function PlansPage() {
                   >
                     <option value="">최상위 계획</option>
                     {plans
-                      .filter(plan => 
+                      .filter(plan =>
                         plan.id !== editingPlan?.id && // 자기 자신 제외
                         plan.depth < 3 // 최대 깊이 제한
                       )
@@ -924,7 +924,7 @@ export default function PlansPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-secondary mb-1">
                     우선순위
                   </label>
                   <select
@@ -938,7 +938,7 @@ export default function PlansPage() {
                 </div>
               </div>
 
-              <div className="p-4 border-t border-gray-200 flex space-x-2">
+              <div className="p-4 border-t border-outline flex space-x-2">
                 <button
                   onClick={handleSavePlan}
                   disabled={!formData.title || isSaving}

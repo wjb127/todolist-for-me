@@ -45,7 +45,7 @@ export default function TemplatesPage() {
 
   // 템플릿 필터링 및 정렬
   const filteredAndSortedTemplates = templates
-    .filter(template => 
+    .filter(template =>
       template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       template.description?.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -203,7 +203,7 @@ export default function TemplatesPage() {
       ...item,
       order_index: index
     }))
-    
+
     setFormData({
       ...formData,
       items: reorderedItems
@@ -217,8 +217,8 @@ export default function TemplatesPage() {
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">템플릿</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300">{filteredAndSortedTemplates.length}개의 템플릿</p>
+            <h1 className="text-2xl font-bold text-ink">템플릿</h1>
+            <p className="text-sm text-ink-secondary">{filteredAndSortedTemplates.length}개의 템플릿</p>
           </div>
           <button
             onClick={() => openModal()}
@@ -232,7 +232,7 @@ export default function TemplatesPage() {
         {/* 검색 및 필터 바 */}
         <div className={`${getCardStyle()} mb-6 space-y-4`}>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ink-muted" />
             <input
               type="text"
               placeholder="템플릿 검색..."
@@ -241,10 +241,10 @@ export default function TemplatesPage() {
               className={`w-full pl-10 pr-4 py-2 rounded-lg ${getInputStyle()} transition-colors`}
             />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Filter className="h-4 w-4 text-ink-muted" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'created' | 'name' | 'usage')}
@@ -261,25 +261,25 @@ export default function TemplatesPage() {
         <div className="space-y-4">
           {filteredAndSortedTemplates.length === 0 ? (
             <div className={`${getCardStyle()} text-center py-12`}>
-              <Search className="h-12 w-12 mx-auto mb-4 opacity-50 text-gray-400 dark:text-gray-500" />
-              <p className="text-lg font-medium mb-2 text-gray-700 dark:text-gray-300">템플릿이 없습니다</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <Search className="h-12 w-12 mx-auto mb-4 opacity-50 text-ink-muted" />
+              <p className="text-lg font-medium mb-2 text-ink-secondary">템플릿이 없습니다</p>
+              <p className="text-sm text-ink-muted">
                 {searchQuery ? '검색 결과가 없습니다' : '새로운 템플릿을 만들어보세요'}
               </p>
             </div>
           ) : (
             filteredAndSortedTemplates.map((template) => (
               <div key={template.id} className={`transition-all hover:shadow-lg hover:scale-[1.02] ${
-                template.is_active 
-                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-4' 
-                  : `${getCardStyle()} hover:border-blue-200 dark:hover:border-blue-700`
+                template.is_active
+                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4'
+                  : `${getCardStyle()} hover:border-accent`
               }`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{template.title}</h3>
+                      <h3 className="font-semibold text-ink text-lg">{template.title}</h3>
                       {template.is_active && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
                           <CheckCircle className="h-3 w-3 mr-1" />
                           활성중
                         </span>
@@ -288,35 +288,35 @@ export default function TemplatesPage() {
 
                     {/* 템플릿 통계 정보 */}
                     <div className="flex items-center space-x-4 mb-3">
-                      <div className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center space-x-1 text-xs text-ink-secondary">
                         <BarChart3 className="h-3 w-3" />
                         <span>{template.items?.length || 0}개 항목</span>
                       </div>
-                      <div className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center space-x-1 text-xs text-ink-secondary">
                         <Clock className="h-3 w-3" />
                         <span>{new Date(template.created_at).toLocaleDateString('ko-KR')}</span>
                       </div>
                     </div>
 
                     {template.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">{template.description}</p>
+                      <p className="text-sm text-ink-secondary mb-3 line-clamp-2">{template.description}</p>
                     )}
 
                     {template.is_active && template.applied_from_date && (
-                      <div className="mb-3 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
-                        <p className="text-sm text-green-700 dark:text-green-300 font-medium flex items-center">
+                      <div className="mb-3 p-3 bg-green-100 rounded-lg border border-green-200">
+                        <p className="text-sm text-green-700 font-medium flex items-center">
                           <Calendar className="h-4 w-4 mr-2" />
                           {new Date(template.applied_from_date).toLocaleDateString('ko-KR')}부터 적용 중
                         </p>
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        <p className="text-xs text-green-600 mt-1">
                           매일 자동으로 할 일이 생성됩니다 (향후 3개월간)
                         </p>
                       </div>
                     )}
 
                     {template.is_active && !template.applied_from_date && (
-                      <div className="mb-3 p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
-                        <p className="text-sm text-yellow-700 dark:text-yellow-300 font-medium">
+                      <div className="mb-3 p-3 bg-yellow-100 rounded-lg border border-yellow-200">
+                        <p className="text-sm text-yellow-700 font-medium">
                           ⚠️ 활성화되었지만 적용 날짜가 설정되지 않음
                         </p>
                       </div>
@@ -328,15 +328,15 @@ export default function TemplatesPage() {
                         .sort((a, b) => a.order_index - b.order_index)
                         .slice(0, 3)
                         .map((item, index) => (
-                          <div key={item.id} className="text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                            <span className="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-xs font-medium mr-2">
+                          <div key={item.id} className="text-sm text-ink-secondary flex items-center">
+                            <span className="w-5 h-5 rounded-full bg-surface-hover text-ink-secondary flex items-center justify-center text-xs font-medium mr-2">
                               {index + 1}
                             </span>
                             {item.title}
                           </div>
                         ))}
                       {template.items.length > 3 && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 ml-7">
+                        <div className="text-xs text-ink-muted ml-7">
                           +{template.items.length - 3}개 더...
                         </div>
                       )}
@@ -347,21 +347,21 @@ export default function TemplatesPage() {
                   <div className="flex flex-col space-y-1 ml-4">
                     <button
                       onClick={() => handlePreviewTemplate(template)}
-                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                      className="p-2 text-ink-muted hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                       title="미리보기"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => openModal(template)}
-                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      className="p-2 text-ink-muted hover:text-accent hover:bg-accent-soft rounded-lg transition-colors"
                       title="편집"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDuplicateTemplate(template)}
-                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                      className="p-2 text-ink-muted hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                       title="복사"
                     >
                       <Copy className="h-4 w-4" />
@@ -369,7 +369,7 @@ export default function TemplatesPage() {
                     {template.is_active ? (
                       <button
                         onClick={() => handleDeactivateTemplate(template)}
-                        className="p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                        className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
                         title="비활성화"
                       >
                         <CheckCircle className="h-4 w-4" />
@@ -378,7 +378,7 @@ export default function TemplatesPage() {
                       <button
                         onClick={() => handleApplyTemplate(template)}
                         disabled={isApplying}
-                        className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-2 text-accent hover:text-accent hover:bg-accent-soft rounded-lg transition-colors disabled:opacity-50"
                         title="활성화"
                       >
                         <Calendar className="h-4 w-4" />
@@ -386,7 +386,7 @@ export default function TemplatesPage() {
                     )}
                     <button
                       onClick={() => handleDeleteTemplate(template.id)}
-                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      className="p-2 text-ink-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="삭제"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -401,31 +401,31 @@ export default function TemplatesPage() {
         {isModalOpen && (
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md shadow-2xl`}>
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+              <div className="p-4 border-b border-outline bg-gradient-to-r from-blue-50 to-indigo-50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <h2 className="text-lg font-semibold text-ink flex items-center">
                       {editingTemplate ? (
                         <>
-                          <Edit className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                          <Edit className="h-5 w-5 mr-2 text-accent" />
                           템플릿 편집
                         </>
                       ) : (
                         <>
-                          <Plus className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                          <Plus className="h-5 w-5 mr-2 text-accent" />
                           새 템플릿 만들기
                         </>
                       )}
                     </h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <p className="text-sm text-ink-secondary">
                       {editingTemplate ? '기존 템플릿을 수정합니다' : '새로운 할 일 템플릿을 만들어보세요'}
                     </p>
                   </div>
-                  <button 
-                    onClick={closeModal} 
-                    className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                  <button
+                    onClick={closeModal}
+                    className="p-2 hover:bg-white/50 rounded-lg transition-colors"
                   >
-                    <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <X className="h-4 w-4 text-ink-muted" />
                   </button>
                 </div>
               </div>
@@ -433,7 +433,7 @@ export default function TemplatesPage() {
               <div className="p-4 space-y-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    <label className="block text-sm font-semibold text-ink mb-2">
                       템플릿 이름 *
                     </label>
                     <input
@@ -446,7 +446,7 @@ export default function TemplatesPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    <label className="block text-sm font-semibold text-ink mb-2">
                       설명 (선택사항)
                     </label>
                     <textarea
@@ -461,14 +461,14 @@ export default function TemplatesPage() {
 
                 <div>
                   <div className="mb-4">
-                    <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    <label className="block text-sm font-semibold text-ink mb-2">
                       할 일 목록 *
                     </label>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
+                    <p className="text-xs text-ink-secondary mb-3">
                       {formData.items.length}개의 할 일이 있습니다
                     </p>
                   </div>
-                  
+
                   <NotionStyleEditor
                     items={formData.items}
                     onChange={handleItemsChange}
@@ -476,7 +476,7 @@ export default function TemplatesPage() {
                 </div>
               </div>
 
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex space-x-3">
+              <div className="p-4 border-t border-outline bg-surface-hover flex space-x-3">
                 <button
                   onClick={handleSaveTemplate}
                   disabled={!formData.title || formData.items.length === 0}
@@ -500,33 +500,33 @@ export default function TemplatesPage() {
         {previewTemplate && (
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md shadow-2xl`}>
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
+              <div className="p-4 border-b border-outline bg-gradient-to-r from-purple-50 to-blue-50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                      <Eye className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
+                    <h2 className="text-lg font-semibold text-ink flex items-center">
+                      <Eye className="h-5 w-5 mr-2 text-purple-600" />
                       템플릿 미리보기
                     </h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{previewTemplate.title}</p>
+                    <p className="text-sm text-ink-secondary">{previewTemplate.title}</p>
                   </div>
-                  <button 
-                    onClick={() => setPreviewTemplate(null)} 
-                    className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                  <button
+                    onClick={() => setPreviewTemplate(null)}
+                    className="p-2 hover:bg-white/50 rounded-lg transition-colors"
                   >
-                    <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <X className="h-4 w-4 text-ink-muted" />
                   </button>
                 </div>
               </div>
 
               <div className="p-4 space-y-4">
                 {/* 템플릿 정보 */}
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{previewTemplate.title}</h3>
+                <div className="bg-surface-hover rounded-lg p-3">
+                  <h3 className="font-semibold text-ink mb-2">{previewTemplate.title}</h3>
                   {previewTemplate.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{previewTemplate.description}</p>
+                    <p className="text-sm text-ink-secondary mb-3">{previewTemplate.description}</p>
                   )}
-                  
-                  <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+
+                  <div className="flex items-center space-x-4 text-xs text-ink-muted">
                     <span className="flex items-center">
                       <BarChart3 className="h-3 w-3 mr-1" />
                       {previewTemplate.items?.length || 0}개 항목
@@ -536,7 +536,7 @@ export default function TemplatesPage() {
                       {new Date(previewTemplate.created_at).toLocaleDateString('ko-KR')}
                     </span>
                     {previewTemplate.is_active && (
-                      <span className="flex items-center text-green-600 dark:text-green-400">
+                      <span className="flex items-center text-green-600">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         활성중
                       </span>
@@ -546,22 +546,22 @@ export default function TemplatesPage() {
 
                 {/* 할 일 목록 */}
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
-                    <span className="w-2 h-2 bg-purple-500 dark:bg-purple-400 rounded-full mr-2"></span>
+                  <h4 className="font-medium text-ink mb-3 flex items-center">
+                    <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
                     할 일 목록 ({previewTemplate.items?.length || 0}개)
                   </h4>
                   <div className="space-y-2">
                     {previewTemplate.items
                       ?.sort((a, b) => a.order_index - b.order_index)
                       .map((item, index) => (
-                        <div key={item.id} className="flex items-start space-x-3 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                          <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 flex items-center justify-center text-sm font-medium flex-shrink-0">
+                        <div key={item.id} className="flex items-start space-x-3 p-3 bg-surface-card border border-outline rounded-lg">
+                          <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-medium flex-shrink-0">
                             {index + 1}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{item.title}</p>
+                            <p className="text-sm font-medium text-ink">{item.title}</p>
                             {item.description && (
-                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{item.description}</p>
+                              <p className="text-xs text-ink-secondary mt-1">{item.description}</p>
                             )}
                           </div>
                         </div>
@@ -571,22 +571,22 @@ export default function TemplatesPage() {
 
                 {/* 적용 정보 */}
                 {previewTemplate.is_active && previewTemplate.applied_from_date && (
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3">
-                    <h4 className="font-medium text-green-800 dark:text-green-300 mb-2 flex items-center">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <h4 className="font-medium text-green-800 mb-2 flex items-center">
                       <Calendar className="h-4 w-4 mr-2" />
                       적용 정보
                     </h4>
-                    <p className="text-sm text-green-700 dark:text-green-300">
+                    <p className="text-sm text-green-700">
                       {new Date(previewTemplate.applied_from_date).toLocaleDateString('ko-KR')}부터 매일 자동 적용
                     </p>
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    <p className="text-xs text-green-600 mt-1">
                       향후 3개월간 자동으로 할 일이 생성됩니다
                     </p>
                   </div>
                 )}
               </div>
 
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex space-x-2">
+              <div className="p-4 border-t border-outline bg-surface-hover flex space-x-2">
                 {!previewTemplate.is_active && (
                   <button
                     onClick={() => {
@@ -605,7 +605,7 @@ export default function TemplatesPage() {
                     setPreviewTemplate(null)
                     openModal(previewTemplate)
                   }}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 font-medium shadow-sm hover:shadow-md"
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 font-medium shadow-sm hover:shadow-md"
                 >
                   <Edit className="h-4 w-4" />
                   <span>편집</span>

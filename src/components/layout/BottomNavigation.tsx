@@ -18,7 +18,7 @@ export default function BottomNavigation() {
   const { getCardStyle, getButtonStyle } = useTheme()
 
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 border-t border-gray-200 px-2 pt-2 pb-4 safe-area-pb ${getCardStyle()}`}>
+    <nav className={`fixed bottom-0 left-0 right-0 border-t border-outline px-2 pt-2 pb-4 safe-area-pb ${getCardStyle()}`}>
       <div className="flex">
         {navigation.map((item) => {
           const isActive = pathname.startsWith(item.href)
@@ -28,8 +28,8 @@ export default function BottomNavigation() {
               href={item.href}
               className={`flex-1 flex flex-col items-center justify-center space-y-1 py-2 rounded-lg transition-colors ${
                 isActive
-                  ? `text-blue-600 ${getButtonStyle()}`
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? `text-accent ${getButtonStyle()}`
+                  : 'text-ink-muted hover:text-ink-secondary'
               }`}
             >
               <item.icon className="h-5 w-5" />

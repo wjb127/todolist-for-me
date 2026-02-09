@@ -15,7 +15,7 @@ export default function NotesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalContent, setModalContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  
+
   const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
 
   useEffect(() => {
@@ -129,9 +129,9 @@ export default function NotesPage() {
     if (diffInMinutes < 60) return `${diffInMinutes}분 전`
     if (diffInHours < 24) return `${diffInHours}시간 전`
     if (diffInDays < 7) return `${diffInDays}일 전`
-    
-    return date.toLocaleDateString('ko-KR', { 
-      month: 'numeric', 
+
+    return date.toLocaleDateString('ko-KR', {
+      month: 'numeric',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -142,8 +142,8 @@ export default function NotesPage() {
     <div className={getBackgroundStyle()}>
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">메모</h1>
-          <div className="flex items-center text-sm text-gray-600">
+          <h1 className="text-2xl font-bold text-ink">메모</h1>
+          <div className="flex items-center text-sm text-ink-secondary">
             <StickyNote className="h-4 w-4 mr-1" />
             <span>{notes.length}개</span>
           </div>
@@ -175,9 +175,9 @@ export default function NotesPage() {
         <div className="space-y-2">
           {notes.length === 0 ? (
             <div className={`${getCardStyle()} text-center py-12`}>
-              <StickyNote className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-              <p className="text-gray-500">아직 메모가 없습니다</p>
-              <p className="text-sm text-gray-400 mt-1">위에서 첫 메모를 작성해보세요</p>
+              <StickyNote className="h-12 w-12 mx-auto mb-3 text-ink-muted" />
+              <p className="text-ink-muted">아직 메모가 없습니다</p>
+              <p className="text-sm text-ink-muted mt-1">위에서 첫 메모를 작성해보세요</p>
             </div>
           ) : (
             notes.map((note) => (
@@ -188,10 +188,10 @@ export default function NotesPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 mr-2">
-                    <p className="text-gray-900 break-words">
+                    <p className="text-ink break-words">
                       {note.content}
                     </p>
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-ink-muted mt-2">
                       {formatDate(note.created_at)}
                       {note.updated_at !== note.created_at && ' (수정됨)'}
                     </p>
@@ -201,7 +201,7 @@ export default function NotesPage() {
                       e.stopPropagation()
                       openEditModal(note)
                     }}
-                    className="p-2 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-2 text-ink-muted hover:text-ink-secondary opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
@@ -215,10 +215,10 @@ export default function NotesPage() {
         {isModalOpen && editingNote && (
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-4 border-b border-outline">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">메모 편집</h2>
-                  <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded">
+                  <button onClick={closeModal} className="p-2 hover:bg-surface-hover rounded">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -232,15 +232,15 @@ export default function NotesPage() {
                   placeholder="메모 내용을 입력하세요..."
                   autoFocus
                 />
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-xs text-ink-muted mt-2">
                   작성: {formatDate(editingNote.created_at)}
-                  {editingNote.updated_at !== editingNote.created_at && 
+                  {editingNote.updated_at !== editingNote.created_at &&
                     ` | 수정: ${formatDate(editingNote.updated_at)}`
                   }
                 </p>
               </div>
 
-              <div className="p-4 border-t border-gray-200 flex justify-between">
+              <div className="p-4 border-t border-outline flex justify-between">
                 <button
                   onClick={handleDeleteNote}
                   disabled={isLoading}

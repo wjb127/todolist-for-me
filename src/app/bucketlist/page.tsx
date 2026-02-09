@@ -89,35 +89,35 @@ function BucketItem({
             {hasChildren && (
               <button
                 onClick={() => onToggleExpand(item.id)}
-                className="min-w-[28px] min-h-[28px] p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center"
+                className="min-w-[28px] min-h-[28px] p-1 hover:bg-surface-hover rounded-lg transition-colors flex items-center justify-center"
                 aria-label={isExpanded ? "축소" : "펼치기"}
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                  <ChevronDown className="h-4 w-4 text-ink-muted" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                  <ChevronRight className="h-4 w-4 text-ink-muted" />
                 )}
               </button>
             )}
             {!hasChildren && <div className="w-[28px]" />}
-            
+
             {/* 순서 변경 버튼 */}
             <div className="flex flex-col ml-1">
               <button
                 onClick={() => onMoveUp(item)}
                 disabled={isFirst}
-                className="min-w-[24px] min-h-[20px] p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                className="min-w-[24px] min-h-[20px] p-0.5 hover:bg-surface-hover rounded transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
                 aria-label="위로 이동"
               >
-                <ChevronUp className="h-3.5 w-3.5 text-gray-500" />
+                <ChevronUp className="h-3.5 w-3.5 text-ink-muted" />
               </button>
               <button
                 onClick={() => onMoveDown(item)}
                 disabled={isLast}
-                className="min-w-[24px] min-h-[20px] p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                className="min-w-[24px] min-h-[20px] p-0.5 hover:bg-surface-hover rounded transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
                 aria-label="아래로 이동"
               >
-                <ArrowDown className="h-3.5 w-3.5 text-gray-500" />
+                <ArrowDown className="h-3.5 w-3.5 text-ink-muted" />
               </button>
             </div>
           </div>
@@ -126,7 +126,7 @@ function BucketItem({
           <button
             onClick={() => onToggleComplete(item)}
             className={`min-w-[32px] min-h-[32px] mr-2 flex items-center justify-center transition-colors ${
-              item.completed ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'
+              item.completed ? 'text-green-600' : 'text-ink-muted hover:text-ink-secondary'
             }`}
             aria-label={item.completed ? "완료 취소" : "완료 표시"}
           >
@@ -149,8 +149,8 @@ function BucketItem({
                   onChange={(e) => setEditTitle(e.target.value)}
                   onBlur={saveTitleEdit}
                   onKeyDown={handleTitleKeyDown}
-                  className={`flex-1 px-2 py-1 text-base font-medium bg-transparent border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    item.completed ? 'line-through text-gray-500' : ''
+                  className={`flex-1 px-2 py-1 text-base font-medium bg-transparent border border-outline-strong rounded focus:outline-none focus:ring-2 focus:ring-accent ${
+                    item.completed ? 'line-through text-ink-muted' : ''
                   }`}
                   autoFocus
                 />
@@ -160,8 +160,8 @@ function BucketItem({
                     setIsEditingTitle(true)
                     setTimeout(() => titleRef.current?.focus(), 50)
                   }}
-                  className={`flex-1 font-medium cursor-text hover:bg-gray-50 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors ${
-                    item.completed ? 'text-gray-500 line-through' : 'text-gray-900 dark:text-white'
+                  className={`flex-1 font-medium cursor-text hover:bg-surface-hover px-2 py-1 rounded transition-colors ${
+                    item.completed ? 'text-ink-muted line-through' : 'text-ink'
                   }`}
                 >
                   {item.title}
@@ -174,7 +174,7 @@ function BucketItem({
 
             {/* 설명 - 편집 모달에서만 표시, 여기서는 읽기 전용으로만 표시 */}
             {item.description && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 px-2">
+              <p className="text-sm text-ink-secondary mb-2 px-2">
                 {item.description}
               </p>
             )}
@@ -182,11 +182,11 @@ function BucketItem({
             {/* 진행률 바 */}
             {!item.completed && item.progress > 0 && (
               <div className="mb-2">
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
+                <div className="flex justify-between text-xs text-ink-secondary mb-1">
                   <span>진행률</span>
                   <span>{item.progress}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-track rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all ${getProgressColor(item.progress)}`}
                     style={{ width: `${item.progress}%` }}
@@ -197,7 +197,7 @@ function BucketItem({
 
             {/* 메타 정보 */}
             {item.target_date && (
-              <div className="flex items-center gap-1 text-xs text-gray-500">
+              <div className="flex items-center gap-1 text-xs text-ink-muted">
                 <Calendar className="h-3 w-3" />
                 <span>{format(new Date(item.target_date), 'yyyy.MM.dd', { locale: ko })}</span>
               </div>
@@ -207,7 +207,7 @@ function BucketItem({
           {/* 편집 버튼 - 모바일 최적화 */}
           <button
             onClick={() => onOpenEditModal(item)}
-            className="min-w-[40px] min-h-[40px] p-2 rounded-lg transition-all text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 md:opacity-0 md:group-hover:opacity-100"
+            className="min-w-[40px] min-h-[40px] p-2 rounded-lg transition-all text-ink-muted hover:text-accent hover:bg-accent-soft md:opacity-0 md:group-hover:opacity-100"
             aria-label="편집"
           >
             <Edit2 className="h-4 w-4" />
@@ -462,7 +462,7 @@ export default function BucketListPage() {
   // 모달에서 삭제
   const handleModalDelete = async () => {
     if (!editingItem) return
-    
+
     if (confirm('정말 삭제하시겠습니까? 하위 항목도 모두 삭제됩니다.')) {
       await handleDelete(editingItem.id)
       closeEditModal()
@@ -472,7 +472,7 @@ export default function BucketListPage() {
   // 모달에서 하위 항목 추가
   const handleModalAddChild = async () => {
     if (!editingItem) return
-    
+
     await handleAddItem(editingItem.id)
     closeEditModal()
   }
@@ -541,11 +541,11 @@ export default function BucketListPage() {
         {/* 헤더 - 모바일 최적화 */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-xl md:text-2xl font-bold text-ink flex items-center gap-2">
               <Target className="h-6 md:h-7 w-6 md:w-7 text-purple-600" />
               버킷리스트
             </h1>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs md:text-sm text-ink-secondary">
               인생에서 이루고 싶은 목표들
             </p>
           </div>
@@ -563,7 +563,7 @@ export default function BucketListPage() {
           <div className="flex flex-col gap-4">
             {/* 검색 */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ink-muted" />
               <input
                 type="text"
                 placeholder="버킷리스트 검색..."
@@ -582,7 +582,7 @@ export default function BucketListPage() {
                 onChange={(e) => setShowCompleted(e.target.checked)}
                 className="rounded"
               />
-              <label htmlFor="showCompleted" className="text-sm text-gray-700 dark:text-gray-300">
+              <label htmlFor="showCompleted" className="text-sm text-ink-secondary">
                 완료된 항목 표시
               </label>
             </div>
@@ -592,7 +592,7 @@ export default function BucketListPage() {
         {/* 버킷리스트 트리 */}
         <div>
           {tree.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-ink-muted">
               <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium mb-2">버킷리스트가 없습니다</p>
               <p className="text-sm">새로운 목표를 추가해보세요</p>
@@ -623,10 +623,10 @@ export default function BucketListPage() {
         {isModalOpen && editingItem && (
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="p-4 border-b border-outline">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">버킷리스트 편집</h2>
-                  <button onClick={closeEditModal} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                  <button onClick={closeEditModal} className="p-2 hover:bg-surface-hover rounded">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -635,7 +635,7 @@ export default function BucketListPage() {
               <div className="p-4 space-y-4">
                 {/* 제목 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-secondary mb-1">
                     제목 *
                   </label>
                   <input
@@ -649,7 +649,7 @@ export default function BucketListPage() {
 
                 {/* 설명 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-secondary mb-1">
                     설명
                   </label>
                   <textarea
@@ -663,7 +663,7 @@ export default function BucketListPage() {
 
                 {/* 우선순위 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-secondary mb-1">
                     우선순위
                   </label>
                   <select
@@ -679,7 +679,7 @@ export default function BucketListPage() {
 
                 {/* 목표 날짜 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-secondary mb-1">
                     목표 날짜
                   </label>
                   <input
@@ -692,7 +692,7 @@ export default function BucketListPage() {
 
                 {/* 진행률 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-secondary mb-1">
                     진행률: {modalFormData.progress}%
                   </label>
                   <input
@@ -724,7 +724,7 @@ export default function BucketListPage() {
                 </div>
               </div>
 
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
+              <div className="p-4 border-t border-outline flex justify-end space-x-2">
                 <button
                   onClick={closeEditModal}
                   className={`px-4 py-2 rounded-lg ${getCardStyle()} hover:opacity-80`}

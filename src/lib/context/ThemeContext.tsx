@@ -3,10 +3,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
 export type DesignTheme = 'classic' | 'neumorphism' | 'glassmorphism' | 'minimalism'
+export type ColorMode = 'light' | 'dark' | 'system'
 
 interface ThemeContextType {
   theme: DesignTheme
   setTheme: (theme: DesignTheme) => void
+  colorMode: ColorMode
+  setColorMode: (mode: ColorMode) => void
+  resolvedMode: 'light' | 'dark'
   getBackgroundStyle: () => string
   getCardStyle: () => string
   getButtonStyle: () => string
@@ -24,17 +28,53 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<DesignTheme>('classic')
+  const [colorMode, setColorMode] = useState<ColorMode>('system')
+  const [resolvedMode, setResolvedMode] = useState<'light' | 'dark'>('light')
 
+  // Load saved preferences
   useEffect(() => {
     const savedTheme = localStorage.getItem('designTheme') as DesignTheme
     if (savedTheme && ['classic', 'neumorphism', 'glassmorphism', 'minimalism'].includes(savedTheme)) {
       setTheme(savedTheme)
     }
+    const savedMode = localStorage.getItem('colorMode') as ColorMode
+    if (savedMode && ['light', 'dark', 'system'].includes(savedMode)) {
+      setColorMode(savedMode)
+    }
   }, [])
+
+  // System preference detection + resolved mode
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+    const updateResolved = () => {
+      if (colorMode === 'system') {
+        setResolvedMode(mediaQuery.matches ? 'dark' : 'light')
+      } else {
+        setResolvedMode(colorMode)
+      }
+    }
+
+    updateResolved()
+    mediaQuery.addEventListener('change', updateResolved)
+    return () => mediaQuery.removeEventListener('change', updateResolved)
+  }, [colorMode])
+
+  // Set data attributes on <html>
+  useEffect(() => {
+    const html = document.documentElement
+    html.setAttribute('data-theme', theme)
+    html.setAttribute('data-mode', resolvedMode)
+  }, [theme, resolvedMode])
 
   const handleThemeChange = (newTheme: DesignTheme) => {
     setTheme(newTheme)
     localStorage.setItem('designTheme', newTheme)
+  }
+
+  const handleColorModeChange = (mode: ColorMode) => {
+    setColorMode(mode)
+    localStorage.setItem('colorMode', mode)
   }
 
   const getBackgroundStyle = () => {
@@ -43,10 +83,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         return 'min-h-screen neumorphism-bg p-4 pb-24'
       case 'glassmorphism':
         return 'min-h-screen glassmorphism-bg p-4 pb-24'
-      case 'minimalism':
-        return 'min-h-screen bg-white p-4 pb-24'
       default:
-        return 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-24'
+        return 'min-h-screen bg-surface p-4 pb-24'
     }
   }
 
@@ -57,9 +95,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       case 'glassmorphism':
         return 'glassmorphism-card rounded-xl p-4'
       case 'minimalism':
-        return 'bg-white border border-gray-200 rounded-xl p-4'
+        return 'bg-surface-card border border-outline rounded-xl p-4'
       default:
-        return 'bg-white rounded-xl shadow-lg p-4'
+        return 'bg-surface-card rounded-xl shadow-lg p-4'
     }
   }
 
@@ -70,22 +108,20 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       case 'glassmorphism':
         return 'glassmorphism-button rounded-lg p-2'
       case 'minimalism':
-        return 'bg-white border border-gray-300 rounded-lg p-2 hover:bg-gray-50'
+        return 'bg-surface-card border border-outline-strong rounded-lg p-2 hover:bg-surface-hover'
       default:
-        return 'bg-white border border-gray-200 rounded-lg shadow-sm p-2 hover:shadow-md'
+        return 'bg-surface-card border border-outline rounded-lg shadow-sm p-2 hover:shadow-md'
     }
   }
 
   const getInputStyle = () => {
     switch (theme) {
       case 'neumorphism':
-        return 'neumorphism-input w-full px-3 py-2 rounded-lg'
+        return 'neumorphism-input w-full px-3 py-2 rounded-lg text-ink'
       case 'glassmorphism':
-        return 'glassmorphism-input w-full px-3 py-2 rounded-lg'
-      case 'minimalism':
-        return 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+        return 'glassmorphism-input w-full px-3 py-2 rounded-lg text-ink'
       default:
-        return 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+        return 'w-full px-3 py-2 border border-outline-strong rounded-lg bg-surface-card text-ink focus:outline-none focus:ring-2 focus:ring-accent'
     }
   }
 
@@ -96,9 +132,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       case 'glassmorphism':
         return 'glassmorphism-modal rounded-lg'
       case 'minimalism':
-        return 'bg-white border border-gray-300 rounded-lg max-h-[90vh] overflow-y-auto'
+        return 'bg-surface-elevated border border-outline-strong rounded-lg max-h-[90vh] overflow-y-auto'
       default:
-        return 'bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto'
+        return 'bg-surface-elevated rounded-lg shadow-xl max-h-[90vh] overflow-y-auto'
     }
   }
 
@@ -115,30 +151,33 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   const getFilterButtonStyle = (isSelected: boolean) => {
     const baseStyle = 'flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all duration-200'
-    
+
     switch (theme) {
       case 'neumorphism':
-        return isSelected 
-          ? `${baseStyle} neumorphism-button-active text-blue-700 shadow-inner`
-          : `${baseStyle} neumorphism-button text-gray-600 hover:text-gray-800`
+        return isSelected
+          ? `${baseStyle} neumorphism-button-active text-accent shadow-inner`
+          : `${baseStyle} neumorphism-button text-ink-muted hover:text-ink-secondary`
       case 'glassmorphism':
         return isSelected
-          ? `${baseStyle} glassmorphism-button-active text-purple-800 backdrop-blur-md`
-          : `${baseStyle} glassmorphism-button text-gray-600 hover:text-gray-800`
+          ? `${baseStyle} glassmorphism-button-active text-accent backdrop-blur-md`
+          : `${baseStyle} glassmorphism-button text-ink-muted hover:text-ink-secondary`
       case 'minimalism':
         return isSelected
-          ? `${baseStyle} bg-gray-900 text-white border border-gray-900`
-          : `${baseStyle} bg-white text-gray-600 border border-gray-300 hover:bg-gray-50`
+          ? `${baseStyle} bg-accent text-white border border-accent`
+          : `${baseStyle} bg-surface-card text-ink-muted border border-outline hover:bg-surface-hover`
       default:
         return isSelected
-          ? `${baseStyle} bg-blue-600 text-white shadow-md`
-          : `${baseStyle} bg-white text-gray-600 shadow-sm hover:shadow-md hover:bg-gray-50`
+          ? `${baseStyle} bg-accent text-white shadow-md`
+          : `${baseStyle} bg-surface-card text-ink-muted shadow-sm hover:shadow-md hover:bg-surface-hover`
     }
   }
 
   const value: ThemeContextType = {
     theme,
     setTheme: handleThemeChange,
+    colorMode,
+    setColorMode: handleColorModeChange,
+    resolvedMode,
     getBackgroundStyle,
     getCardStyle,
     getButtonStyle,

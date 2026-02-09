@@ -26,7 +26,7 @@ export default function TodosPage() {
   const [newTodoTitle, setNewTodoTitle] = useState('')
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day')
   const [weekTodos, setWeekTodos] = useState<Record<string, Todo[]>>({})
-  
+
   // 테마 시스템 사용
   const { getBackgroundStyle, getCardStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
 
@@ -251,14 +251,14 @@ export default function TodosPage() {
       <div className="max-w-md mx-auto">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">Todo 리스트</h1>
-            <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+            <h1 className="text-2xl font-bold text-ink">Todo 리스트</h1>
+            <div className="flex space-x-1 bg-surface-hover rounded-lg p-1">
               <button
                 onClick={() => setViewMode('day')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   viewMode === 'day'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-surface-card text-ink shadow-sm'
+                    : 'text-ink-secondary hover:text-ink'
                 }`}
                 title="일간 보기"
               >
@@ -268,8 +268,8 @@ export default function TodosPage() {
                 onClick={() => setViewMode('week')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   viewMode === 'week'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-surface-card text-ink shadow-sm'
+                    : 'text-ink-secondary hover:text-ink'
                 }`}
                 title="주간 보기"
               >
@@ -277,11 +277,11 @@ export default function TodosPage() {
               </button>
             </div>
           </div>
-          
+
           <div className={`${getCardStyle()} mb-4`}>
             <div className="flex items-center space-x-2 mb-2">
-              <Calendar className="h-5 w-5 text-gray-500" />
-              <label className="text-sm font-medium text-gray-700">
+              <Calendar className="h-5 w-5 text-ink-muted" />
+              <label className="text-sm font-medium text-ink-secondary">
                 {viewMode === 'day' ? '날짜 선택' : '주간 선택'}
               </label>
             </div>
@@ -294,14 +294,14 @@ export default function TodosPage() {
             <div className="mt-3 flex items-center justify-between">
               <button
                 onClick={viewMode === 'day' ? goToPreviousDay : goToPreviousWeek}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-ink-muted hover:text-ink-secondary hover:bg-surface-hover rounded-lg transition-colors"
                 title={viewMode === 'day' ? '이전 날' : '이전 주'}
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <div className="flex-1 flex items-center justify-center space-x-2">
-                <div className="text-lg font-semibold text-gray-900">
-                  {viewMode === 'day' 
+                <div className="text-lg font-semibold text-ink">
+                  {viewMode === 'day'
                     ? formatDate(selectedDate)
                     : `${format(new Date(weekDates[0].dateString), 'M/d', { locale: ko })} - ${format(new Date(weekDates[6].dateString), 'M/d', { locale: ko })}`
                   }
@@ -309,7 +309,7 @@ export default function TodosPage() {
                 {selectedDate !== format(new Date(), 'yyyy-MM-dd') && (
                   <button
                     onClick={goToToday}
-                    className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
+                    className="px-3 py-1 text-xs font-medium text-accent hover:text-accent-hover hover:bg-accent-soft rounded-full transition-colors"
                     title="오늘로 가기"
                   >
                     오늘
@@ -318,7 +318,7 @@ export default function TodosPage() {
               </div>
               <button
                 onClick={viewMode === 'day' ? goToNextDay : goToNextWeek}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-ink-muted hover:text-ink-secondary hover:bg-surface-hover rounded-lg transition-colors"
                 title={viewMode === 'day' ? '다음 날' : '다음 주'}
               >
                 <ChevronRight className="h-5 w-5" />
@@ -329,16 +329,16 @@ export default function TodosPage() {
           {viewMode === 'day' && totalCount > 0 && (
             <div className={`${getCardStyle()} mb-4`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">진행률</span>
-                <span className="text-sm text-gray-600">{completedCount}/{totalCount}</span>
+                <span className="text-sm font-medium text-ink-secondary">진행률</span>
+                <span className="text-sm text-ink-secondary">{completedCount}/{totalCount}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              <div className="w-full bg-track rounded-full h-2">
+                <div
+                  className="bg-accent h-2 rounded-full transition-all duration-300"
                   style={{ width: `${completionPercentage}%` }}
                 />
               </div>
-              <div className="text-right text-sm text-gray-600 mt-1">
+              <div className="text-right text-sm text-ink-secondary mt-1">
                 {completionPercentage}%
               </div>
             </div>
@@ -375,7 +375,7 @@ export default function TodosPage() {
           <div className="flex space-x-2 mb-4">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              className="flex-1 flex items-center justify-center space-x-2 bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent-hover"
             >
               <FileText className="h-4 w-4" />
               <span>템플릿에서</span>
@@ -386,7 +386,7 @@ export default function TodosPage() {
                 value={newTodoTitle}
                 onChange={(e) => setNewTodoTitle(e.target.value)}
                 placeholder="새 할 일 추가"
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 border border-outline-strong rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
                 onKeyPress={(e) => e.key === 'Enter' && handleAddSingleTodo()}
               />
               <button
@@ -403,7 +403,7 @@ export default function TodosPage() {
         {viewMode === 'day' ? (
           <div className="space-y-2">
             {todos.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-ink-muted">
                 <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>선택한 날짜에 할 일이 없습니다.</p>
                 <p className="text-sm">템플릿을 사용하거나 직접 추가해보세요.</p>
@@ -420,13 +420,13 @@ export default function TodosPage() {
                     <div className="flex-1">
                       <h3 className={`font-medium ${
                         todo.completed
-                          ? 'text-gray-500 line-through'
-                          : 'text-gray-900'
+                          ? 'text-ink-muted line-through'
+                          : 'text-ink'
                       }`}>
                         {todo.title}
                       </h3>
                     {todo.description && (
-                      <p className="text-sm text-gray-600 mt-1">{todo.description}</p>
+                      <p className="text-sm text-ink-secondary mt-1">{todo.description}</p>
                     )}
                   </div>
                   {todo.template_id && (
@@ -449,39 +449,39 @@ export default function TodosPage() {
               const dayCompletionPercentage = dayTotalCount > 0 ? Math.round((dayCompletedCount / dayTotalCount) * 100) : 0
 
               return (
-                <div 
-                  key={day.dateString} 
-                  className={`${getCardStyle()} ${day.isToday ? 'ring-2 ring-blue-500' : ''}`}
+                <div
+                  key={day.dateString}
+                  className={`${getCardStyle()} ${day.isToday ? 'ring-2 ring-accent' : ''}`}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
-                      <div className={`text-sm font-semibold ${day.isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                      <div className={`text-sm font-semibold ${day.isToday ? 'text-accent' : 'text-ink'}`}>
                         {day.dayOfWeek}
                       </div>
-                      <div className={`text-lg font-bold ${day.isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                      <div className={`text-lg font-bold ${day.isToday ? 'text-accent' : 'text-ink'}`}>
                         {day.displayDate}
                       </div>
                       {day.isToday && (
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                        <span className="px-2 py-0.5 bg-accent-soft text-accent text-xs rounded-full">
                           오늘
                         </span>
                       )}
                     </div>
                     {dayTotalCount > 0 && (
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-600">{dayCompletedCount}/{dayTotalCount}</span>
-                        <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                          <div 
-                            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                        <span className="text-xs text-ink-secondary">{dayCompletedCount}/{dayTotalCount}</span>
+                        <div className="w-16 bg-track rounded-full h-1.5">
+                          <div
+                            className="bg-accent h-1.5 rounded-full transition-all duration-300"
                             style={{ width: `${dayCompletionPercentage}%` }}
                           />
                         </div>
                       </div>
                     )}
                   </div>
-                  
+
                   {dayTodos.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-2">할 일 없음</p>
+                    <p className="text-sm text-ink-muted text-center py-2">할 일 없음</p>
                   ) : (
                     <div className="space-y-1.5">
                       {dayTodos.map((todo) => (
@@ -496,8 +496,8 @@ export default function TodosPage() {
                           />
                           <span className={`text-sm flex-1 ${
                             todo.completed
-                              ? 'text-gray-400 line-through'
-                              : 'text-gray-700'
+                              ? 'text-ink-muted line-through'
+                              : 'text-ink-secondary'
                           }`}>
                             {todo.title}
                           </span>
@@ -517,7 +517,7 @@ export default function TodosPage() {
         {isModalOpen && (
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-4 border-b border-outline">
                 <h2 className="text-lg font-semibold">템플릿에서 추가</h2>
               </div>
               <div className="p-4">
@@ -527,8 +527,8 @@ export default function TodosPage() {
                       key={template.id}
                       className={`p-3 border rounded-lg cursor-pointer ${
                         selectedTemplate === template.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-accent bg-accent-soft'
+                          : 'border-outline hover:border-outline-strong'
                       }`}
                       onClick={() => setSelectedTemplate(template.id)}
                     >
@@ -543,9 +543,9 @@ export default function TodosPage() {
                             )}
                           </div>
                           {template.description && (
-                            <p className="text-sm text-gray-600">{template.description}</p>
+                            <p className="text-sm text-ink-secondary">{template.description}</p>
                           )}
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs text-ink-muted mt-1">
                             {template.items.length}개 항목
                           </div>
                         </div>
@@ -556,9 +556,9 @@ export default function TodosPage() {
                           }}
                           disabled={template.is_active}
                           className={`ml-2 px-3 py-1 text-xs rounded-lg ${
-                            template.is_active 
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            template.is_active
+                              ? 'bg-surface-hover text-ink-muted cursor-not-allowed'
+                              : 'bg-accent-soft text-accent hover:bg-blue-200'
                           }`}
                         >
                           {template.is_active ? '활성화됨' : '활성화'}
@@ -568,11 +568,11 @@ export default function TodosPage() {
                   ))}
                 </div>
               </div>
-              <div className="p-4 border-t border-gray-200 flex space-x-2">
+              <div className="p-4 border-t border-outline flex space-x-2">
                 <button
                   onClick={handleAddFromTemplate}
                   disabled={!selectedTemplate}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex-1 bg-accent text-white py-2 rounded-lg hover:bg-accent-hover disabled:opacity-50"
                 >
                   추가
                 </button>
@@ -581,7 +581,7 @@ export default function TodosPage() {
                     setIsModalOpen(false)
                     setSelectedTemplate('')
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-outline-strong rounded-lg hover:bg-surface-hover"
                 >
                   취소
                 </button>

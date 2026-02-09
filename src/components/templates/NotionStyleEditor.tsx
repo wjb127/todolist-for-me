@@ -116,36 +116,36 @@ function NotionStyleItem({
       }}
     >
       <div className={`flex items-start py-1 pr-2 rounded-lg transition-colors ${
-        isHovered ? 'bg-gray-50 dark:bg-gray-800' : ''
+        isHovered ? 'bg-surface-hover' : ''
       }`}>
         {/* Drag Handle & Expand/Collapse */}
         <div className="flex items-center mr-2">
           {hasSubItems && (
             <button
               onClick={() => onToggleExpand?.(item.id)}
-              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+              className="p-1 hover:bg-surface-active rounded transition-colors"
             >
               {item.isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-gray-400" />
+                <ChevronDown className="h-4 w-4 text-ink-muted" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-gray-400" />
+                <ChevronRight className="h-4 w-4 text-ink-muted" />
               )}
             </button>
           )}
           <div
             {...attributes}
             {...listeners}
-            className={`p-1 cursor-grab active:cursor-grabbing hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-all ${
+            className={`p-1 cursor-grab active:cursor-grabbing hover:bg-surface-active rounded transition-all ${
               (isHovered || isDragging) ? 'opacity-100' : 'opacity-0'
             } ${!hasSubItems ? 'ml-6' : ''}`}
           >
-            <GripVertical className="h-4 w-4 text-gray-400" />
+            <GripVertical className="h-4 w-4 text-ink-muted" />
           </div>
         </div>
 
         {/* Bullet Point */}
         <div className="flex items-center justify-center w-6 h-6 mt-0.5 mr-2">
-          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+          <div className="w-1.5 h-1.5 bg-ink-muted rounded-full" />
         </div>
 
         {/* Content */}
@@ -161,7 +161,7 @@ function NotionStyleItem({
                 onBlur={() => setIsEditingTitle(false)}
                 onKeyDown={(e) => handleKeyDown(e, 'title')}
                 placeholder="제목을 입력하세요..."
-                className="w-full px-2 py-1 text-base font-medium bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                className="w-full px-2 py-1 text-base font-medium bg-transparent border-none outline-none focus:ring-2 focus:ring-accent rounded"
                 autoFocus
               />
             ) : (
@@ -170,9 +170,9 @@ function NotionStyleItem({
                   setIsEditingTitle(true)
                   setTimeout(() => titleRef.current?.focus(), 50)
                 }}
-                className="px-2 py-1 text-base font-medium cursor-text hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                className="px-2 py-1 text-base font-medium cursor-text hover:bg-surface-hover rounded transition-colors"
               >
-                {item.title || <span className="text-gray-400">제목 입력...</span>}
+                {item.title || <span className="text-ink-muted">제목 입력...</span>}
               </div>
             )}
           </div>
@@ -189,7 +189,7 @@ function NotionStyleItem({
                   onBlur={() => setIsEditingDesc(false)}
                   onKeyDown={(e) => handleKeyDown(e, 'description')}
                   placeholder="설명 추가..."
-                  className="w-full px-2 py-0.5 text-sm text-gray-600 bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                  className="w-full px-2 py-0.5 text-sm text-ink-secondary bg-transparent border-none outline-none focus:ring-2 focus:ring-accent rounded"
                   autoFocus
                 />
               ) : (
@@ -198,7 +198,7 @@ function NotionStyleItem({
                     setIsEditingDesc(true)
                     setTimeout(() => descRef.current?.focus(), 50)
                   }}
-                  className="px-2 py-0.5 text-sm text-gray-600 cursor-text hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                  className="px-2 py-0.5 text-sm text-ink-secondary cursor-text hover:bg-surface-hover rounded transition-colors"
                 >
                   {item.description}
                 </div>
@@ -213,28 +213,28 @@ function NotionStyleItem({
         }`}>
           <button
             onClick={() => onAddBelow(item.id)}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+            className="p-1 hover:bg-surface-active rounded transition-colors"
             title="아래에 추가"
           >
-            <Plus className="h-4 w-4 text-gray-400" />
+            <Plus className="h-4 w-4 text-ink-muted" />
           </button>
-          
+
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+              className="p-1 hover:bg-surface-active rounded transition-colors"
             >
-              <MoreHorizontal className="h-4 w-4 text-gray-400" />
+              <MoreHorizontal className="h-4 w-4 text-ink-muted" />
             </button>
-            
+
             {showMenu && (
-              <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+              <div className="absolute right-0 mt-1 w-36 bg-surface-card rounded-lg shadow-lg border border-outline z-50">
                 <button
                   onClick={() => {
                     onDuplicate(item.id)
                     setShowMenu(false)
                   }}
-                  className="flex items-center w-full px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center w-full px-3 py-2 text-sm hover:bg-surface-hover transition-colors"
                 >
                   <Copy className="h-4 w-4 mr-2" />
                   복제
@@ -244,7 +244,7 @@ function NotionStyleItem({
                     onDelete(item.id)
                     setShowMenu(false)
                   }}
-                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   삭제
@@ -285,7 +285,7 @@ interface NotionStyleEditorProps {
 export default function NotionStyleEditor({ items, onChange }: NotionStyleEditorProps) {
   const [localItems, setLocalItems] = useState<TemplateItem[]>(items)
   const { getCardStyle } = useTheme()
-  
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -309,7 +309,7 @@ export default function NotionStyleEditor({ items, onChange }: NotionStyleEditor
         return item
       })
     }
-    
+
     const updated = updateItem(localItems)
     setLocalItems(updated)
     onChange(updated)
@@ -325,7 +325,7 @@ export default function NotionStyleEditor({ items, onChange }: NotionStyleEditor
         return true
       })
     }
-    
+
     const updated = deleteItem(localItems)
     setLocalItems(updated)
     onChange(updated)
@@ -365,7 +365,7 @@ export default function NotionStyleEditor({ items, onChange }: NotionStyleEditor
       description: '',
       order_index: 0,
     }
-    
+
     const updated = [newItem, ...localItems]
     setLocalItems(updated)
     onChange(updated)
@@ -450,7 +450,7 @@ export default function NotionStyleEditor({ items, onChange }: NotionStyleEditor
           {localItems.length === 0 ? (
             <button
               onClick={handleAddFirst}
-              className="w-full py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 transition-colors flex flex-col items-center justify-center text-gray-500 hover:text-blue-500"
+              className="w-full py-8 border-2 border-dashed border-outline-strong rounded-lg hover:border-accent transition-colors flex flex-col items-center justify-center text-ink-muted hover:text-accent"
             >
               <Plus className="h-8 w-8 mb-2" />
               <span className="text-sm font-medium">첫 번째 항목 추가</span>
@@ -483,7 +483,7 @@ export default function NotionStyleEditor({ items, onChange }: NotionStyleEditor
             const lastItem = localItems[localItems.length - 1]
             handleAddBelow(lastItem.id)
           }}
-          className="mt-2 w-full py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-center group"
+          className="mt-2 w-full py-2 text-ink-muted hover:text-ink-secondary hover:bg-surface-hover rounded-lg transition-colors flex items-center justify-center group"
         >
           <Plus className="h-4 w-4 mr-1 group-hover:scale-110 transition-transform" />
           <span className="text-sm">새 항목 추가</span>

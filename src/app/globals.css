@@ -1,125 +1,427 @@
 @import "tailwindcss";
 
+/* ===== Semantic Color Tokens ===== */
+
+/* Default (Classic Light) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --c-surface: #eff6ff;
+  --c-card: #ffffff;
+  --c-elevated: #ffffff;
+  --c-hover: #f3f4f6;
+  --c-active: #dbeafe;
+  --c-ink: #111827;
+  --c-ink-secondary: #4b5563;
+  --c-ink-muted: #6b7280;
+  --c-outline: #e5e7eb;
+  --c-outline-strong: #d1d5db;
+  --c-accent: #2563eb;
+  --c-accent-hover: #1d4ed8;
+  --c-accent-soft: #dbeafe;
+  --c-track: #e5e7eb;
 }
 
+/* ===== Classic ===== */
+[data-theme="classic"][data-mode="light"] {
+  --c-surface: #eff6ff;
+  --c-card: #ffffff;
+  --c-elevated: #ffffff;
+  --c-hover: #f3f4f6;
+  --c-active: #dbeafe;
+  --c-ink: #111827;
+  --c-ink-secondary: #4b5563;
+  --c-ink-muted: #6b7280;
+  --c-outline: #e5e7eb;
+  --c-outline-strong: #d1d5db;
+  --c-accent: #2563eb;
+  --c-accent-hover: #1d4ed8;
+  --c-accent-soft: #dbeafe;
+  --c-track: #e5e7eb;
+}
+
+[data-theme="classic"][data-mode="dark"] {
+  --c-surface: #0f172a;
+  --c-card: #1e293b;
+  --c-elevated: #1e293b;
+  --c-hover: #334155;
+  --c-active: #1e3a5f;
+  --c-ink: #f1f5f9;
+  --c-ink-secondary: #94a3b8;
+  --c-ink-muted: #64748b;
+  --c-outline: #334155;
+  --c-outline-strong: #475569;
+  --c-accent: #3b82f6;
+  --c-accent-hover: #60a5fa;
+  --c-accent-soft: #1e3a5f;
+  --c-track: #334155;
+}
+
+/* ===== Neumorphism ===== */
+[data-theme="neumorphism"][data-mode="light"] {
+  --c-surface: #e3e3e3;
+  --c-card: #e8e8e8;
+  --c-elevated: #ececec;
+  --c-hover: #d8d8d8;
+  --c-active: #d0d0d0;
+  --c-ink: #1a1a1a;
+  --c-ink-secondary: #555555;
+  --c-ink-muted: #777777;
+  --c-outline: transparent;
+  --c-outline-strong: #c0c0c0;
+  --c-accent: #2563eb;
+  --c-accent-hover: #1d4ed8;
+  --c-accent-soft: #d0d8f0;
+  --c-track: #d0d0d0;
+}
+
+[data-theme="neumorphism"][data-mode="dark"] {
+  --c-surface: #1e1e1e;
+  --c-card: #262626;
+  --c-elevated: #2a2a2a;
+  --c-hover: #333333;
+  --c-active: #3a3a3a;
+  --c-ink: #e0e0e0;
+  --c-ink-secondary: #a0a0a0;
+  --c-ink-muted: #707070;
+  --c-outline: transparent;
+  --c-outline-strong: #444444;
+  --c-accent: #3b82f6;
+  --c-accent-hover: #60a5fa;
+  --c-accent-soft: #1e2a4a;
+  --c-track: #3a3a3a;
+}
+
+/* ===== Glassmorphism ===== */
+[data-theme="glassmorphism"][data-mode="light"] {
+  --c-surface: #f0e6ff;
+  --c-card: rgba(255, 255, 255, 0.2);
+  --c-elevated: rgba(255, 255, 255, 0.95);
+  --c-hover: rgba(255, 255, 255, 0.3);
+  --c-active: rgba(147, 51, 234, 0.15);
+  --c-ink: #1f2937;
+  --c-ink-secondary: #4b5563;
+  --c-ink-muted: #6b7280;
+  --c-outline: rgba(255, 255, 255, 0.25);
+  --c-outline-strong: rgba(147, 51, 234, 0.3);
+  --c-accent: #7c3aed;
+  --c-accent-hover: #6d28d9;
+  --c-accent-soft: rgba(147, 51, 234, 0.1);
+  --c-track: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="glassmorphism"][data-mode="dark"] {
+  --c-surface: #0a0014;
+  --c-card: rgba(255, 255, 255, 0.06);
+  --c-elevated: rgba(30, 20, 50, 0.95);
+  --c-hover: rgba(255, 255, 255, 0.1);
+  --c-active: rgba(147, 51, 234, 0.25);
+  --c-ink: #f3f4f6;
+  --c-ink-secondary: #d1d5db;
+  --c-ink-muted: #9ca3af;
+  --c-outline: rgba(255, 255, 255, 0.1);
+  --c-outline-strong: rgba(167, 139, 250, 0.4);
+  --c-accent: #a78bfa;
+  --c-accent-hover: #c4b5fd;
+  --c-accent-soft: rgba(147, 51, 234, 0.2);
+  --c-track: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== Minimalism ===== */
+[data-theme="minimalism"][data-mode="light"] {
+  --c-surface: #ffffff;
+  --c-card: #ffffff;
+  --c-elevated: #ffffff;
+  --c-hover: #f9fafb;
+  --c-active: #f3f4f6;
+  --c-ink: #111827;
+  --c-ink-secondary: #4b5563;
+  --c-ink-muted: #6b7280;
+  --c-outline: #d1d5db;
+  --c-outline-strong: #9ca3af;
+  --c-accent: #111827;
+  --c-accent-hover: #374151;
+  --c-accent-soft: #f3f4f6;
+  --c-track: #e5e7eb;
+}
+
+[data-theme="minimalism"][data-mode="dark"] {
+  --c-surface: #0a0a0a;
+  --c-card: #141414;
+  --c-elevated: #1a1a1a;
+  --c-hover: #1f1f1f;
+  --c-active: #262626;
+  --c-ink: #e5e5e5;
+  --c-ink-secondary: #a3a3a3;
+  --c-ink-muted: #737373;
+  --c-outline: #2e2e2e;
+  --c-outline-strong: #525252;
+  --c-accent: #e5e5e5;
+  --c-accent-hover: #d4d4d4;
+  --c-accent-soft: #1a1a1a;
+  --c-track: #262626;
+}
+
+/* ===== Tailwind v4 Theme Mapping ===== */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-surface: var(--c-surface);
+  --color-surface-card: var(--c-card);
+  --color-surface-elevated: var(--c-elevated);
+  --color-surface-hover: var(--c-hover);
+  --color-surface-active: var(--c-active);
+
+  --color-ink: var(--c-ink);
+  --color-ink-secondary: var(--c-ink-secondary);
+  --color-ink-muted: var(--c-ink-muted);
+
+  --color-outline: var(--c-outline);
+  --color-outline-strong: var(--c-outline-strong);
+
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-accent-soft: var(--c-accent-soft);
+
+  --color-track: var(--c-track);
+
+  --color-background: var(--c-surface);
+  --color-foreground: var(--c-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--c-surface);
+  color: var(--c-ink);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* 게이미피케이션 애니메이션 */
+/* ===== Animations ===== */
 @keyframes slide {
-  0% {
-    transform: translateX(-100%) skewX(-12deg);
-  }
-  100% {
-    transform: translateX(400%) skewX(-12deg);
-  }
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(400%) skewX(-12deg); }
 }
+.animate-slide { animation: slide 2s infinite; }
 
-.animate-slide {
-  animation: slide 2s infinite;
-}
-
-/* 진행률 바 펄스 효과 */
 @keyframes progress-pulse {
-  0%, 100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.8;
-  }
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
 }
+.animate-progress-pulse { animation: progress-pulse 2s ease-in-out infinite; }
 
-.animate-progress-pulse {
-  animation: progress-pulse 2s ease-in-out infinite;
-}
-
-/* 성취 획득 효과 */
 @keyframes achievement-glow {
-  0%, 100% {
-    box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
-  }
+  0%, 100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4); }
 }
+.animate-achievement-glow { animation: achievement-glow 2s ease-in-out infinite; }
 
-.animate-achievement-glow {
-  animation: achievement-glow 2s ease-in-out infinite;
-}
-
-/* 뉴모피즘 디자인 스타일 */
-.neumorphism-card {
+/* ===== Neumorphism Light ===== */
+[data-theme="neumorphism"][data-mode="light"] .neumorphism-card {
   background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
-  box-shadow: 
-    8px 8px 16px rgba(0, 0, 0, 0.1),
-    -8px -8px 16px rgba(255, 255, 255, 0.8);
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.8);
   border: none;
 }
-
-.neumorphism-button {
+[data-theme="neumorphism"][data-mode="light"] .neumorphism-button {
   background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
-  box-shadow: 
-    4px 4px 8px rgba(0, 0, 0, 0.1),
-    -4px -4px 8px rgba(255, 255, 255, 0.8);
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.1), -4px -4px 8px rgba(255, 255, 255, 0.8);
   border: none;
   transition: all 0.2s ease;
 }
-
-.neumorphism-button:hover {
-  box-shadow: 
-    2px 2px 4px rgba(0, 0, 0, 0.1),
-    -2px -2px 4px rgba(255, 255, 255, 0.8);
+[data-theme="neumorphism"][data-mode="light"] .neumorphism-button:hover {
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1), -2px -2px 4px rgba(255, 255, 255, 0.8);
 }
-
-.neumorphism-button-active {
+[data-theme="neumorphism"][data-mode="light"] .neumorphism-button-active {
   background: linear-gradient(145deg, #e0e0e0, #f0f0f0);
-  box-shadow: 
-    inset 4px 4px 8px rgba(0, 0, 0, 0.1),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.1), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
   border: none;
 }
-
-.neumorphism-input {
+[data-theme="neumorphism"][data-mode="light"] .neumorphism-input {
   background: linear-gradient(145deg, #e0e0e0, #f0f0f0);
-  box-shadow: 
-    inset 4px 4px 8px rgba(0, 0, 0, 0.1),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.1), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
   border: none;
 }
-
-.neumorphism-modal {
+[data-theme="neumorphism"][data-mode="light"] .neumorphism-modal {
   background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
-  box-shadow: 
-    20px 20px 40px rgba(0, 0, 0, 0.1),
-    -20px -20px 40px rgba(255, 255, 255, 0.8);
+  box-shadow: 20px 20px 40px rgba(0, 0, 0, 0.1), -20px -20px 40px rgba(255, 255, 255, 0.8);
   border: none;
 }
-
-.neumorphism-bg {
+[data-theme="neumorphism"][data-mode="light"] .neumorphism-bg {
   background: linear-gradient(135deg, #e3e3e3 0%, #f0f0f0 100%);
 }
 
-/* 글래스모피즘 디자인 스타일 */
+/* ===== Neumorphism Dark ===== */
+[data-theme="neumorphism"][data-mode="dark"] .neumorphism-card {
+  background: linear-gradient(145deg, #2d2d2d, #232323);
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.4), -8px -8px 16px rgba(255, 255, 255, 0.03);
+  border: none;
+}
+[data-theme="neumorphism"][data-mode="dark"] .neumorphism-button {
+  background: linear-gradient(145deg, #2d2d2d, #232323);
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4), -4px -4px 8px rgba(255, 255, 255, 0.03);
+  border: none;
+  transition: all 0.2s ease;
+}
+[data-theme="neumorphism"][data-mode="dark"] .neumorphism-button:hover {
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4), -2px -2px 4px rgba(255, 255, 255, 0.03);
+}
+[data-theme="neumorphism"][data-mode="dark"] .neumorphism-button-active {
+  background: linear-gradient(145deg, #232323, #2d2d2d);
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.03);
+  border: none;
+}
+[data-theme="neumorphism"][data-mode="dark"] .neumorphism-input {
+  background: linear-gradient(145deg, #232323, #2d2d2d);
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.03);
+  border: none;
+  color: var(--c-ink);
+}
+[data-theme="neumorphism"][data-mode="dark"] .neumorphism-modal {
+  background: linear-gradient(145deg, #2d2d2d, #232323);
+  box-shadow: 20px 20px 40px rgba(0, 0, 0, 0.5), -20px -20px 40px rgba(255, 255, 255, 0.02);
+  border: none;
+}
+[data-theme="neumorphism"][data-mode="dark"] .neumorphism-bg {
+  background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
+}
+
+/* ===== Glassmorphism Light ===== */
+[data-theme="glassmorphism"][data-mode="light"] .glassmorphism-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+[data-theme="glassmorphism"][data-mode="light"] .glassmorphism-button {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+[data-theme="glassmorphism"][data-mode="light"] .glassmorphism-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+[data-theme="glassmorphism"][data-mode="light"] .glassmorphism-button-active {
+  background: rgba(147, 51, 234, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(147, 51, 234, 0.4);
+  box-shadow: 0 4px 16px rgba(147, 51, 234, 0.2);
+}
+[data-theme="glassmorphism"][data-mode="light"] .glassmorphism-input {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+[data-theme="glassmorphism"][data-mode="light"] .glassmorphism-modal {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.95) 0%, rgba(236, 72, 153, 0.95) 100%);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  border: 1px solid rgba(147, 51, 234, 0.6);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+[data-theme="glassmorphism"][data-mode="light"] .glassmorphism-bg {
+  background: linear-gradient(135deg,
+    rgba(74, 144, 226, 0.1) 0%,
+    rgba(147, 51, 234, 0.1) 25%,
+    rgba(236, 72, 153, 0.1) 50%,
+    rgba(245, 158, 11, 0.1) 75%,
+    rgba(34, 197, 94, 0.1) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ===== Glassmorphism Dark ===== */
+[data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-card {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+[data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-button {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+[data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+[data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-button-active {
+  background: rgba(167, 139, 250, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  box-shadow: 0 4px 16px rgba(167, 139, 250, 0.2);
+}
+[data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-input {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--c-ink);
+}
+[data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-modal {
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.95) 0%, rgba(157, 23, 77, 0.95) 100%);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+[data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-bg {
+  background: linear-gradient(135deg,
+    rgba(30, 58, 138, 0.2) 0%,
+    rgba(88, 28, 135, 0.2) 25%,
+    rgba(157, 23, 77, 0.2) 50%,
+    rgba(180, 83, 9, 0.15) 75%,
+    rgba(21, 128, 61, 0.15) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ===== Fallback: original neumorphism/glassmorphism classes (no data-theme) ===== */
+.neumorphism-card {
+  background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.8);
+  border: none;
+}
+.neumorphism-button {
+  background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.1), -4px -4px 8px rgba(255, 255, 255, 0.8);
+  border: none;
+  transition: all 0.2s ease;
+}
+.neumorphism-button:hover {
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1), -2px -2px 4px rgba(255, 255, 255, 0.8);
+}
+.neumorphism-button-active {
+  background: linear-gradient(145deg, #e0e0e0, #f0f0f0);
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.1), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+  border: none;
+}
+.neumorphism-input {
+  background: linear-gradient(145deg, #e0e0e0, #f0f0f0);
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.1), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+  border: none;
+}
+.neumorphism-modal {
+  background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
+  box-shadow: 20px 20px 40px rgba(0, 0, 0, 0.1), -20px -20px 40px rgba(255, 255, 255, 0.8);
+  border: none;
+}
+.neumorphism-bg {
+  background: linear-gradient(135deg, #e3e3e3 0%, #f0f0f0 100%);
+}
 .glassmorphism-card {
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
@@ -127,7 +429,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
-
 .glassmorphism-button {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -136,12 +437,10 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
-
 .glassmorphism-button:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
 }
-
 .glassmorphism-button-active {
   background: rgba(147, 51, 234, 0.3);
   backdrop-filter: blur(12px);
@@ -149,18 +448,14 @@ body {
   border: 1px solid rgba(147, 51, 234, 0.4);
   box-shadow: 0 4px 16px rgba(147, 51, 234, 0.2);
 }
-
 .glassmorphism-input {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
-
 .glassmorphism-modal {
-  background: linear-gradient(135deg, 
-    rgba(147, 51, 234, 0.95) 0%, 
-    rgba(236, 72, 153, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.95) 0%, rgba(236, 72, 153, 0.95) 100%);
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
   border: 1px solid rgba(147, 51, 234, 0.6);
@@ -168,14 +463,19 @@ body {
   max-height: 90vh;
   overflow-y: auto;
 }
-
 .glassmorphism-bg {
-  background: linear-gradient(135deg, 
-    rgba(74, 144, 226, 0.1) 0%, 
-    rgba(147, 51, 234, 0.1) 25%, 
-    rgba(236, 72, 153, 0.1) 50%, 
-    rgba(245, 158, 11, 0.1) 75%, 
+  background: linear-gradient(135deg,
+    rgba(74, 144, 226, 0.1) 0%,
+    rgba(147, 51, 234, 0.1) 25%,
+    rgba(236, 72, 153, 0.1) 50%,
+    rgba(245, 158, 11, 0.1) 75%,
     rgba(34, 197, 94, 0.1) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+}
+
+/* ===== Input color scheme for dark mode ===== */
+[data-mode="dark"] input[type="date"],
+[data-mode="dark"] select {
+  color-scheme: dark;
 }

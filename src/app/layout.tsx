@@ -49,7 +49,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="TodoApp" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-50`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
         <ThemeProvider>
           <main className="pb-20">
