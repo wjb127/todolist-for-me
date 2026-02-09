@@ -705,7 +705,7 @@ export default function PlansPage() {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className={getInputStyle()}
+            className={`${getInputStyle()} max-w-full box-border`}
           />
           <div className="mt-3 flex items-center justify-between">
             <button
@@ -905,7 +905,7 @@ export default function PlansPage() {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className={getInputStyle()}
+                    className={`${getInputStyle()} max-w-full box-border`}
                   />
                 </div>
 

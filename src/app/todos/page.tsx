@@ -289,7 +289,7 @@ export default function TodosPage() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className={getInputStyle()}
+              className={`${getInputStyle()} max-w-full box-border`}
             />
             <div className="mt-3 flex items-center justify-between">
               <button
