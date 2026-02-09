@@ -805,9 +805,19 @@ export default function PlansPage() {
                   <h2 className="text-lg font-semibold">
                     {editingPlan ? '계획 편집' : '새 계획'}
                   </h2>
-                  <button onClick={closeModal} className="p-2 hover:bg-surface-hover rounded">
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={handleSavePlan}
+                      disabled={!formData.title || isSaving}
+                      className="px-3 py-1.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      <span>{isSaving ? '저장 중...' : '저장'}</span>
+                    </button>
+                    <button onClick={closeModal} className="p-2 hover:bg-surface-hover rounded">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
