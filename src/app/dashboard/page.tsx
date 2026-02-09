@@ -1797,7 +1797,7 @@ export default function DashboardPage() {
               </div>
 
               {/* 현재 레벨 정보 */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+              <div className="mb-6 p-4 bg-surface-hover rounded-lg border border-outline">
                 <div className="flex items-center space-x-3 mb-2">
                   {(() => {
                     const LevelIcon = selectedLevelSystem.currentLevel.icon
@@ -1805,19 +1805,19 @@ export default function DashboardPage() {
                   })()}
                   <div>
                     <h4 className="text-lg font-bold text-ink">{selectedLevelSystem.currentLevel.title}</h4>
-                    <p className="text-sm text-ink-secondary">레벨 {selectedLevelSystem.currentLevel.level}</p>
+                    <p className="text-sm text-ink-secondary">Lv.{selectedLevelSystem.currentLevel.level}</p>
                   </div>
                 </div>
                 <p className="text-sm text-ink-secondary mb-3">{selectedLevelSystem.currentLevel.description}</p>
 
                 {/* 통계 정보 */}
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div className="bg-white/50 rounded-lg p-2">
+                  <div className="bg-surface-card rounded-lg p-2">
                     <p className="text-xs text-ink-secondary">총 완료</p>
                     <p className="text-lg font-bold text-ink">{selectedLevelSystem.totalXP}</p>
                   </div>
-                  <div className="bg-white/50 rounded-lg p-2">
-                    <p className="text-xs text-ink-secondary">다음 레벨까지</p>
+                  <div className="bg-surface-card rounded-lg p-2">
+                    <p className="text-xs text-ink-secondary">다음 랭크까지</p>
                     <p className="text-lg font-bold text-ink">
                       {selectedLevelSystem.currentLevel.xpToNext > 0 ? selectedLevelSystem.currentLevel.xpToNext : '최고'}
                     </p>
@@ -1836,7 +1836,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="w-full bg-track rounded-full h-2">
                     <div
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-1000"
+                      className="bg-accent h-2 rounded-full transition-all duration-1000"
                       style={{
                         width: selectedLevelSystem.currentLevel.xpToNext > 0
                           ? `${Math.max(5, (selectedLevelSystem.currentLevel.currentXP / (selectedLevelSystem.currentLevel.currentXP + selectedLevelSystem.currentLevel.xpToNext)) * 100)}%`
@@ -1861,10 +1861,10 @@ export default function DashboardPage() {
                         key={data.level}
                         className={`flex items-center space-x-3 p-3 rounded-lg border ${
                           isCurrent
-                            ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-300'
+                            ? 'bg-accent-soft border-accent'
                             : isUnlocked
-                              ? 'bg-green-50 border-green-200'
-                              : 'bg-surface-hover border-outline'
+                              ? 'bg-surface-hover border-outline-strong'
+                              : 'bg-surface-hover border-outline opacity-60'
                         }`}
                       >
                         <div className="relative flex-shrink-0">
@@ -1888,9 +1888,9 @@ export default function DashboardPage() {
                             </h5>
                             <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
                               isCurrent
-                                ? 'bg-blue-100 text-blue-700'
+                                ? 'bg-accent-soft text-accent'
                                 : isUnlocked
-                                  ? 'bg-green-100 text-green-700'
+                                  ? 'bg-surface-hover text-ink-secondary'
                                   : 'bg-surface-hover text-ink-muted'
                             }`}>
                               Lv.{data.level}
