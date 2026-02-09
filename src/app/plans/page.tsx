@@ -862,9 +862,18 @@ export default function PlansPage() {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className={getInputStyle()}
-                    rows={aiSuggestion ? 8 : 3}
-                    placeholder="계획에 대한 상세 설명을 입력하세요 (선택사항)"
+                    rows={aiSuggestion ? 4 : 1}
+                    placeholder="상세 설명 (선택사항)"
                   />
+                  <button
+                    type="button"
+                    onClick={handleSavePlan}
+                    disabled={!formData.title || isSaving}
+                    className="mt-2 px-3 py-1.5 bg-accent text-white text-xs font-medium rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                  >
+                    <Save className="h-3 w-3" />
+                    <span>{isSaving ? '저장 중...' : '저장'}</span>
+                  </button>
 
                   {/* AI 추천 결과 */}
                   {aiSuggestion && (
