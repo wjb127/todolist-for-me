@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Target, BarChart3, Award, Quote, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Star, Crown, Shield, Gem, Rocket, X, Palette, StickyNote, Plus, Edit2, Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Target, BarChart3, Award, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Star, Crown, Shield, Gem, Rocket, X, Palette, StickyNote, Plus, Edit2, Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, subWeeks, subMonths, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -49,9 +49,16 @@ interface MonthlyStats {
   dailyStats: DailyStats[]
 }
 
-interface MotivationalQuote {
-  text: string
-  author: string
+interface GrowthMetric {
+  current: number
+  previous: number
+}
+
+interface GrowthSet {
+  dod: GrowthMetric
+  wow: GrowthMetric
+  mom: GrowthMetric
+  yoy: GrowthMetric
 }
 
 interface Achievement {
@@ -66,15 +73,6 @@ interface Achievement {
   total?: number
   progressText?: string
 }
-
-const motivationalQuotes: MotivationalQuote[] = [
-  { text: "성공은 매일의 작은 노력들이 쌓여서 만들어집니다.", author: "로버트 콜리어" },
-  { text: "오늘의 할 일을 내일로 미루지 마세요.", author: "벤자민 프랭클린" },
-  { text: "계획 없이는 꿈은 그저 소망일 뿐입니다.", author: "앙투안 드 생텍쥐페리" },
-  { text: "시작이 반이다.", author: "한국 속담" },
-  { text: "당신이 할 수 있다고 믿든 없다고 믿든, 당신이 옳습니다.", author: "헨리 포드" },
-  { text: "이것 역시 곧 지나가리라.", author: "페르시아 우화" },
-]
 
 // 성취 시스템
 const achievements: Achievement[] = [
@@ -175,8 +173,10 @@ export default function DashboardPage() {
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null)
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
-  const [currentQuote, setCurrentQuote] = useState<MotivationalQuote | null>(null)
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
+  const [todoGrowth, setTodoGrowth] = useState<GrowthSet | null>(null)
+  const [planGrowth, setPlanGrowth] = useState<GrowthSet | null>(null)
+  const [growthTab, setGrowthTab] = useState<'todos' | 'plans'>('todos')
   const [selectedLevelSystem, setSelectedLevelSystem] = useState<{
     title: string
     levels: LevelData[]
@@ -196,13 +196,11 @@ export default function DashboardPage() {
   const [isNoteLoading, setIsNoteLoading] = useState(false)
 
   // 테마 시스템 사용
-  const { theme, setTheme, colorMode, setColorMode, getBackgroundStyle, getCardStyle, getButtonStyle, getModalStyle, getModalBackdropStyle, getInputStyle } = useTheme()
+  const { theme, setTheme, colorMode, setColorMode, getBackgroundStyle, getCardStyle, getButtonStyle, getModalStyle, getModalBackdropStyle, getInputStyle, getFilterButtonStyle } = useTheme()
+  const [graphTab, setGraphTab] = useState<'todos' | 'plans'>('todos')
+  const [levelTab, setLevelTab] = useState<'daily' | 'weekly' | 'monthly'>('daily')
 
   useEffect(() => {
-    // 랜덤 명언 선택
-    const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
-    setCurrentQuote(randomQuote)
-    // 메모 가져오기
     fetchNotes()
   }, [])
 
@@ -436,6 +434,114 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  // 성장 지표 계산
+  const fetchGrowthMetrics = useCallback(async () => {
+    try {
+      const now = new Date()
+      const today = format(now, 'yyyy-MM-dd')
+      const yesterday = format(subDays(now, 1), 'yyyy-MM-dd')
+
+      const thisWeekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+      const thisWeekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+      const lastWeek = subWeeks(now, 1)
+      const lastWeekStart = format(startOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+      const lastWeekEnd = format(endOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+
+      const thisMonthStart = format(startOfMonth(now), 'yyyy-MM-dd')
+      const thisMonthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
+      const lastMonth = subMonths(now, 1)
+      const lastMonthStart = format(startOfMonth(lastMonth), 'yyyy-MM-dd')
+      const lastMonthEnd = format(endOfMonth(lastMonth), 'yyyy-MM-dd')
+
+      const lastYearDate = new Date(now.getFullYear() - 1, now.getMonth(), 1)
+      const lastYearMonthStart = format(startOfMonth(lastYearDate), 'yyyy-MM-dd')
+      const lastYearMonthEnd = format(endOfMonth(lastYearDate), 'yyyy-MM-dd')
+
+      const [recentRes, lastYearRes] = await Promise.all([
+        fetch(`/api/dashboard/stats?startDate=${lastMonthStart}&endDate=${thisMonthEnd}`),
+        fetch(`/api/dashboard/stats?startDate=${lastYearMonthStart}&endDate=${lastYearMonthEnd}`)
+      ])
+
+      const recentData = await recentRes.json()
+      const lastYearData = await lastYearRes.json()
+      const recentTodos = (recentData.todos || []) as Todo[]
+      const lastYearTodos = (lastYearData.todos || []) as Todo[]
+
+      const countCompleted = (todos: Todo[], start: string, end: string) =>
+        todos.filter(t => t.date && t.date >= start && t.date <= end && t.completed).length
+
+      setTodoGrowth({
+        dod: {
+          current: countCompleted(recentTodos, today, today),
+          previous: countCompleted(recentTodos, yesterday, yesterday)
+        },
+        wow: {
+          current: countCompleted(recentTodos, thisWeekStart, thisWeekEnd),
+          previous: countCompleted(recentTodos, lastWeekStart, lastWeekEnd)
+        },
+        mom: {
+          current: countCompleted(recentTodos, thisMonthStart, thisMonthEnd),
+          previous: countCompleted(recentTodos, lastMonthStart, lastMonthEnd)
+        },
+        yoy: {
+          current: countCompleted(recentTodos, thisMonthStart, thisMonthEnd),
+          previous: countCompleted(lastYearTodos, lastYearMonthStart, lastYearMonthEnd)
+        }
+      })
+    } catch (error) {
+      console.error('Error fetching growth metrics:', error)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchGrowthMetrics()
+  }, [fetchGrowthMetrics])
+
+  // 계획 성장 지표 (plans 상태에서 계산)
+  useEffect(() => {
+    if (plans.length === 0 && !planGrowth) return
+
+    const now = new Date()
+    const today = format(now, 'yyyy-MM-dd')
+    const yesterday = format(subDays(now, 1), 'yyyy-MM-dd')
+
+    const thisWeekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const thisWeekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const lastWeek = subWeeks(now, 1)
+    const lastWeekStart = format(startOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const lastWeekEnd = format(endOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+
+    const thisMonthStart = format(startOfMonth(now), 'yyyy-MM-dd')
+    const thisMonthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
+    const lastMonth = subMonths(now, 1)
+    const lastMonthStart = format(startOfMonth(lastMonth), 'yyyy-MM-dd')
+    const lastMonthEnd = format(endOfMonth(lastMonth), 'yyyy-MM-dd')
+
+    const lastYearDate = new Date(now.getFullYear() - 1, now.getMonth(), 1)
+    const lastYearMonthStart = format(startOfMonth(lastYearDate), 'yyyy-MM-dd')
+    const lastYearMonthEnd = format(endOfMonth(lastYearDate), 'yyyy-MM-dd')
+
+    const countPlanCompleted = (start: string, end: string) =>
+      plans.filter(p => {
+        if (!p.completed || !p.updated_at) return false
+        const d = p.updated_at.substring(0, 10)
+        return d >= start && d <= end
+      }).length
+
+    setPlanGrowth({
+      dod: { current: countPlanCompleted(today, today), previous: countPlanCompleted(yesterday, yesterday) },
+      wow: { current: countPlanCompleted(thisWeekStart, thisWeekEnd), previous: countPlanCompleted(lastWeekStart, lastWeekEnd) },
+      mom: { current: countPlanCompleted(thisMonthStart, thisMonthEnd), previous: countPlanCompleted(lastMonthStart, lastMonthEnd) },
+      yoy: { current: countPlanCompleted(thisMonthStart, thisMonthEnd), previous: countPlanCompleted(lastYearMonthStart, lastYearMonthEnd) }
+    })
+  }, [plans])
+
+  const calcGrowthPercent = (m: GrowthMetric): number | null => {
+    if (m.previous === 0 && m.current === 0) return null
+    if (m.previous === 0) return 100
+    return Math.round(((m.current - m.previous) / m.previous) * 100)
+  }
 
   const goToPrevious = () => {
     if (viewMode === 'daily') {
@@ -752,27 +858,40 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* GitHub 스타일 연간 잔디 - Todo 달성 기록 */}
-        <YearlyContributionGraph type="todos" />
-
-        {/* GitHub 스타일 연간 잔디 - 계획 달성 기록 */}
-        <div className="mt-6">
-          <YearlyContributionGraph type="plans" />
+        {/* GitHub 스타일 연간 잔디 - 탭 전환 */}
+        <div>
+          <div className="flex space-x-1 mb-4">
+            <button onClick={() => setGraphTab('todos')} className={getFilterButtonStyle(graphTab === 'todos')}>
+              📝 Todo 기록
+            </button>
+            <button onClick={() => setGraphTab('plans')} className={getFilterButtonStyle(graphTab === 'plans')}>
+              🎯 계획 기록
+            </button>
+          </div>
+          <YearlyContributionGraph type={graphTab} />
         </div>
 
         {/* 6가지 레벨 시스템 */}
         <div className="mt-6 mb-6">
           <h2 className="text-xl font-bold text-ink mb-4">🎮 레벨 시스템</h2>
 
-          {/* Todo 레벨 시스템 */}
-          <div className="mb-6">
-            <div className="flex items-center space-x-2 mb-3">
-              <Sparkles className="h-5 w-5 text-accent" />
-              <h3 className="text-lg font-bold text-ink">할 일 레벨</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
+          <div className="flex space-x-1 mb-4">
+            <button onClick={() => setLevelTab('daily')} className={getFilterButtonStyle(levelTab === 'daily')}>
+              ☀️ 일간
+            </button>
+            <button onClick={() => setLevelTab('weekly')} className={getFilterButtonStyle(levelTab === 'weekly')}>
+              📅 주간
+            </button>
+            <button onClick={() => setLevelTab('monthly')} className={getFilterButtonStyle(levelTab === 'monthly')}>
+              🗓️ 월간
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            {/* 할 일 레벨 */}
+            {levelTab === 'daily' && (
               <LevelCard
-                title="일간 레벨"
+                title="할 일 일간 레벨"
                 subtitle="오늘 완료한 할 일"
                 level={getLevelInfo(todayStats.completed, todoDailyLevels)}
                 totalXP={todayStats.completed}
@@ -787,8 +906,10 @@ export default function DashboardPage() {
                   period: 'daily'
                 })}
               />
+            )}
+            {levelTab === 'weekly' && (
               <LevelCard
-                title="주간 레벨"
+                title="할 일 주간 레벨"
                 subtitle="이번 주 완료한 할 일"
                 level={getLevelInfo(
                   weeklyStats ? weeklyStats.totalCompleted : 0,
@@ -809,8 +930,10 @@ export default function DashboardPage() {
                   period: 'weekly'
                 })}
               />
+            )}
+            {levelTab === 'monthly' && (
               <LevelCard
-                title="월간 레벨"
+                title="할 일 월간 레벨"
                 subtitle="이번 달 완료한 할 일"
                 level={getLevelInfo(
                   monthlyStats ? monthlyStats.totalCompleted : 0,
@@ -831,18 +954,12 @@ export default function DashboardPage() {
                   period: 'monthly'
                 })}
               />
-            </div>
-          </div>
+            )}
 
-          {/* Plans 레벨 시스템 */}
-          <div>
-            <div className="flex items-center space-x-2 mb-3">
-              <Target className="h-5 w-5 text-purple-600" />
-              <h3 className="text-lg font-bold text-ink">계획 레벨</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
+            {/* 계획 레벨 */}
+            {levelTab === 'daily' && (
               <LevelCard
-                title="일간 레벨"
+                title="계획 일간 레벨"
                 subtitle="오늘 완료한 계획"
                 level={getLevelInfo(
                   plans.filter(p => {
@@ -872,8 +989,10 @@ export default function DashboardPage() {
                   })
                 }}
               />
+            )}
+            {levelTab === 'weekly' && (
               <LevelCard
-                title="주간 레벨"
+                title="계획 주간 레벨"
                 subtitle="이번 주 완료한 계획"
                 level={getLevelInfo(
                   plans.filter(p => {
@@ -912,8 +1031,10 @@ export default function DashboardPage() {
                   })
                 }}
               />
+            )}
+            {levelTab === 'monthly' && (
               <LevelCard
-                title="월간 레벨"
+                title="계획 월간 레벨"
                 subtitle="이번 달 완료한 계획"
                 level={getLevelInfo(
                   plans.filter(p => {
@@ -952,7 +1073,7 @@ export default function DashboardPage() {
                   })
                 }}
               />
-            </div>
+            )}
           </div>
         </div>
 
@@ -987,18 +1108,56 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 동기부여 명언 */}
-        {currentQuote && (
+        {/* 성장 지표 */}
+        {(todoGrowth || planGrowth) && (
           <div className="bg-surface-card rounded-xl shadow-lg p-4 mb-6">
-            <div className="flex items-start space-x-3">
-              <Quote className="h-6 w-6 text-purple-500 flex-shrink-0 mt-1" />
-              <div>
-                <p className="text-sm font-medium leading-relaxed mb-2 text-ink">
-                  &ldquo;{currentQuote.text}&rdquo;
-                </p>
-                <p className="text-xs text-ink-secondary">- {currentQuote.author}</p>
-              </div>
+            <h2 className="text-lg font-bold text-ink mb-3">📈 성장 지표</h2>
+            <div className="flex space-x-1 mb-3">
+              <button onClick={() => setGrowthTab('todos')} className={getFilterButtonStyle(growthTab === 'todos')}>
+                📝 할 일
+              </button>
+              <button onClick={() => setGrowthTab('plans')} className={getFilterButtonStyle(growthTab === 'plans')}>
+                🎯 계획
+              </button>
             </div>
+            {(() => {
+              const data = growthTab === 'todos' ? todoGrowth : planGrowth
+              if (!data) return <p className="text-sm text-ink-secondary">데이터 로딩 중...</p>
+              const metrics = [
+                { label: 'DoD', sub: '일간', metric: data.dod },
+                { label: 'WoW', sub: '주간', metric: data.wow },
+                { label: 'MoM', sub: '월간', metric: data.mom },
+                { label: 'YoY', sub: '연간', metric: data.yoy },
+              ]
+              return (
+                <div className="grid grid-cols-4 gap-2">
+                  {metrics.map(({ label, sub, metric }) => {
+                    const pct = calcGrowthPercent(metric)
+                    const isUp = pct !== null && pct > 0
+                    const isDown = pct !== null && pct < 0
+                    return (
+                      <div key={label} className="text-center p-2 rounded-lg bg-surface-hover">
+                        <div className="text-[10px] text-ink-muted font-medium">{label}</div>
+                        <div className="text-[10px] text-ink-secondary">{sub}</div>
+                        <div className={`text-sm font-bold mt-1 flex items-center justify-center gap-0.5 ${isUp ? 'text-green-600' : isDown ? 'text-red-500' : 'text-ink-secondary'}`}>
+                          {pct === null ? (
+                            <Minus className="h-3 w-3" />
+                          ) : (
+                            <>
+                              {isUp ? <TrendingUp className="h-3 w-3" /> : isDown ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                              {pct > 0 ? '+' : ''}{pct}%
+                            </>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-ink-muted mt-0.5">
+                          {metric.previous}→{metric.current}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
           </div>
         )}
 
