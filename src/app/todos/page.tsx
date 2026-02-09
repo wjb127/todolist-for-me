@@ -290,7 +290,7 @@ export default function TodosPage() {
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className={getInputStyle()}
-              style={{ width: '310px' }}
+              style={{ width: '320px' }}
             />
             <div className="mt-3 flex items-center justify-between">
               <button
