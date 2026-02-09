@@ -674,7 +674,7 @@ export default function PlansPage() {
 
   return (
     <div className={getBackgroundStyle()}>
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto overflow-x-hidden">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-ink">계획</h1>
           <div className="flex items-center space-x-2">

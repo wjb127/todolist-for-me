@@ -91,13 +91,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const getCardStyle = () => {
     switch (theme) {
       case 'neumorphism':
-        return 'neumorphism-card rounded-xl p-4'
+        return 'neumorphism-card rounded-xl p-4 overflow-hidden'
       case 'glassmorphism':
-        return 'glassmorphism-card rounded-xl p-4'
+        return 'glassmorphism-card rounded-xl p-4 overflow-hidden'
       case 'minimalism':
-        return 'bg-surface-card border border-outline rounded-xl p-4'
+        return 'bg-surface-card border border-outline rounded-xl p-4 overflow-hidden'
       default:
-        return 'bg-surface-card rounded-xl shadow-lg p-4'
+        return 'bg-surface-card rounded-xl shadow-lg p-4 overflow-hidden'
     }
   }
 
@@ -117,11 +117,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const getInputStyle = () => {
     switch (theme) {
       case 'neumorphism':
-        return 'neumorphism-input w-full px-3 py-2 rounded-lg text-ink'
+        return 'neumorphism-input w-full max-w-full box-border px-3 py-2 rounded-lg text-ink'
       case 'glassmorphism':
-        return 'glassmorphism-input w-full px-3 py-2 rounded-lg text-ink'
+        return 'glassmorphism-input w-full max-w-full box-border px-3 py-2 rounded-lg text-ink'
       default:
-        return 'w-full px-3 py-2 border border-outline-strong rounded-lg bg-surface-card text-ink focus:outline-none focus:ring-2 focus:ring-accent'
+        return 'w-full max-w-full box-border px-3 py-2 border border-outline-strong rounded-lg bg-surface-card text-ink focus:outline-none focus:ring-2 focus:ring-accent'
     }
   }
 
