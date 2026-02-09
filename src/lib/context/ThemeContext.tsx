@@ -80,11 +80,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const getBackgroundStyle = () => {
     switch (theme) {
       case 'neumorphism':
-        return 'min-h-screen neumorphism-bg p-4 pb-24'
+        return 'min-h-screen neumorphism-bg px-5 pt-4 pb-24'
       case 'glassmorphism':
-        return 'min-h-screen glassmorphism-bg p-4 pb-24'
+        return 'min-h-screen glassmorphism-bg px-5 pt-4 pb-24'
       default:
-        return 'min-h-screen bg-surface p-4 pb-24'
+        return 'min-h-screen bg-surface px-5 pt-4 pb-24'
     }
   }
 

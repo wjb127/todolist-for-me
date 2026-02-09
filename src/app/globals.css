@@ -474,6 +474,15 @@ body {
   -webkit-backdrop-filter: blur(20px);
 }
 
+/* ===== PWA safe area support ===== */
+@supports (padding: env(safe-area-inset-left)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* ===== Input color scheme for dark mode ===== */
 [data-mode="dark"] input[type="date"],
 [data-mode="dark"] select {
