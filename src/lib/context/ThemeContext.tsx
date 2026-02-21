@@ -141,11 +141,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const getModalBackdropStyle = () => {
     switch (theme) {
       case 'glassmorphism':
-        return 'fixed inset-0 bg-purple-900/20 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-8'
+        return 'fixed inset-0 bg-purple-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4'
       case 'neumorphism':
-        return 'fixed inset-0 bg-gray-500/20 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-8'
+        return 'fixed inset-0 bg-gray-500/20 backdrop-blur-sm z-50 flex items-center justify-center p-4'
       default:
-        return 'fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-8'
+        return 'fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4'
     }
   }
 
