@@ -278,7 +278,10 @@ export default function BucketListPage() {
   const getAvailableYears = (data: BucketListItem[]): number[] => {
     const years = new Set<number>()
     const currentYear = new Date().getFullYear()
-    years.add(currentYear)
+    // 현재 연도 ~ +2년 기본 포함
+    for (let y = currentYear; y <= currentYear + 2; y++) {
+      years.add(y)
+    }
     data.forEach(item => {
       if (item.target_date) {
         years.add(new Date(item.target_date).getFullYear())
