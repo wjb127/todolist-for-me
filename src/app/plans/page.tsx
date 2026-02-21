@@ -671,8 +671,9 @@ export default function PlansPage() {
 
   const completedCount = plans.filter(plan => plan.completed).length
   const totalCount = plans.length
-  const today = format(new Date(), 'yyyy-MM-dd')
-  const todayCompletedCount = plans.filter(plan => plan.completed && plan.updated_at?.startsWith(today)).length
+  const datePlans = plans.filter(plan => plan.due_date === selectedDate)
+  const dateCompletedCount = datePlans.filter(plan => plan.completed).length
+  const dateTotalCount = datePlans.length
 
   return (
     <div className={getBackgroundStyle()}>
@@ -750,8 +751,8 @@ export default function PlansPage() {
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-ink-secondary">오늘 완료</span>
-            <span className="text-sm text-ink-secondary">{todayCompletedCount}개</span>
+            <span className="text-sm font-medium text-ink-secondary">이 날 한 일</span>
+            <span className="text-sm text-ink-secondary">{dateCompletedCount}/{dateTotalCount}</span>
           </div>
         </div>
 

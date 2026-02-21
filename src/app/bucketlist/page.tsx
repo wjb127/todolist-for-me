@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react'
-import { Target, Plus, ChevronRight, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, ChevronUp, ChevronDown as ArrowDown, Edit2, X, Save } from 'lucide-react'
+import { Target, Plus, ChevronRight, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, Edit2, X, Save } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { Database } from '@/lib/database.types'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-// DnD imports removed - using arrow buttons instead
 
 type BucketListItem = Database['public']['Tables']['bucketlist']['Row']
 type BucketListInsert = Database['public']['Tables']['bucketlist']['Insert']
@@ -14,6 +13,12 @@ type BucketListUpdate = Database['public']['Tables']['bucketlist']['Update']
 
 interface BucketListWithChildren extends BucketListItem {
   children?: BucketListWithChildren[]
+}
+
+interface MonthGroup {
+  month: number       // 1-12, 0=미정
+  label: string
+  items: BucketListWithChildren[]
 }
 
 interface BucketItemProps {
@@ -26,10 +31,7 @@ interface BucketItemProps {
   isExpanded: boolean
   onToggleExpand: (id: string) => void
   onOpenEditModal: (item: BucketListItem) => void
-  onMoveUp: (item: BucketListItem) => void
-  onMoveDown: (item: BucketListItem) => void
-  isFirst: boolean
-  isLast: boolean
+  expandedItemIds: Set<string>
 }
 
 function BucketItem({
@@ -42,10 +44,7 @@ function BucketItem({
   isExpanded,
   onToggleExpand,
   onOpenEditModal,
-  onMoveUp,
-  onMoveDown,
-  isFirst,
-  isLast
+  expandedItemIds
 }: BucketItemProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editTitle, setEditTitle] = useState(item.title)
@@ -84,9 +83,9 @@ function BucketItem({
     <div className={`${depth > 0 ? 'ml-4' : ''}`}>
       <div className={`group ${getCardStyle()} rounded-lg p-3 mb-2 hover:shadow-md transition-all`}>
         <div className="flex items-start">
-          {/* 확장/축소 & 순서 변경 버튼 - 모바일 최적화 */}
+          {/* 확장/축소 버튼 */}
           <div className="flex items-center">
-            {hasChildren && (
+            {hasChildren ? (
               <button
                 onClick={() => onToggleExpand(item.id)}
                 className="min-w-[28px] min-h-[28px] p-1 hover:bg-surface-hover rounded-lg transition-colors flex items-center justify-center"
@@ -98,31 +97,12 @@ function BucketItem({
                   <ChevronRight className="h-4 w-4 text-ink-muted" />
                 )}
               </button>
+            ) : (
+              <div className="w-[28px]" />
             )}
-            {!hasChildren && <div className="w-[28px]" />}
-
-            {/* 순서 변경 버튼 */}
-            <div className="flex flex-col ml-1">
-              <button
-                onClick={() => onMoveUp(item)}
-                disabled={isFirst}
-                className="min-w-[24px] min-h-[20px] p-0.5 hover:bg-surface-hover rounded transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="위로 이동"
-              >
-                <ChevronUp className="h-3.5 w-3.5 text-ink-muted" />
-              </button>
-              <button
-                onClick={() => onMoveDown(item)}
-                disabled={isLast}
-                className="min-w-[24px] min-h-[20px] p-0.5 hover:bg-surface-hover rounded transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="아래로 이동"
-              >
-                <ArrowDown className="h-3.5 w-3.5 text-ink-muted" />
-              </button>
-            </div>
           </div>
 
-          {/* 체크박스 - 모바일 최적화 */}
+          {/* 체크박스 */}
           <button
             onClick={() => onToggleComplete(item)}
             className={`min-w-[32px] min-h-[32px] mr-2 flex items-center justify-center transition-colors ${
@@ -172,7 +152,7 @@ function BucketItem({
               )}
             </div>
 
-            {/* 설명 - 편집 모달에서만 표시, 여기서는 읽기 전용으로만 표시 */}
+            {/* 설명 */}
             {item.description && (
               <p className="text-sm text-ink-secondary mb-2 px-2">
                 {item.description}
@@ -204,7 +184,7 @@ function BucketItem({
             )}
           </div>
 
-          {/* 편집 버튼 - 모바일 최적화 */}
+          {/* 편집 버튼 */}
           <button
             onClick={() => onOpenEditModal(item)}
             className="min-w-[40px] min-h-[40px] p-2 rounded-lg transition-all text-ink-muted hover:text-accent hover:bg-accent-soft md:opacity-0 md:group-hover:opacity-100"
@@ -218,7 +198,7 @@ function BucketItem({
       {/* 하위 항목 */}
       {hasChildren && isExpanded && (
         <div className="ml-2">
-          {item.children!.map((child, index) => (
+          {item.children!.map((child) => (
             <BucketItem
               key={child.id}
               item={child}
@@ -227,13 +207,10 @@ function BucketItem({
               onDelete={onDelete}
               onAddChild={onAddChild}
               onToggleComplete={onToggleComplete}
-              isExpanded={expandedItems.has(child.id)}
+              isExpanded={expandedItemIds.has(child.id)}
               onToggleExpand={onToggleExpand}
               onOpenEditModal={onOpenEditModal}
-              onMoveUp={onMoveUp}
-              onMoveDown={onMoveDown}
-              isFirst={index === 0}
-              isLast={index === item.children!.length - 1}
+              expandedItemIds={expandedItemIds}
             />
           ))}
         </div>
@@ -242,12 +219,8 @@ function BucketItem({
   )
 }
 
-// 컴포넌트 외부에 expandedItems 상태 선언
-let expandedItems = new Set<string>()
-
 export default function BucketListPage() {
   const [items, setItems] = useState<BucketListItem[]>([])
-  const [localExpandedItems, setLocalExpandedItems] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -259,93 +232,167 @@ export default function BucketListPage() {
     target_date: '',
     progress: 0
   })
-  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
 
-  // 전역 expandedItems를 로컬 상태와 동기화
-  useEffect(() => {
-    expandedItems = localExpandedItems
-  }, [localExpandedItems])
+  // 연도 탭 + 월별 아코디언 상태
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set())
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set())
+
+  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
 
   // 데이터 불러오기
   const fetchItems = useCallback(async () => {
     try {
       const res = await fetch(`/api/bucketlist?showCompleted=${showCompleted}`)
       if (!res.ok) throw new Error('Failed to fetch bucketlist')
-      const data = await res.json()
+      const data: BucketListItem[] = await res.json()
       setItems(data || [])
-      // 기본적으로 모든 항목 펼치기
+
+      // 모든 항목 기본 펼침
       const allIds = new Set<string>(data?.map((item: BucketListItem) => item.id) || [])
-      setLocalExpandedItems(allIds)
+      setExpandedItemIds(allIds)
+
+      // 연도 초기화
+      const years = getAvailableYears(data || [])
+      const currentYear = new Date().getFullYear()
+      if (years.length > 0 && !years.includes(selectedYear)) {
+        setSelectedYear(years.includes(currentYear) ? currentYear : years[years.length - 1])
+      }
+
+      // 현재 월 자동 펼침
+      const currentMonth = String(new Date().getMonth() + 1)
+      setExpandedMonths(prev => {
+        if (prev.size === 0) return new Set([currentMonth])
+        return prev
+      })
     } catch (error) {
       console.error('Error fetching bucketlist:', error)
     }
-  }, [showCompleted])
+  }, [showCompleted, selectedYear])
 
   useEffect(() => {
     fetchItems()
   }, [fetchItems])
 
-  // 트리 구조로 변환
-  const buildTree = (items: BucketListItem[]): BucketListWithChildren[] => {
-    const map = new Map<string, BucketListWithChildren>()
-    const roots: BucketListWithChildren[] = []
-
-    items.forEach(item => {
-      map.set(item.id, { ...item, children: [] })
-    })
-
-    items.forEach(item => {
-      const node = map.get(item.id)!
-      if (item.parent_id) {
-        const parent = map.get(item.parent_id)
-        if (parent) {
-          parent.children = parent.children || []
-          parent.children.push(node)
-        } else {
-          roots.push(node)
-        }
-      } else {
-        roots.push(node)
+  // 사용 가능한 연도 목록 추출
+  const getAvailableYears = (data: BucketListItem[]): number[] => {
+    const years = new Set<number>()
+    const currentYear = new Date().getFullYear()
+    years.add(currentYear)
+    data.forEach(item => {
+      if (item.target_date) {
+        years.add(new Date(item.target_date).getFullYear())
       }
     })
-
-    const sortTree = (nodes: BucketListWithChildren[]) => {
-      nodes.sort((a, b) => a.order_index - b.order_index)
-      nodes.forEach(node => {
-        if (node.children && node.children.length > 0) {
-          sortTree(node.children)
-        }
-      })
-    }
-
-    sortTree(roots)
-    return roots
+    return Array.from(years).sort((a, b) => a - b)
   }
 
-  // 필터링된 트리 가져오기
-  const getFilteredTree = (): BucketListWithChildren[] => {
+  // 월별 그룹핑
+  const getMonthGroups = (): MonthGroup[] => {
     let filtered = items
 
+    // 검색 필터
     if (searchQuery) {
-      filtered = filtered.filter(item =>
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      const query = searchQuery.toLowerCase()
+      const matchingIds = new Set<string>()
+      filtered.forEach(item => {
+        if (item.title.toLowerCase().includes(query) || item.description?.toLowerCase().includes(query)) {
+          matchingIds.add(item.id)
+          if (item.parent_id) matchingIds.add(item.parent_id)
+        }
+      })
+      filtered = filtered.filter(item => matchingIds.has(item.id))
     }
 
-    return buildTree(filtered)
+    // 부모/자식 분리
+    const parents = filtered.filter(i => !i.parent_id)
+    const childrenMap = new Map<string, BucketListItem[]>()
+    filtered.filter(i => i.parent_id).forEach(child => {
+      const list = childrenMap.get(child.parent_id!) || []
+      list.push(child)
+      childrenMap.set(child.parent_id!, list)
+    })
+
+    // 부모에 자식 연결
+    const buildWithChildren = (parent: BucketListItem): BucketListWithChildren => ({
+      ...parent,
+      children: (childrenMap.get(parent.id) || [])
+        .sort((a, b) => {
+          const dateA = a.target_date || '9999-12-31'
+          const dateB = b.target_date || '9999-12-31'
+          if (dateA !== dateB) return dateA.localeCompare(dateB)
+          return a.created_at.localeCompare(b.created_at)
+        })
+        .map(child => ({ ...child, children: [] }))
+    })
+
+    // 월별 분류
+    const monthMap = new Map<number, BucketListWithChildren[]>()
+
+    parents.forEach(parent => {
+      let monthKey: number
+      if (parent.target_date) {
+        const d = new Date(parent.target_date)
+        if (d.getFullYear() !== selectedYear) return
+        monthKey = d.getMonth() + 1
+      } else {
+        monthKey = 0 // 미정
+      }
+
+      const list = monthMap.get(monthKey) || []
+      list.push(buildWithChildren(parent))
+      monthMap.set(monthKey, list)
+    })
+
+    // 월 내 정렬: target_date ASC → created_at ASC
+    monthMap.forEach((items) => {
+      items.sort((a, b) => {
+        const dateA = a.target_date || '9999-12-31'
+        const dateB = b.target_date || '9999-12-31'
+        if (dateA !== dateB) return dateA.localeCompare(dateB)
+        return a.created_at.localeCompare(b.created_at)
+      })
+    })
+
+    // 결과: 1~12월 + 미정
+    const result: MonthGroup[] = []
+    for (let m = 1; m <= 12; m++) {
+      const monthItems = monthMap.get(m)
+      if (monthItems && monthItems.length > 0) {
+        result.push({ month: m, label: `${m}월`, items: monthItems })
+      }
+    }
+    const undated = monthMap.get(0)
+    if (undated && undated.length > 0) {
+      result.push({ month: 0, label: '미정', items: undated })
+    }
+
+    return result
   }
 
-  // 토글 확장/축소
-  const toggleExpanded = (itemId: string) => {
-    setLocalExpandedItems(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId)
+  // 월 아코디언 토글
+  const toggleMonth = (monthKey: string) => {
+    setExpandedMonths(prev => {
+      const next = new Set(prev)
+      if (next.has(monthKey)) {
+        next.delete(monthKey)
       } else {
-        newSet.add(itemId)
+        next.add(monthKey)
       }
-      return newSet
+      return next
+    })
+  }
+
+  // 항목 펼침 토글
+  const toggleItemExpanded = (itemId: string) => {
+    setExpandedItemIds(prev => {
+      const next = new Set(prev)
+      if (next.has(itemId)) {
+        next.delete(itemId)
+      } else {
+        next.add(itemId)
+      }
+      return next
     })
   }
 
@@ -369,30 +416,43 @@ export default function BucketListPage() {
       completed: !item.completed,
       completed_at: !item.completed ? new Date().toISOString() : null
     }
-
     await handleUpdate(item.id, updates)
   }
 
-  // 새 항목 추가
+  // 새 항목 추가 (모달 열기)
   const handleAddItem = async (parentId: string | null = null) => {
-    const newItem: BucketListInsert = {
-      title: '새로운 버킷리스트',
-      description: '',
-      parent_id: parentId,
-      priority: 'medium',
-      order_index: items.filter(i => i.parent_id === parentId).length,
-      progress: 0
-    }
-
-    try {
-      const res = await fetch('/api/bucketlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newItem)
+    if (parentId) {
+      // 하위 항목 추가는 기존처럼 바로 생성
+      const newItem: BucketListInsert = {
+        title: '새로운 버킷리스트',
+        description: '',
+        parent_id: parentId,
+        priority: 'medium',
+        order_index: items.filter(i => i.parent_id === parentId).length,
+        progress: 0
+      }
+      try {
+        const res = await fetch('/api/bucketlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newItem)
+        })
+        if (res.ok) fetchItems()
+      } catch (error) {
+        console.error('Error adding item:', error)
+      }
+    } else {
+      // 최상위 항목은 모달로 생성
+      setEditingItem(null)
+      const month = String(new Date().getMonth() + 1).padStart(2, '0')
+      setModalFormData({
+        title: '',
+        description: '',
+        priority: 'medium',
+        target_date: `${selectedYear}-${month}-01`,
+        progress: 0
       })
-      if (res.ok) fetchItems()
-    } catch (error) {
-      console.error('Error adding item:', error)
+      setIsModalOpen(true)
     }
   }
 
@@ -432,37 +492,62 @@ export default function BucketListPage() {
     })
   }
 
-  // 편집 저장
+  // 편집 저장 (신규 생성 / 기존 수정)
   const handleSaveEdit = async () => {
-    if (!editingItem || !modalFormData.title.trim()) return
+    if (!modalFormData.title.trim()) return
 
-    const updates: BucketListUpdate = {
-      title: modalFormData.title.trim(),
-      description: modalFormData.description.trim() || null,
-      priority: modalFormData.priority,
-      target_date: modalFormData.target_date || null,
-      progress: modalFormData.progress
-    }
-
-    try {
-      const res = await fetch(`/api/bucketlist/${editingItem.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      })
-      if (res.ok) {
-        fetchItems()
-        closeEditModal()
+    if (editingItem) {
+      // 기존 항목 수정
+      const updates: BucketListUpdate = {
+        title: modalFormData.title.trim(),
+        description: modalFormData.description.trim() || null,
+        priority: modalFormData.priority,
+        target_date: modalFormData.target_date || null,
+        progress: modalFormData.progress
       }
-    } catch (error) {
-      console.error('Error saving edit:', error)
+      try {
+        const res = await fetch(`/api/bucketlist/${editingItem.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        })
+        if (res.ok) {
+          fetchItems()
+          closeEditModal()
+        }
+      } catch (error) {
+        console.error('Error saving edit:', error)
+      }
+    } else {
+      // 신규 항목 생성
+      const newItem: BucketListInsert = {
+        title: modalFormData.title.trim(),
+        description: modalFormData.description.trim() || '',
+        parent_id: null,
+        priority: modalFormData.priority,
+        target_date: modalFormData.target_date || null,
+        order_index: items.filter(i => !i.parent_id).length,
+        progress: modalFormData.progress
+      }
+      try {
+        const res = await fetch('/api/bucketlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newItem)
+        })
+        if (res.ok) {
+          fetchItems()
+          closeEditModal()
+        }
+      } catch (error) {
+        console.error('Error creating item:', error)
+      }
     }
   }
 
   // 모달에서 삭제
   const handleModalDelete = async () => {
     if (!editingItem) return
-
     if (confirm('정말 삭제하시겠습니까? 하위 항목도 모두 삭제됩니다.')) {
       await handleDelete(editingItem.id)
       closeEditModal()
@@ -472,73 +557,28 @@ export default function BucketListPage() {
   // 모달에서 하위 항목 추가
   const handleModalAddChild = async () => {
     if (!editingItem) return
-
     await handleAddItem(editingItem.id)
     closeEditModal()
   }
 
+  const availableYears = getAvailableYears(items)
+  const monthGroups = getMonthGroups()
 
-  // 순서 변경 함수들
-  const handleMoveUp = async (item: BucketListItem) => {
-    const siblings = items.filter(i => i.parent_id === item.parent_id)
-      .sort((a, b) => a.order_index - b.order_index)
-
-    const currentIndex = siblings.findIndex(i => i.id === item.id)
-    if (currentIndex <= 0) return
-
-    const prevItem = siblings[currentIndex - 1]
-
-    // order_index 교환
-    try {
-      await fetch(`/api/bucketlist/${item.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_index: prevItem.order_index })
-      })
-      await fetch(`/api/bucketlist/${prevItem.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_index: item.order_index })
-      })
-      fetchItems()
-    } catch (error) {
-      console.error('Error moving item:', error)
+  // 연도별 통계
+  const yearItems = items.filter(i => {
+    if (!i.parent_id && i.target_date) {
+      return new Date(i.target_date).getFullYear() === selectedYear
     }
-  }
-
-  const handleMoveDown = async (item: BucketListItem) => {
-    const siblings = items.filter(i => i.parent_id === item.parent_id)
-      .sort((a, b) => a.order_index - b.order_index)
-
-    const currentIndex = siblings.findIndex(i => i.id === item.id)
-    if (currentIndex < 0 || currentIndex >= siblings.length - 1) return
-
-    const nextItem = siblings[currentIndex + 1]
-
-    // order_index 교환
-    try {
-      await fetch(`/api/bucketlist/${item.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_index: nextItem.order_index })
-      })
-      await fetch(`/api/bucketlist/${nextItem.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_index: item.order_index })
-      })
-      fetchItems()
-    } catch (error) {
-      console.error('Error moving item:', error)
-    }
-  }
-
-  const tree = getFilteredTree()
+    if (!i.parent_id && !i.target_date) return true
+    return false
+  })
+  const yearCompletedCount = yearItems.filter(i => i.completed).length
+  const yearTotalCount = yearItems.length
 
   return (
     <div className={`min-h-screen p-4 pb-24 ${getBackgroundStyle()}`}>
       <div className="max-w-4xl mx-auto">
-        {/* 헤더 - 모바일 최적화 */}
+        {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-ink flex items-center gap-2">
@@ -559,9 +599,8 @@ export default function BucketListPage() {
         </div>
 
         {/* 필터 바 */}
-        <div className={`${getCardStyle()} rounded-lg p-4 mb-6`}>
+        <div className={`${getCardStyle()} rounded-lg p-4 mb-4`}>
           <div className="flex flex-col gap-4">
-            {/* 검색 */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ink-muted" />
               <input
@@ -572,8 +611,6 @@ export default function BucketListPage() {
                 className={`w-full pl-10 pr-4 py-2 rounded-lg ${getInputStyle()}`}
               />
             </div>
-
-            {/* 완료 항목 표시 */}
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -589,43 +626,106 @@ export default function BucketListPage() {
           </div>
         </div>
 
-        {/* 버킷리스트 트리 */}
-        <div>
-          {tree.length === 0 ? (
-            <div className="text-center py-12 text-ink-muted">
-              <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">버킷리스트가 없습니다</p>
-              <p className="text-sm">새로운 목표를 추가해보세요</p>
-            </div>
-          ) : (
-            tree.map((item, index) => (
-              <BucketItem
-                key={item.id}
-                item={item}
-                depth={0}
-                onUpdate={handleUpdate}
-                onDelete={handleDelete}
-                onAddChild={handleAddItem}
-                onToggleComplete={toggleComplete}
-                isExpanded={localExpandedItems.has(item.id)}
-                onToggleExpand={toggleExpanded}
-                onOpenEditModal={openEditModal}
-                onMoveUp={handleMoveUp}
-                onMoveDown={handleMoveDown}
-                isFirst={index === 0}
-                isLast={index === tree.length - 1}
-              />
-            ))
-          )}
+        {/* 연도 탭 */}
+        <div className="flex space-x-1 mb-4 overflow-x-auto">
+          {availableYears.map(year => (
+            <button
+              key={year}
+              onClick={() => setSelectedYear(year)}
+              className={`flex-shrink-0 ${getFilterButtonStyle(selectedYear === year)}`}
+            >
+              {year}년
+            </button>
+          ))}
         </div>
 
-        {/* 편집 모달 */}
-        {isModalOpen && editingItem && (
+        {/* 연도 요약 */}
+        <div className={`${getCardStyle()} rounded-lg p-3 mb-4`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-ink-secondary">{selectedYear}년 진행률</span>
+            <span className="text-sm text-ink-secondary">{yearCompletedCount}/{yearTotalCount}</span>
+          </div>
+          <div className="w-full bg-track rounded-full h-2">
+            <div
+              className="bg-accent h-2 rounded-full transition-all duration-300"
+              style={{ width: yearTotalCount > 0 ? `${(yearCompletedCount / yearTotalCount) * 100}%` : '0%' }}
+            />
+          </div>
+        </div>
+
+        {/* 월별 아코디언 */}
+        {monthGroups.length === 0 ? (
+          <div className="text-center py-12 text-ink-muted">
+            <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg font-medium mb-2">버킷리스트가 없습니다</p>
+            <p className="text-sm">새로운 목표를 추가해보세요</p>
+          </div>
+        ) : (
+          monthGroups.map(group => {
+            const completedInMonth = group.items.filter(i => i.completed).length
+            const totalInMonth = group.items.length
+            const isMonthExpanded = expandedMonths.has(String(group.month))
+
+            return (
+              <div key={group.month} className="mb-3">
+                {/* 월 헤더 */}
+                <button
+                  onClick={() => toggleMonth(String(group.month))}
+                  className={`w-full flex items-center justify-between ${getCardStyle()} rounded-lg p-3 mb-1`}
+                >
+                  <div className="flex items-center gap-2">
+                    {isMonthExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-ink-muted" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-ink-muted" />
+                    )}
+                    <span className="font-semibold text-ink">
+                      {group.month === 0 ? '📅 ' : ''}{group.label}
+                    </span>
+                    <span className="text-sm text-ink-muted">
+                      ({completedInMonth}/{totalInMonth})
+                    </span>
+                  </div>
+                  <div className="w-16 bg-track rounded-full h-1.5">
+                    <div
+                      className="bg-green-500 h-1.5 rounded-full transition-all"
+                      style={{ width: totalInMonth > 0 ? `${(completedInMonth / totalInMonth) * 100}%` : '0%' }}
+                    />
+                  </div>
+                </button>
+
+                {/* 월 내 항목들 */}
+                {isMonthExpanded && (
+                  <div className="ml-1">
+                    {group.items.map(item => (
+                      <BucketItem
+                        key={item.id}
+                        item={item}
+                        depth={0}
+                        onUpdate={handleUpdate}
+                        onDelete={handleDelete}
+                        onAddChild={handleAddItem}
+                        onToggleComplete={toggleComplete}
+                        isExpanded={expandedItemIds.has(item.id)}
+                        onToggleExpand={toggleItemExpanded}
+                        onOpenEditModal={openEditModal}
+                        expandedItemIds={expandedItemIds}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
+
+        {/* 편집/생성 모달 */}
+        {isModalOpen && (
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
               <div className="p-4 border-b border-outline">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">버킷리스트 편집</h2>
+                  <h2 className="text-lg font-semibold">{editingItem ? '버킷리스트 편집' : '새 버킷리스트'}</h2>
                   <button onClick={closeEditModal} className="p-2 hover:bg-surface-hover rounded">
                     <X className="h-4 w-4" />
                   </button>
@@ -644,6 +744,7 @@ export default function BucketListPage() {
                     onChange={(e) => setModalFormData({ ...modalFormData, title: e.target.value })}
                     className={getInputStyle()}
                     placeholder="버킷리스트 제목"
+                    autoFocus={!editingItem}
                   />
                 </div>
 
@@ -705,23 +806,25 @@ export default function BucketListPage() {
                   />
                 </div>
 
-                {/* 추가 액션 버튼들 */}
-                <div className="flex gap-2 pt-2">
-                  <button
-                    onClick={handleModalAddChild}
-                    className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    하위 항목 추가
-                  </button>
-                  <button
-                    onClick={handleModalDelete}
-                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    삭제
-                  </button>
-                </div>
+                {/* 추가 액션 버튼들 (편집 모드에서만) */}
+                {editingItem && (
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={handleModalAddChild}
+                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      하위 항목 추가
+                    </button>
+                    <button
+                      onClick={handleModalDelete}
+                      className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      삭제
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="p-4 border-t border-outline flex justify-end space-x-2">
@@ -737,7 +840,7 @@ export default function BucketListPage() {
                   className={`px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${getButtonStyle()}`}
                 >
                   <Save className="h-4 w-4" />
-                  저장
+                  {editingItem ? '저장' : '추가'}
                 </button>
               </div>
             </div>

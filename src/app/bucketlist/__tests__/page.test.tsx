@@ -11,7 +11,8 @@ jest.mock('@/lib/context/ThemeContext', () => ({
     getButtonStyle: () => 'bg-blue-600 text-white',
     getInputStyle: () => 'border-gray-300',
     getModalStyle: () => 'bg-white',
-    getModalBackdropStyle: () => 'bg-black/50'
+    getModalBackdropStyle: () => 'bg-black/50',
+    getFilterButtonStyle: (active: boolean) => active ? 'bg-blue-600' : 'bg-gray-200'
   })
 }))
 
