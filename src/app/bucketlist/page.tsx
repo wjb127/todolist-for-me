@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react'
-import { Target, Plus, ChevronRight, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, Edit2, X, Save } from 'lucide-react'
+import { Target, Plus, ChevronRight, ChevronLeft, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, Edit2, X, Save } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { Database } from '@/lib/database.types'
 import { format } from 'date-fns'
@@ -238,7 +238,7 @@ export default function BucketListPage() {
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set())
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set())
 
-  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
+  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
 
   // 데이터 불러오기
   const fetchItems = useCallback(async () => {
@@ -252,12 +252,7 @@ export default function BucketListPage() {
       const allIds = new Set<string>(data?.map((item: BucketListItem) => item.id) || [])
       setExpandedItemIds(allIds)
 
-      // 연도 초기화
-      const years = getAvailableYears(data || [])
-      const currentYear = new Date().getFullYear()
-      if (years.length > 0 && !years.includes(selectedYear)) {
-        setSelectedYear(years.includes(currentYear) ? currentYear : years[years.length - 1])
-      }
+      // 연도 초기화 (첫 로드 시에만)
 
       // 현재 월 자동 펼침
       const currentMonth = String(new Date().getMonth() + 1)
@@ -268,27 +263,11 @@ export default function BucketListPage() {
     } catch (error) {
       console.error('Error fetching bucketlist:', error)
     }
-  }, [showCompleted, selectedYear])
+  }, [showCompleted])
 
   useEffect(() => {
     fetchItems()
   }, [fetchItems])
-
-  // 사용 가능한 연도 목록 추출
-  const getAvailableYears = (data: BucketListItem[]): number[] => {
-    const years = new Set<number>()
-    const currentYear = new Date().getFullYear()
-    // 현재 연도 ~ +2년 기본 포함
-    for (let y = currentYear; y <= currentYear + 2; y++) {
-      years.add(y)
-    }
-    data.forEach(item => {
-      if (item.target_date) {
-        years.add(new Date(item.target_date).getFullYear())
-      }
-    })
-    return Array.from(years).sort((a, b) => a - b)
-  }
 
   // 월별 그룹핑
   const getMonthGroups = (): MonthGroup[] => {
@@ -564,7 +543,6 @@ export default function BucketListPage() {
     closeEditModal()
   }
 
-  const availableYears = getAvailableYears(items)
   const monthGroups = getMonthGroups()
 
   // 연도별 통계
@@ -629,17 +607,21 @@ export default function BucketListPage() {
           </div>
         </div>
 
-        {/* 연도 탭 */}
-        <div className="flex space-x-1 mb-4 overflow-x-auto">
-          {availableYears.map(year => (
-            <button
-              key={year}
-              onClick={() => setSelectedYear(year)}
-              className={`flex-shrink-0 ${getFilterButtonStyle(selectedYear === year)}`}
-            >
-              {year}년
-            </button>
-          ))}
+        {/* 연도 선택 */}
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <button
+            onClick={() => setSelectedYear(prev => prev - 1)}
+            className="p-2 text-ink-muted hover:text-ink-secondary hover:bg-surface-hover rounded-lg transition-colors"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <span className="text-lg font-bold text-ink min-w-[80px] text-center">{selectedYear}년</span>
+          <button
+            onClick={() => setSelectedYear(prev => prev + 1)}
+            className="p-2 text-ink-muted hover:text-ink-secondary hover:bg-surface-hover rounded-lg transition-colors"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
 
         {/* 연도 요약 */}
