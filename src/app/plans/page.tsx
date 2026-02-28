@@ -862,18 +862,18 @@ export default function PlansPage() {
 
         <div className={`${getCardStyle()} mb-6`}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-ink-secondary">전체 현황</span>
-            <span className="text-sm text-ink-secondary">{completedCount}/{totalCount}</span>
+            <span className="text-sm font-medium text-ink-secondary">이 날 한 일</span>
+            <span className="text-sm text-ink-secondary">{dateCompletedCount}/{dateTotalCount}</span>
           </div>
           <div className="w-full bg-track rounded-full h-2 mb-3">
             <div
               className="bg-accent h-2 rounded-full transition-all duration-300"
-              style={{ width: totalCount > 0 ? `${(completedCount / totalCount) * 100}%` : '0%' }}
+              style={{ width: dateTotalCount > 0 ? `${(dateCompletedCount / dateTotalCount) * 100}%` : '0%' }}
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-ink-secondary">이 날 한 일</span>
-            <span className="text-sm text-ink-secondary">{dateCompletedCount}/{dateTotalCount}</span>
+            <span className="text-sm font-medium text-ink-secondary">전체 현황</span>
+            <span className="text-xs text-ink-muted">{completedCount}/{totalCount}</span>
           </div>
         </div>
 
