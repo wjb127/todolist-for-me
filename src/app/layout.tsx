@@ -39,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/icon-180x180.png" />
         <link rel="apple-touch-icon" sizes="120x120" href="/icon-120x120.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
