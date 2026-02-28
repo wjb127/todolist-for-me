@@ -117,6 +117,11 @@ const PlanItem = memo(function PlanItem({
                       ? 'text-ink-muted line-through'
                       : 'text-ink'
                   }`}>
+                    {plan.scheduled_start && (
+                      <span className="text-xs font-mono text-accent mr-1.5">
+                        {plan.scheduled_start}
+                      </span>
+                    )}
                     {plan.title}
                   </h3>
                 </div>
@@ -216,6 +221,11 @@ export default function PlansPage() {
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
   const [isMoving, setIsMoving] = useState(false) // 상하 이동 중 상태
   const [isRefreshing, setIsRefreshing] = useState(false) // 새로고침 중 상태
+  const [isScheduleLoading, setIsScheduleLoading] = useState(false)
+  const [schedulePreview, setSchedulePreview] = useState<Array<{
+    plan_id: string; start_time: string; end_time: string
+  }> | null>(null)
+  const [isApplyingSchedule, setIsApplyingSchedule] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
 
   // 테마 시스템 사용
@@ -598,6 +608,109 @@ export default function PlansPage() {
     }
   }
 
+  // 시간 배치: AI에게 스케줄 요청
+  const handleSchedule = async () => {
+    const incompletePlans = plans.filter(p =>
+      p.due_date === selectedDate && !p.completed
+    )
+
+    if (incompletePlans.length === 0) {
+      alert('배치할 미완료 계획이 없습니다.')
+      return
+    }
+
+    setIsScheduleLoading(true)
+    setSchedulePreview(null)
+
+    try {
+      const now = new Date()
+      const koreanTime = new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(now)
+      const currentTime = koreanTime.replace(/[^0-9:]/g, '')
+
+      const response = await fetch('/api/plans/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plans: incompletePlans.map(p => ({
+            id: p.id,
+            title: p.title,
+            priority: p.priority,
+            description: p.description
+          })),
+          currentTime
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('시간 배치 요청에 실패했습니다.')
+      }
+
+      const data = await response.json()
+      setSchedulePreview(data.schedule)
+    } catch (error) {
+      console.error('시간 배치 오류:', error)
+      alert('시간 배치에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setIsScheduleLoading(false)
+    }
+  }
+
+  // 시간 배치 결과를 DB에 적용
+  const handleApplySchedule = async () => {
+    if (!schedulePreview) return
+
+    setIsApplyingSchedule(true)
+    try {
+      const updatePromises = schedulePreview.map(item =>
+        fetch(`/api/plans/${item.plan_id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scheduled_start: item.start_time,
+            scheduled_end: item.end_time
+          })
+        })
+      )
+
+      const results = await Promise.all(updatePromises)
+      const allOk = results.every(r => r.ok)
+
+      if (!allOk) {
+        throw new Error('일부 계획의 시간 배치 저장에 실패했습니다.')
+      }
+
+      // 로컬 상태 즉시 반영
+      setPlans(prevPlans =>
+        prevPlans.map(p => {
+          const scheduled = schedulePreview.find(s => s.plan_id === p.id)
+          if (scheduled) {
+            return {
+              ...p,
+              scheduled_start: scheduled.start_time,
+              scheduled_end: scheduled.end_time
+            }
+          }
+          return p
+        })
+      )
+
+      setSchedulePreview(null)
+    } catch (error) {
+      console.error('시간 배치 적용 오류:', error)
+      alert('시간 배치 저장에 실패했습니다.')
+    } finally {
+      setIsApplyingSchedule(false)
+    }
+  }
+
+  const handleCancelSchedule = () => {
+    setSchedulePreview(null)
+  }
 
   const toggleExpanded = (planId: string) => {
     setExpandedPlans(prev => {
@@ -655,7 +768,15 @@ export default function PlansPage() {
   const topLevelPlans = useMemo(() => {
     return filteredPlans
       .filter(plan => !plan.parent_id)
-      .sort((a, b) => a.order_index - b.order_index)
+      .sort((a, b) => {
+        // 시간 배치된 계획은 시간순 정렬
+        if (a.scheduled_start && b.scheduled_start) {
+          return a.scheduled_start.localeCompare(b.scheduled_start)
+        }
+        if (a.scheduled_start && !b.scheduled_start) return -1
+        if (!a.scheduled_start && b.scheduled_start) return 1
+        return a.order_index - b.order_index
+      })
   }, [filteredPlans])
 
   const getPriorityColor = (priority: string) => {
@@ -755,6 +876,80 @@ export default function PlansPage() {
             <span className="text-sm text-ink-secondary">{dateCompletedCount}/{dateTotalCount}</span>
           </div>
         </div>
+
+        {/* 시간 배치 버튼 */}
+        <div className="mb-4">
+          <button
+            onClick={handleSchedule}
+            disabled={isScheduleLoading}
+            className={`w-full flex items-center justify-center space-x-2 py-3 rounded-lg text-sm font-medium transition-colors ${
+              isScheduleLoading
+                ? 'bg-purple-100 text-purple-400 cursor-not-allowed'
+                : 'bg-purple-100 text-purple-700 hover:bg-purple-200 active:bg-purple-300'
+            }`}
+          >
+            <Clock className="h-4 w-4" />
+            <span>{isScheduleLoading ? 'AI 배치 중...' : '시간 배치'}</span>
+            {isScheduleLoading && (
+              <div className="animate-spin h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full" />
+            )}
+          </button>
+        </div>
+
+        {/* 시간 배치 미리보기 */}
+        {schedulePreview && (
+          <div className={`${getCardStyle()} mb-4 border-2 border-purple-300`}>
+            <div className="flex items-center space-x-1.5 mb-3">
+              <Clock className="h-4 w-4 text-purple-600" />
+              <h3 className="text-sm font-semibold text-ink">시간 배치 결과</h3>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              {schedulePreview
+                .sort((a, b) => a.start_time.localeCompare(b.start_time))
+                .map(item => {
+                  const plan = plans.find(p => p.id === item.plan_id)
+                  if (!plan) return null
+                  return (
+                    <div
+                      key={item.plan_id}
+                      className="flex items-center space-x-3 p-2.5 rounded-lg bg-surface-hover"
+                    >
+                      <div className="text-sm font-mono font-semibold text-purple-600 whitespace-nowrap">
+                        {item.start_time}-{item.end_time}
+                      </div>
+                      <div className="flex-1 text-sm text-ink truncate">
+                        {plan.title}
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+
+            <div className="flex space-x-2">
+              <button
+                onClick={handleApplySchedule}
+                disabled={isApplyingSchedule}
+                className="flex-1 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isApplyingSchedule ? '적용 중...' : '적용'}
+              </button>
+              <button
+                onClick={handleSchedule}
+                disabled={isScheduleLoading}
+                className="flex-1 py-2.5 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                다시 배치
+              </button>
+              <button
+                onClick={handleCancelSchedule}
+                className="px-4 py-2.5 rounded-lg text-sm font-medium text-ink-secondary bg-surface-hover"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex space-x-1 mb-4">
           {(['all', 'pending', 'completed'] as const).map((filterType) => (

@@ -100,6 +100,8 @@ export interface Database {
           parent_id: string | null
           depth: number
           is_expanded: boolean
+          scheduled_start: string | null
+          scheduled_end: string | null
           created_at: string
           updated_at: string
         }
@@ -114,6 +116,8 @@ export interface Database {
           parent_id?: string | null
           depth?: number
           is_expanded?: boolean
+          scheduled_start?: string | null
+          scheduled_end?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -128,6 +132,8 @@ export interface Database {
           parent_id?: string | null
           depth?: number
           is_expanded?: boolean
+          scheduled_start?: string | null
+          scheduled_end?: string | null
           created_at?: string
           updated_at?: string
         }
