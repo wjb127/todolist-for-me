@@ -666,13 +666,19 @@ export default function PlansPage() {
 
     setIsApplyingSchedule(true)
     try {
-      const updatePromises = schedulePreview.map(item =>
+      // 시간순 정렬 후 order_index도 함께 갱신 (화살표 이동과 호환)
+      const sorted = [...schedulePreview].sort((a, b) =>
+        a.start_time.localeCompare(b.start_time)
+      )
+
+      const updatePromises = sorted.map((item, idx) =>
         fetch(`/api/plans/${item.plan_id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             scheduled_start: item.start_time,
-            scheduled_end: item.end_time
+            scheduled_end: item.end_time,
+            order_index: idx
           })
         })
       )
@@ -687,12 +693,13 @@ export default function PlansPage() {
       // 로컬 상태 즉시 반영
       setPlans(prevPlans =>
         prevPlans.map(p => {
-          const scheduled = schedulePreview.find(s => s.plan_id === p.id)
-          if (scheduled) {
+          const sortedIdx = sorted.findIndex(s => s.plan_id === p.id)
+          if (sortedIdx !== -1) {
             return {
               ...p,
-              scheduled_start: scheduled.start_time,
-              scheduled_end: scheduled.end_time
+              scheduled_start: sorted[sortedIdx].start_time,
+              scheduled_end: sorted[sortedIdx].end_time,
+              order_index: sortedIdx
             }
           }
           return p
@@ -768,15 +775,7 @@ export default function PlansPage() {
   const topLevelPlans = useMemo(() => {
     return filteredPlans
       .filter(plan => !plan.parent_id)
-      .sort((a, b) => {
-        // 시간 배치된 계획은 시간순 정렬
-        if (a.scheduled_start && b.scheduled_start) {
-          return a.scheduled_start.localeCompare(b.scheduled_start)
-        }
-        if (a.scheduled_start && !b.scheduled_start) return -1
-        if (!a.scheduled_start && b.scheduled_start) return 1
-        return a.order_index - b.order_index
-      })
+      .sort((a, b) => a.order_index - b.order_index)
   }, [filteredPlans])
 
   const getPriorityColor = (priority: string) => {
