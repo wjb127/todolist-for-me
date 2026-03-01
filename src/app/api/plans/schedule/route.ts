@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
 ${plans.map((p, i) => `${i + 1}. [ID: ${p.id}] ${p.title} (우선순위: ${p.priority === 'high' ? '높음' : p.priority === 'medium' ? '보통' : '낮음'})${p.description ? ` - ${p.description}` : ''}`).join('\n')}
 
 절대 규칙:
-1. 모든 계획의 start_time은 반드시 ${currentTime} 이후여야 합니다. ${currentTime} 이전 시간 배치는 절대 금지.
+1. 모든 계획의 start_time은 반드시 ${currentTime} 이후여야 합니다. ${currentTime} 이전 시간은 절대 금지.
 2. ${plans.length}개 계획을 모두 빠짐없이 배치 (누락 금지)
 3. 수면 시간(00:00~06:00) 배치 금지
-4. 오늘 ${currentTime}~23:59 사이에 시간이 부족하면, 내일(06:00~23:59)로 넘겨서 배치
+4. 가용 시간: ${currentTime}~23:59만 사용. 시간이 부족하면 계획의 소요시간을 줄여서라도 이 범위 안에 배치.
 5. 우선순위 높은 항목을 먼저 배치
 6. 각 계획에 적절한 소요 시간 추정
 7. 식사 시간(12:00-13:00, 18:00-19:00)은 비워두기
@@ -86,7 +86,7 @@ ${plans.map((p, i) => `${i + 1}. [ID: ${p.id}] ${p.title} (우선순위: ${p.pri
 
     const scheduleData = JSON.parse(jsonMatch[0]) as { schedule: ScheduleItem[] }
 
-    // 유효성 검사: 입력에 존재하는 plan_id만 허용
+    // 유효성 검사
     const inputIds = new Set(plans.map(p => p.id))
     const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -96,7 +96,11 @@ ${plans.map((p, i) => `${i + 1}. [ID: ${p.id}] ${p.title} (우선순위: ${p.pri
       return true
     })
 
-    return NextResponse.json({ schedule: validSchedule })
+    // currentTime 이전에 배치된 항목을 강제 보정
+    // AI가 06:00 같은 과거 시간을 반환할 경우 currentTime 이후로 재배치
+    const correctedSchedule = enforceMinStartTime(validSchedule, currentTime)
+
+    return NextResponse.json({ schedule: correctedSchedule })
 
   } catch (error) {
     console.error('시간 배치 오류:', error)
@@ -105,4 +109,71 @@ ${plans.map((p, i) => `${i + 1}. [ID: ${p.id}] ${p.title} (우선순위: ${p.pri
       { status: 500 }
     )
   }
+}
+
+// currentTime 이전에 배치된 항목들을 현재 시각 이후로 밀어내기
+function enforceMinStartTime(schedule: ScheduleItem[], currentTime: string): ScheduleItem[] {
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(':').map(Number)
+    return h * 60 + m
+  }
+  const toTimeStr = (mins: number) => {
+    const h = Math.floor(mins / 60) % 24
+    const m = mins % 60
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+  }
+
+  const currentMins = toMinutes(currentTime)
+
+  // 유효 항목: currentTime 이후 & 최소 15분 이상 소요
+  const validItems = schedule.filter(s => {
+    const start = toMinutes(s.start_time)
+    const end = toMinutes(s.end_time)
+    return start >= currentMins && end - start >= 15
+  })
+  // 무효 항목: currentTime 이전이거나 소요시간이 15분 미만인 항목
+  const invalidItems = schedule.filter(s => {
+    const start = toMinutes(s.start_time)
+    const end = toMinutes(s.end_time)
+    return start < currentMins || end - start < 15
+  })
+
+  if (invalidItems.length === 0) return schedule
+
+  // validItems 중 마지막 종료 시각 찾기
+  let nextAvailable = currentMins
+  if (validItems.length > 0) {
+    const lastEnd = Math.max(...validItems.map(s => toMinutes(s.end_time)))
+    nextAvailable = Math.max(nextAvailable, lastEnd + 10) // 10분 휴식
+  }
+
+  // invalidItems를 뒤에 붙여서 재배치
+  const rescheduled = invalidItems.map(item => {
+    const duration = toMinutes(item.end_time) - toMinutes(item.start_time)
+    const adjustedDuration = Math.max(duration, 15) // 최소 15분
+
+    // 23:59 넘으면 압축
+    if (nextAvailable + adjustedDuration > 23 * 60 + 59) {
+      const remaining = 23 * 60 + 59 - nextAvailable
+      if (remaining < 15) {
+        // 시간이 정말 부족하면 그냥 마지막에 15분으로
+        const start = toTimeStr(23 * 60 + 59 - 15)
+        nextAvailable = 23 * 60 + 59
+        return { ...item, start_time: start, end_time: '23:59' }
+      }
+      const start = toTimeStr(nextAvailable)
+      const end = toTimeStr(nextAvailable + Math.min(adjustedDuration, remaining))
+      nextAvailable += Math.min(adjustedDuration, remaining) + 10
+      return { ...item, start_time: start, end_time: end }
+    }
+
+    const start = toTimeStr(nextAvailable)
+    const end = toTimeStr(nextAvailable + adjustedDuration)
+    nextAvailable += adjustedDuration + 10
+    return { ...item, start_time: start, end_time: end }
+  })
+
+  return [...validItems, ...rescheduled].sort((a, b) =>
+    a.start_time.localeCompare(b.start_time)
+  )
 }
