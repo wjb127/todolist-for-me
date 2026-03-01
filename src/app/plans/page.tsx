@@ -221,6 +221,7 @@ export default function PlansPage() {
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
   const [isMoving, setIsMoving] = useState(false) // 상하 이동 중 상태
   const [isRefreshing, setIsRefreshing] = useState(false) // 새로고침 중 상태
+  const [currentKoreanTime, setCurrentKoreanTime] = useState('')
   const [isScheduleLoading, setIsScheduleLoading] = useState(false)
   const [schedulePreview, setSchedulePreview] = useState<Array<{
     plan_id: string; start_time: string; end_time: string
@@ -230,6 +231,23 @@ export default function PlansPage() {
 
   // 테마 시스템 사용
   const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
+
+  // 현재 한국 시각 갱신 (1분마다)
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      const time = new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(now).replace(/[^0-9:]/g, '')
+      setCurrentKoreanTime(time)
+    }
+    updateTime()
+    const interval = setInterval(updateTime, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     fetchPlans()
@@ -888,7 +906,10 @@ export default function PlansPage() {
             }`}
           >
             <Clock className="h-4 w-4" />
-            <span>{isScheduleLoading ? 'AI 배치 중...' : '시간 배치'}</span>
+            <span>{isScheduleLoading ? 'AI 배치 중...' : `시간 배치`}</span>
+            {currentKoreanTime && !isScheduleLoading && (
+              <span className="text-xs font-mono opacity-70">({currentKoreanTime} 기준)</span>
+            )}
             {isScheduleLoading && (
               <div className="animate-spin h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full" />
             )}

@@ -27,22 +27,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const prompt = `현재 시간: ${currentTime}
-수면 시간: 00:00~06:00 (이 시간대는 반드시 피할 것)
+    const prompt = `[중요] 현재 시각은 정확히 ${currentTime}입니다.
 
-다음은 완료해야 할 계획 목록입니다 (총 ${plans.length}개):
+완료해야 할 계획 (총 ${plans.length}개):
 ${plans.map((p, i) => `${i + 1}. [ID: ${p.id}] ${p.title} (우선순위: ${p.priority === 'high' ? '높음' : p.priority === 'medium' ? '보통' : '낮음'})${p.description ? ` - ${p.description}` : ''}`).join('\n')}
 
-규칙:
-- 반드시 위 ${plans.length}개 계획을 모두 빠짐없이 배치할 것 (누락 금지)
-- 현재 시간(${currentTime}) 이후부터 배치 시작
-- 수면 시간(00:00~06:00)은 반드시 피할 것. 06:00 이후~23:59 사이에 배치
-- 우선순위가 높은 항목을 먼저 배치
-- 각 계획에 적절한 소요 시간을 추정하여 배치
-- 식사 시간(12:00-13:00, 18:00-19:00)은 비워두기
-- 계획 사이에 10분의 쉬는 시간 포함
-- 반드시 아래 JSON 형식으로만 응답하고 다른 텍스트는 포함하지 마세요
+절대 규칙:
+1. 모든 계획의 start_time은 반드시 ${currentTime} 이후여야 합니다. ${currentTime} 이전 시간 배치는 절대 금지.
+2. ${plans.length}개 계획을 모두 빠짐없이 배치 (누락 금지)
+3. 수면 시간(00:00~06:00) 배치 금지
+4. 오늘 ${currentTime}~23:59 사이에 시간이 부족하면, 내일(06:00~23:59)로 넘겨서 배치
+5. 우선순위 높은 항목을 먼저 배치
+6. 각 계획에 적절한 소요 시간 추정
+7. 식사 시간(12:00-13:00, 18:00-19:00)은 비워두기
+8. 계획 사이에 10분 휴식 포함
 
+반드시 아래 JSON 형식으로만 응답:
 {"schedule":[{"plan_id":"실제ID값","start_time":"HH:MM","end_time":"HH:MM"}]}`
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
