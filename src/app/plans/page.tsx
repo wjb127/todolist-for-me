@@ -737,6 +737,39 @@ export default function PlansPage() {
     setSchedulePreview(null)
   }
 
+  // 내일로 미루기: due_date를 내일로 변경하고 시간 배치 초기화
+  const handlePostpone = async () => {
+    if (!editingPlan) return
+
+    const tomorrow = addDaysKorean(selectedDate, 1)
+
+    try {
+      const response = await fetch(`/api/plans/${editingPlan.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          due_date: tomorrow,
+          scheduled_start: null,
+          scheduled_end: null
+        })
+      })
+
+      if (!response.ok) throw new Error('미루기 실패')
+
+      // 로컬 상태 반영 (오늘 목록에서 사라짐)
+      setPlans(prev => prev.map(p =>
+        p.id === editingPlan.id
+          ? { ...p, due_date: tomorrow, scheduled_start: null, scheduled_end: null }
+          : p
+      ))
+
+      closeModal()
+    } catch (error) {
+      console.error('미루기 오류:', error)
+      alert('미루기에 실패했습니다.')
+    }
+  }
+
   const toggleExpanded = (planId: string) => {
     setExpandedPlans(prev => {
       const newSet = new Set(prev)
@@ -1028,15 +1061,24 @@ export default function PlansPage() {
                   <h2 className="text-lg font-semibold">
                     {editingPlan ? '계획 편집' : '새 계획'}
                   </h2>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1.5">
                     <button
                       onClick={handleSavePlan}
                       disabled={!formData.title || isSaving}
-                      className="px-3 py-1.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                      className="px-2.5 py-1.5 bg-accent text-white text-xs font-medium rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
                     >
-                      <Save className="h-3.5 w-3.5" />
-                      <span>{isSaving ? '저장 중...' : '저장'}</span>
+                      <Save className="h-3 w-3" />
+                      <span>{isSaving ? '저장 중' : '저장'}</span>
                     </button>
+                    {editingPlan && (
+                      <button
+                        onClick={handlePostpone}
+                        className="px-2.5 py-1.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-lg hover:bg-orange-200 flex items-center space-x-1"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                        <span>미루기</span>
+                      </button>
+                    )}
                     <button onClick={closeModal} className="p-2 hover:bg-surface-hover rounded">
                       <X className="h-4 w-4" />
                     </button>
