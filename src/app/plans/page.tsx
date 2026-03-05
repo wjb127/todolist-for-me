@@ -1053,6 +1053,16 @@ export default function PlansPage() {
           )}
         </div>
 
+        {/* 플로팅 새 계획 버튼 */}
+        {!isModalOpen && (
+          <button
+            onClick={() => openModal()}
+            className="fixed bottom-24 right-4 w-14 h-14 bg-accent text-white rounded-full shadow-lg hover:bg-accent-hover active:scale-95 transition-transform flex items-center justify-center z-40"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        )}
+
         {isModalOpen && (
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
