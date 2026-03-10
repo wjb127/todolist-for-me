@@ -52,6 +52,9 @@ interface MonthlyStats {
 interface GrowthMetric {
   current: number
   previous: number
+  // 계획용: 완료/전체 개수
+  currentCount?: string
+  previousCount?: string
 }
 
 interface GrowthSet {
@@ -478,11 +481,12 @@ export default function DashboardPage() {
       const countCompleted = (todos: Todo[], start: string, end: string) =>
         todos.filter(t => t.date && t.date >= start && t.date <= end && t.completed).length
 
-      // 계획: due_date 기준 완료율(%) 비교 (due_date 있는 것만)
-      const planCompletionRate = (start: string, end: string) => {
+      // 계획: due_date 기준 완료율(%) + 절대 개수
+      const planMetric = (start: string, end: string): { rate: number; count: string } => {
         const inRange = allPlans.filter(p => p.due_date && p.due_date >= start && p.due_date <= end)
-        if (inRange.length === 0) return -1 // 데이터 없음 표시용
-        return Math.round((inRange.filter(p => p.completed).length / inRange.length) * 100)
+        if (inRange.length === 0) return { rate: -1, count: '0/0' }
+        const completed = inRange.filter(p => p.completed).length
+        return { rate: Math.round((completed / inRange.length) * 100), count: `${completed}/${inRange.length}` }
       }
 
       setTodoGrowth({
@@ -504,11 +508,16 @@ export default function DashboardPage() {
         }
       })
 
+      const dodC = planMetric(today, today), dodP = planMetric(yesterday, yesterday)
+      const wowC = planMetric(thisWeekStart, thisWeekEnd), wowP = planMetric(lastWeekStart, lastWeekEnd)
+      const momC = planMetric(thisMonthStart, thisMonthEnd), momP = planMetric(lastMonthStart, lastMonthEnd)
+      const yoyC = planMetric(thisMonthStart, thisMonthEnd), yoyP = planMetric(lastYearMonthStart, lastYearMonthEnd)
+
       setPlanGrowth({
-        dod: { current: planCompletionRate(today, today), previous: planCompletionRate(yesterday, yesterday) },
-        wow: { current: planCompletionRate(thisWeekStart, thisWeekEnd), previous: planCompletionRate(lastWeekStart, lastWeekEnd) },
-        mom: { current: planCompletionRate(thisMonthStart, thisMonthEnd), previous: planCompletionRate(lastMonthStart, lastMonthEnd) },
-        yoy: { current: planCompletionRate(thisMonthStart, thisMonthEnd), previous: planCompletionRate(lastYearMonthStart, lastYearMonthEnd) }
+        dod: { current: dodC.rate, previous: dodP.rate, currentCount: dodC.count, previousCount: dodP.count },
+        wow: { current: wowC.rate, previous: wowP.rate, currentCount: wowC.count, previousCount: wowP.count },
+        mom: { current: momC.rate, previous: momP.rate, currentCount: momC.count, previousCount: momP.count },
+        yoy: { current: yoyC.rate, previous: yoyP.rate, currentCount: yoyC.count, previousCount: yoyP.count },
       })
     } catch (error) {
       console.error('Error fetching growth metrics:', error)
@@ -856,6 +865,67 @@ export default function DashboardPage() {
           <YearlyContributionGraph type={graphTab} />
         </div>
 
+        {/* 성장 지표 */}
+        {(todoGrowth || planGrowth) && (
+          <div className="bg-surface-card rounded-xl shadow-lg p-4 mb-6">
+            <h2 className="text-lg font-bold text-ink mb-3">📈 성장 지표</h2>
+            <div className="flex space-x-1 mb-3">
+              <button onClick={() => setGrowthTab('todos')} className={getFilterButtonStyle(growthTab === 'todos')}>
+                📝 할 일
+              </button>
+              <button onClick={() => setGrowthTab('plans')} className={getFilterButtonStyle(growthTab === 'plans')}>
+                🎯 계획
+              </button>
+            </div>
+            {(() => {
+              const data = growthTab === 'todos' ? todoGrowth : planGrowth
+              if (!data) return <p className="text-sm text-ink-secondary">데이터 로딩 중...</p>
+              const metrics = [
+                { label: 'DoD', sub: '일간', metric: data.dod },
+                { label: 'WoW', sub: '주간', metric: data.wow },
+                { label: 'MoM', sub: '전월 동기간', metric: data.mom },
+                { label: 'YoY', sub: '전년 동기간', metric: data.yoy },
+              ]
+              return (
+                <div className="grid grid-cols-4 gap-2">
+                  {metrics.map(({ label, sub, metric }) => {
+                    const pct = calcGrowthPercent(metric)
+                    const isUp = pct !== null && pct > 0
+                    const isDown = pct !== null && pct < 0
+                    return (
+                      <div key={label} className="text-center p-2 rounded-lg bg-surface-hover">
+                        <div className="text-[10px] text-ink-muted font-medium">{label}</div>
+                        <div className="text-[10px] text-ink-secondary">{sub}</div>
+                        <div className={`text-sm font-bold mt-1 flex items-center justify-center gap-0.5 ${isUp ? 'text-green-600' : isDown ? 'text-red-500' : 'text-ink-secondary'}`}>
+                          {pct === null ? (
+                            <Minus className="h-3 w-3" />
+                          ) : (
+                            <>
+                              {isUp ? <TrendingUp className="h-3 w-3" /> : isDown ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                              {pct > 0 ? '+' : ''}{pct}%
+                            </>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-ink-muted mt-0.5">
+                          {growthTab === 'plans'
+                            ? `${metric.previous === -1 ? '-' : metric.previous + '%'}→${metric.current === -1 ? '-' : metric.current + '%'}`
+                            : `${metric.previous}→${metric.current}`
+                          }
+                        </div>
+                        {growthTab === 'plans' && metric.currentCount && (
+                          <div className="text-[9px] text-ink-muted">
+                            {metric.previousCount}→{metric.currentCount}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+          </div>
+        )}
+
         {/* 6가지 레벨 시스템 */}
         <div className="mt-6 mb-6">
           <h2 className="text-xl font-bold text-ink mb-4">🎮 레벨 시스템</h2>
@@ -1093,61 +1163,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 성장 지표 */}
-        {(todoGrowth || planGrowth) && (
-          <div className="bg-surface-card rounded-xl shadow-lg p-4 mb-6">
-            <h2 className="text-lg font-bold text-ink mb-3">📈 성장 지표</h2>
-            <div className="flex space-x-1 mb-3">
-              <button onClick={() => setGrowthTab('todos')} className={getFilterButtonStyle(growthTab === 'todos')}>
-                📝 할 일
-              </button>
-              <button onClick={() => setGrowthTab('plans')} className={getFilterButtonStyle(growthTab === 'plans')}>
-                🎯 계획
-              </button>
-            </div>
-            {(() => {
-              const data = growthTab === 'todos' ? todoGrowth : planGrowth
-              if (!data) return <p className="text-sm text-ink-secondary">데이터 로딩 중...</p>
-              const metrics = [
-                { label: 'DoD', sub: '일간', metric: data.dod },
-                { label: 'WoW', sub: '주간', metric: data.wow },
-                { label: 'MoM', sub: '전월 동기간', metric: data.mom },
-                { label: 'YoY', sub: '전년 동기간', metric: data.yoy },
-              ]
-              return (
-                <div className="grid grid-cols-4 gap-2">
-                  {metrics.map(({ label, sub, metric }) => {
-                    const pct = calcGrowthPercent(metric)
-                    const isUp = pct !== null && pct > 0
-                    const isDown = pct !== null && pct < 0
-                    return (
-                      <div key={label} className="text-center p-2 rounded-lg bg-surface-hover">
-                        <div className="text-[10px] text-ink-muted font-medium">{label}</div>
-                        <div className="text-[10px] text-ink-secondary">{sub}</div>
-                        <div className={`text-sm font-bold mt-1 flex items-center justify-center gap-0.5 ${isUp ? 'text-green-600' : isDown ? 'text-red-500' : 'text-ink-secondary'}`}>
-                          {pct === null ? (
-                            <Minus className="h-3 w-3" />
-                          ) : (
-                            <>
-                              {isUp ? <TrendingUp className="h-3 w-3" /> : isDown ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                              {pct > 0 ? '+' : ''}{pct}%
-                            </>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-ink-muted mt-0.5">
-                          {growthTab === 'plans'
-                            ? `${metric.previous === -1 ? '-' : metric.previous + '%'}→${metric.current === -1 ? '-' : metric.current + '%'}`
-                            : `${metric.previous}→${metric.current}`
-                          }
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })()}
-          </div>
-        )}
+        {/* 성장 지표는 레벨 시스템 위로 이동됨 */}
 
         {/* 할 일 성과 카드 */}
         <div className="bg-surface-card rounded-xl shadow-lg p-6 mb-6">
