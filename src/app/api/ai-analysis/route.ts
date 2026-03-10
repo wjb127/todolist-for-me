@@ -31,7 +31,7 @@ function collectWeekly() {
       const [thisWeekRes, prevWeekRes, plansRes] = await Promise.all([
         supabaseAdmin.from('todos').select('*').gte('date', weekAgo).lte('date', today).order('date'),
         supabaseAdmin.from('todos').select('*').gte('date', twoWeeksAgo).lte('date', prevWeekEnd).order('date'),
-        supabaseAdmin.from('plans').select('*').gte('updated_at', weekAgo),
+        supabaseAdmin.from('plans').select('*').gte('due_date', weekAgo).lte('due_date', today),
       ])
 
       console.log('[Weekly] Supabase:', {
@@ -217,7 +217,8 @@ function collectPlans() {
         avgCompletionDays = Math.round(totalDays / completedWithDates.length)
       }
 
-      const stalePlans = incompletePlans.filter(p => p.created_at < format(subDays(new Date(), 30), 'yyyy-MM-dd'))
+      // 마감일이 지났는데 미완료인 계획 = 방치 계획
+      const stalePlans = incompletePlans.filter(p => p.due_date && p.due_date < today)
 
       const stats = { totalPlans, completedPlans, overdueCount: overduePlans.length, avgCompletionDays }
 
@@ -226,12 +227,12 @@ function collectPlans() {
 계획 패턴 데이터:
 - 총 계획: ${totalPlans}개, 완료: ${completedPlans}개, 완료율: ${totalPlans > 0 ? Math.round((completedPlans / totalPlans) * 100) : 0}%
 - 완료까지 평균 소요일: ${avgCompletionDays}일
-- 30일 이상 방치 계획: ${stalePlans.length}개
-${stalePlans.length > 0 ? `- 방치 계획 목록: ${stalePlans.slice(0, 5).map(p => p.title).join(', ')}` : ''}
+- 기한 초과 미완료 계획: ${stalePlans.length}개
+${stalePlans.length > 0 ? `- 기한 초과 목록: ${stalePlans.slice(0, 5).map(p => `${p.title}(기한: ${p.due_date})`).join(', ')}` : ''}
 
 분석 항목:
 - 전체 계획 완료 패턴
-- 장기 방치 계획 지적
+- 기한 초과 미완료 계획 지적
 - 계획 수립과 실행 간 갭 분석
 - 개선 조언 1-2개`
 
