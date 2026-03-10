@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Calendar, Plus, Clock, FileText, ChevronLeft, ChevronRight, List, LayoutGrid } from 'lucide-react'
+import { Calendar, Plus, Clock, FileText, ChevronLeft, ChevronRight, List, LayoutGrid, Pencil, X } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
+import NotionStyleEditor from '@/components/templates/NotionStyleEditor'
+import { TemplateItem } from '@/components/templates/NotionStyleEditor'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -10,22 +12,19 @@ import { Database } from '@/lib/database.types'
 
 type Todo = Database['public']['Tables']['todos']['Row']
 type Template = Database['public']['Tables']['templates']['Row']
-type TemplateItem = {
-  id: string
-  title: string
-  description?: string
-  order_index: number
-}
 
 export default function TodosPage() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [todos, setTodos] = useState<Todo[]>([])
-  const [templates, setTemplates] = useState<Template[]>([])
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [newTodoTitle, setNewTodoTitle] = useState('')
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day')
   const [weekTodos, setWeekTodos] = useState<Record<string, Todo[]>>({})
+
+  // 루틴 관련 state
+  const [routineItems, setRoutineItems] = useState<TemplateItem[]>([])
+  const [editingRoutineItems, setEditingRoutineItems] = useState<TemplateItem[]>([])
+  const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false)
+  const [isSavingRoutine, setIsSavingRoutine] = useState(false)
 
   // 테마 시스템 사용
   const { getBackgroundStyle, getCardStyle, getInputStyle, getModalStyle, getModalBackdropStyle } = useTheme()
@@ -63,14 +62,15 @@ export default function TodosPage() {
     }
   }, [selectedDate])
 
-  const fetchTemplates = useCallback(async () => {
+  const fetchRoutineItems = useCallback(async () => {
     try {
       const res = await fetch('/api/templates')
       if (!res.ok) throw new Error('Failed to fetch templates')
       const data = await res.json()
-      setTemplates(data || [])
+      const active = data?.find((t: Template) => t.is_active)
+      setRoutineItems(active?.items || [])
     } catch (error) {
-      console.error('Error fetching templates:', error)
+      console.error('Error fetching routine items:', error)
     }
   }, [])
 
@@ -95,11 +95,11 @@ export default function TodosPage() {
       } else {
         await fetchWeekTodos()
       }
-      await fetchTemplates()
+      await fetchRoutineItems()
       await checkAndApplyActiveTemplate()
     }
     loadData()
-  }, [viewMode, selectedDate, fetchTodos, fetchWeekTodos, fetchTemplates, checkAndApplyActiveTemplate])
+  }, [viewMode, selectedDate, fetchTodos, fetchWeekTodos, fetchRoutineItems, checkAndApplyActiveTemplate])
 
   const handleToggleComplete = async (id: string, completed: boolean) => {
     try {
@@ -115,52 +115,19 @@ export default function TodosPage() {
     }
   }
 
-  const handleAddFromTemplate = async () => {
-    if (!selectedTemplate) return
-
-    const template = templates.find(t => t.id === selectedTemplate)
-    if (!template) return
-
-    const newTodos = template.items.map((item: TemplateItem, index: number) => ({
-      template_id: template.id,
-      date: selectedDate,
-      title: item.title,
-      description: item.description || null,
-      completed: false,
-      order_index: todos.length + index
-    }))
-
+  const handleSaveRoutine = async (items: TemplateItem[]) => {
+    setIsSavingRoutine(true)
     try {
-      const res = await fetch('/api/todos', {
+      await fetch('/api/todos/apply-routine', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTodos)
+        body: JSON.stringify({ items })
       })
-      if (!res.ok) throw new Error('Failed to add todos from template')
+      setRoutineItems(items)
+      setIsRoutineEditorOpen(false)
       await fetchTodos()
-      setIsModalOpen(false)
-      setSelectedTemplate('')
-    } catch (error) {
-      console.error('Error adding todos from template:', error)
-    }
-  }
-
-  const handleActivateTemplate = async (templateId: string) => {
-    const template = templates.find(t => t.id === templateId)
-    if (!template) return
-
-    if (confirm(`"${template.title}" 템플릿을 활성화하시겠습니까? 기존 활성 템플릿은 비활성화되고 오늘부터의 모든 할 일이 대체됩니다.`)) {
-      try {
-        const res = await fetch(`/api/templates/${templateId}/activate`, { method: 'POST' })
-        if (!res.ok) throw new Error('Failed to activate template')
-
-        await fetchTemplates()
-        await fetchTodos()
-        alert('템플릿이 성공적으로 활성화되었습니다!')
-      } catch (error) {
-        console.error('Error activating template:', error)
-        alert('템플릿 활성화 중 오류가 발생했습니다.')
-      }
+    } finally {
+      setIsSavingRoutine(false)
     }
   }
 
@@ -245,6 +212,11 @@ export default function TodosPage() {
   const completedCount = todos.filter(todo => todo.completed).length
   const totalCount = todos.length
   const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+
+  const openRoutineEditor = () => {
+    setEditingRoutineItems([...routineItems])
+    setIsRoutineEditorOpen(true)
+  }
 
   return (
     <div className={getBackgroundStyle()}>
@@ -345,41 +317,13 @@ export default function TodosPage() {
             </div>
           )}
 
-          {templates.some(t => t.is_active) && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center space-x-2 mb-1">
-                <AnimatedCheckbox checked={true} onChange={() => {}} size="sm" className="pointer-events-none" />
-                <span className="text-sm font-medium text-green-800">
-                  활성 템플릿: {templates.find(t => t.is_active)?.title}
-                </span>
-              </div>
-              {(() => {
-                const activeTemplate = templates.find(t => t.is_active)
-                const appliedDate = activeTemplate?.applied_from_date
-                if (appliedDate) {
-                  const formatDate = new Date(appliedDate).toLocaleDateString('ko-KR')
-                  return (
-                    <p className="text-xs text-green-600">
-                      {formatDate}부터 적용 중 - 매일 자동으로 할 일이 추가됩니다 (3개월간)
-                    </p>
-                  )
-                }
-                return (
-                  <p className="text-xs text-green-600">
-                    오늘부터 향후 3개월간 자동으로 적용됩니다
-                  </p>
-                )
-              })()}
-            </div>
-          )}
-
           <div className="flex space-x-2 mb-4">
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex-1 flex items-center justify-center space-x-2 bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent-hover"
+              onClick={openRoutineEditor}
+              className="flex items-center justify-center space-x-1.5 border border-outline-strong text-ink-secondary px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors"
             >
-              <FileText className="h-4 w-4" />
-              <span>템플릿에서</span>
+              <Pencil className="h-4 w-4" />
+              <span className="text-sm">{routineItems.length > 0 ? '루틴 편집' : '루틴 설정'}</span>
             </button>
             <div className="flex-1 flex space-x-1">
               <input
@@ -407,7 +351,7 @@ export default function TodosPage() {
               <div className="text-center py-8 text-ink-muted">
                 <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>선택한 날짜에 할 일이 없습니다.</p>
-                <p className="text-sm">템플릿을 사용하거나 직접 추가해보세요.</p>
+                <p className="text-sm">루틴을 설정하거나 직접 추가해보세요.</p>
               </div>
             ) : (
               todos.map((todo) => (
@@ -433,7 +377,7 @@ export default function TodosPage() {
                   {todo.template_id && (
                     <div className="flex items-center space-x-1 ml-2">
                       <FileText className="h-3 w-3 text-blue-500" />
-                      <span className="text-xs text-blue-600">템플릿</span>
+                      <span className="text-xs text-blue-600">루틴</span>
                     </div>
                   )}
                 </div>
@@ -515,73 +459,36 @@ export default function TodosPage() {
           </div>
         )}
 
-        {isModalOpen && (
+        {isRoutineEditorOpen && (
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
               <div className="p-4 border-b border-outline">
-                <h2 className="text-lg font-semibold">템플릿에서 추가</h2>
-              </div>
-              <div className="p-4">
-                <div className="space-y-2">
-                  {templates.map((template) => (
-                    <div
-                      key={template.id}
-                      className={`p-3 border rounded-lg cursor-pointer ${
-                        selectedTemplate === template.id
-                          ? 'border-accent bg-accent-soft'
-                          : 'border-outline hover:border-outline-strong'
-                      }`}
-                      onClick={() => setSelectedTemplate(template.id)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2">
-                            <h3 className="font-medium">{template.title}</h3>
-                            {template.is_active && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                활성
-                              </span>
-                            )}
-                          </div>
-                          {template.description && (
-                            <p className="text-sm text-ink-secondary">{template.description}</p>
-                          )}
-                          <div className="text-xs text-ink-muted mt-1">
-                            {template.items.length}개 항목
-                          </div>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleActivateTemplate(template.id)
-                          }}
-                          disabled={template.is_active}
-                          className={`ml-2 px-3 py-1 text-xs rounded-lg ${
-                            template.is_active
-                              ? 'bg-surface-hover text-ink-muted cursor-not-allowed'
-                              : 'bg-accent-soft text-accent hover:bg-blue-200'
-                          }`}
-                        >
-                          {template.is_active ? '활성화됨' : '활성화'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">매일 루틴 편집</h2>
+                  <button onClick={() => setIsRoutineEditorOpen(false)}>
+                    <X className="h-5 w-5 text-ink-muted" />
+                  </button>
                 </div>
+                <p className="text-xs text-ink-muted mt-1">
+                  저장하면 오늘부터 매일 자동으로 추가됩니다
+                </p>
+              </div>
+              <div className="p-4 max-h-[60vh] overflow-y-auto">
+                <NotionStyleEditor
+                  items={editingRoutineItems}
+                  onChange={setEditingRoutineItems}
+                />
               </div>
               <div className="p-4 border-t border-outline flex space-x-2">
                 <button
-                  onClick={handleAddFromTemplate}
-                  disabled={!selectedTemplate}
+                  onClick={() => handleSaveRoutine(editingRoutineItems)}
+                  disabled={isSavingRoutine}
                   className="flex-1 bg-accent text-white py-2 rounded-lg hover:bg-accent-hover disabled:opacity-50"
                 >
-                  추가
+                  {isSavingRoutine ? '저장 중...' : '저장'}
                 </button>
                 <button
-                  onClick={() => {
-                    setIsModalOpen(false)
-                    setSelectedTemplate('')
-                  }}
+                  onClick={() => setIsRoutineEditorOpen(false)}
                   className="px-4 py-2 border border-outline-strong rounded-lg hover:bg-surface-hover"
                 >
                   취소

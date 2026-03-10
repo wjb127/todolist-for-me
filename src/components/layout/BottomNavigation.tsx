@@ -2,11 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileText, CheckSquare, Target, BarChart3, Sparkles } from 'lucide-react'
+import { CheckSquare, Target, BarChart3, Sparkles } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 
 const navigation = [
-  { name: '템플릿', href: '/templates', icon: FileText },
   { name: 'Todo', href: '/todos', icon: CheckSquare },
   { name: '계획', href: '/plans', icon: Target },
   { name: '버킷', href: '/bucketlist', icon: Sparkles },
