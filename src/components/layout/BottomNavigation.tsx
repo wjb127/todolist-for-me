@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CheckSquare, Target, BarChart3, Sparkles } from 'lucide-react'
+import { CheckSquare, Target, BarChart3, Brain } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 
 const navigation = [
   { name: 'Todo', href: '/todos', icon: CheckSquare },
   { name: '계획', href: '/plans', icon: Target },
-  { name: '버킷', href: '/bucketlist', icon: Sparkles },
   { name: '대시보드', href: '/dashboard', icon: BarChart3 },
+  { name: 'AI 분석', href: '/ai-analysis', icon: Brain },
 ]
 
 export default function BottomNavigation() {
