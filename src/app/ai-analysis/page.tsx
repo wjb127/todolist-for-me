@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Brain, Loader2, RefreshCw, CheckSquare, Target } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 
@@ -45,6 +45,43 @@ export default function AiAnalysisPage() {
   const analysis = analyses[activeType] || ''
   const stats = statsMap[activeType] || null
 
+  // 마운트 시 저장된 리포트 로드
+  useEffect(() => {
+    const loadSavedReports = async () => {
+      try {
+        const res = await fetch('/api/ai-reports')
+        if (!res.ok) return
+        const { reports } = await res.json()
+        if (!reports || reports.length === 0) return
+
+        const savedAnalyses: Record<string, string> = {}
+        const savedStats: Record<string, StatsType | null> = {}
+        for (const report of reports) {
+          savedAnalyses[report.type] = report.content
+          if (report.stats) savedStats[report.type] = report.stats
+        }
+        setAnalyses(savedAnalyses)
+        setStatsMap(savedStats)
+      } catch {
+        // 로드 실패 무시
+      }
+    }
+    loadSavedReports()
+  }, [])
+
+  // 리포트 DB 저장
+  const saveReport = useCallback(async (type: string, content: string, reportStats: StatsType | null) => {
+    try {
+      await fetch('/api/ai-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, content, stats: reportStats }),
+      })
+    } catch {
+      // 저장 실패 무시
+    }
+  }, [])
+
   const handleGenerate = useCallback(async () => {
     // 이전 스트림 취소
     if (abortRef.current) abortRef.current.abort()
@@ -70,6 +107,8 @@ export default function AiAnalysisPage() {
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
+      let fullContent = ''
+      let currentStats: StatsType | null = null
 
       while (true) {
         const { done, value } = await reader.read()
@@ -84,12 +123,16 @@ export default function AiAnalysisPage() {
           try {
             const data = JSON.parse(line.slice(6))
             if (data.type === 'stats') {
+              currentStats = data.stats
               setStatsMap(prev => ({ ...prev, [currentType]: data.stats }))
               setIsLoading(false)
             } else if (data.type === 'chunk') {
+              fullContent += data.text
               setAnalyses(prev => ({ ...prev, [currentType]: (prev[currentType] || '') + data.text }))
             } else if (data.type === 'done') {
               setIsStreaming(false)
+              // 완료 시 DB에 저장
+              saveReport(currentType, fullContent, currentStats)
             } else if (data.type === 'error') {
               setAnalyses(prev => ({ ...prev, [currentType]: '<p style="color:#ef4444">분석 중 오류가 발생했습니다.</p>' }))
               setIsStreaming(false)
@@ -107,7 +150,7 @@ export default function AiAnalysisPage() {
       setIsLoading(false)
       setIsStreaming(false)
     }
-  }, [activeType])
+  }, [activeType, saveReport])
 
   const formatDate = (dateStr: string) => {
     if (!dateStr || dateStr === '-') return '-'

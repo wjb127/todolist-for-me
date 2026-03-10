@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Target, BarChart3, Award, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight, Sparkles, Trophy, Zap, Star, Crown, Shield, Gem, Rocket, X, Palette, StickyNote, Plus, Edit2, Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
-import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, subWeeks, subMonths, addDays } from 'date-fns'
+import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, subWeeks, subMonths, addDays, min } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Database } from '@/lib/database.types'
 import YearlyContributionGraph from '@/components/dashboard/YearlyContributionGraph'
@@ -448,15 +448,19 @@ export default function DashboardPage() {
       const lastWeekStart = format(startOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
       const lastWeekEnd = format(endOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
+      // MTD 동기간 비교: 이번달 1일~오늘 vs 저번달 1일~같은 날짜
       const thisMonthStart = format(startOfMonth(now), 'yyyy-MM-dd')
-      const thisMonthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
+      const thisMonthEnd = format(now, 'yyyy-MM-dd') // 오늘까지만
       const lastMonth = subMonths(now, 1)
       const lastMonthStart = format(startOfMonth(lastMonth), 'yyyy-MM-dd')
-      const lastMonthEnd = format(endOfMonth(lastMonth), 'yyyy-MM-dd')
+      const lastMonthSameDay = min([new Date(lastMonth.getFullYear(), lastMonth.getMonth(), now.getDate()), endOfMonth(lastMonth)])
+      const lastMonthEnd = format(lastMonthSameDay, 'yyyy-MM-dd')
 
+      // YoY: 작년 같은달 1일~같은 날짜
       const lastYearDate = new Date(now.getFullYear() - 1, now.getMonth(), 1)
       const lastYearMonthStart = format(startOfMonth(lastYearDate), 'yyyy-MM-dd')
-      const lastYearMonthEnd = format(endOfMonth(lastYearDate), 'yyyy-MM-dd')
+      const lastYearSameDay = min([new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()), endOfMonth(lastYearDate)])
+      const lastYearMonthEnd = format(lastYearSameDay, 'yyyy-MM-dd')
 
       const [recentRes, lastYearRes] = await Promise.all([
         fetch(`/api/dashboard/stats?startDate=${lastMonthStart}&endDate=${thisMonthEnd}`),
@@ -512,15 +516,19 @@ export default function DashboardPage() {
     const lastWeekStart = format(startOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
     const lastWeekEnd = format(endOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
+    // MTD 동기간 비교: 이번달 1일~오늘 vs 저번달 1일~같은 날짜
     const thisMonthStart = format(startOfMonth(now), 'yyyy-MM-dd')
-    const thisMonthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
+    const thisMonthEnd = format(now, 'yyyy-MM-dd') // 오늘까지만
     const lastMonth = subMonths(now, 1)
     const lastMonthStart = format(startOfMonth(lastMonth), 'yyyy-MM-dd')
-    const lastMonthEnd = format(endOfMonth(lastMonth), 'yyyy-MM-dd')
+    const lastMonthSameDay = min([new Date(lastMonth.getFullYear(), lastMonth.getMonth(), now.getDate()), endOfMonth(lastMonth)])
+    const lastMonthEnd = format(lastMonthSameDay, 'yyyy-MM-dd')
 
+    // YoY: 작년 같은달 1일~같은 날짜
     const lastYearDate = new Date(now.getFullYear() - 1, now.getMonth(), 1)
     const lastYearMonthStart = format(startOfMonth(lastYearDate), 'yyyy-MM-dd')
-    const lastYearMonthEnd = format(endOfMonth(lastYearDate), 'yyyy-MM-dd')
+    const lastYearSameDay = min([new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()), endOfMonth(lastYearDate)])
+    const lastYearMonthEnd = format(lastYearSameDay, 'yyyy-MM-dd')
 
     const countPlanCompleted = (start: string, end: string) =>
       plans.filter(p => {
@@ -1126,8 +1134,8 @@ export default function DashboardPage() {
               const metrics = [
                 { label: 'DoD', sub: '일간', metric: data.dod },
                 { label: 'WoW', sub: '주간', metric: data.wow },
-                { label: 'MoM', sub: '월간', metric: data.mom },
-                { label: 'YoY', sub: '연간', metric: data.yoy },
+                { label: 'MoM', sub: '전월 동기간', metric: data.mom },
+                { label: 'YoY', sub: '전년 동기간', metric: data.yoy },
               ]
               return (
                 <div className="grid grid-cols-4 gap-2">
