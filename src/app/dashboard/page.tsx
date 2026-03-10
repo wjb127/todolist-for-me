@@ -8,6 +8,8 @@ import { ko } from 'date-fns/locale'
 import { Database } from '@/lib/database.types'
 import YearlyContributionGraph from '@/components/dashboard/YearlyContributionGraph'
 import LevelCard from '@/components/dashboard/LevelCard'
+import WeeklyBarChart from '@/components/dashboard/WeeklyBarChart'
+import MonthlyLineChart from '@/components/dashboard/MonthlyLineChart'
 import {
   getLevelInfo,
   todoDailyLevels,
@@ -925,6 +927,12 @@ export default function DashboardPage() {
             })()}
           </div>
         )}
+
+        {/* 주간 막대그래프 */}
+        <WeeklyBarChart />
+
+        {/* 월간 라인차트 */}
+        <MonthlyLineChart />
 
         {/* 6가지 레벨 시스템 */}
         <div className="mt-6 mb-6">
