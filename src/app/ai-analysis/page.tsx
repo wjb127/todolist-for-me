@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Brain, Loader2, RefreshCw, CheckSquare, Target } from 'lucide-react'
+import { Brain, Loader2, RefreshCw, CheckSquare, Target, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
+import { format, subDays, addDays, isToday } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 type TopTab = 'todo' | 'plans'
 type TodoSubTab = 'weekly' | 'routine' | 'trend'
@@ -35,6 +37,7 @@ export default function AiAnalysisPage() {
   const [topTab, setTopTab] = useState<TopTab>('todo')
   const [todoSub, setTodoSub] = useState<TodoSubTab>('weekly')
   const [plansSub, setPlansSub] = useState<PlansSubTab>('plans')
+  const [selectedDate, setSelectedDate] = useState(new Date())
   const [analyses, setAnalyses] = useState<Record<string, string>>({})
   const [statsMap, setStatsMap] = useState<Record<string, StatsType | null>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -44,21 +47,23 @@ export default function AiAnalysisPage() {
   const activeType: AnalysisType = topTab === 'todo' ? todoSub : plansSub
   const analysis = analyses[activeType] || ''
   const stats = statsMap[activeType] || null
+  const dateStr = format(selectedDate, 'yyyy-MM-dd')
 
-  // 마운트 시 저장된 리포트 로드
+  // 날짜 변경 시 저장된 리포트 로드
   useEffect(() => {
     const loadSavedReports = async () => {
       try {
-        const res = await fetch('/api/ai-reports')
+        const res = await fetch(`/api/ai-reports?date=${dateStr}`)
         if (!res.ok) return
         const { reports } = await res.json()
-        if (!reports || reports.length === 0) return
 
         const savedAnalyses: Record<string, string> = {}
         const savedStats: Record<string, StatsType | null> = {}
-        for (const report of reports) {
-          savedAnalyses[report.type] = report.content
-          if (report.stats) savedStats[report.type] = report.stats
+        if (reports && reports.length > 0) {
+          for (const report of reports) {
+            savedAnalyses[report.type] = report.content
+            if (report.stats) savedStats[report.type] = report.stats
+          }
         }
         setAnalyses(savedAnalyses)
         setStatsMap(savedStats)
@@ -67,15 +72,15 @@ export default function AiAnalysisPage() {
       }
     }
     loadSavedReports()
-  }, [])
+  }, [dateStr])
 
   // 리포트 DB 저장
-  const saveReport = useCallback(async (type: string, content: string, reportStats: StatsType | null) => {
+  const saveReport = useCallback(async (type: string, content: string, reportStats: StatsType | null, reportDate: string) => {
     try {
       await fetch('/api/ai-reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, content, stats: reportStats }),
+        body: JSON.stringify({ type, content, stats: reportStats, report_date: reportDate }),
       })
     } catch {
       // 저장 실패 무시
@@ -83,15 +88,14 @@ export default function AiAnalysisPage() {
   }, [])
 
   const handleGenerate = useCallback(async () => {
-    // 이전 스트림 취소
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
     abortRef.current = controller
 
     setIsLoading(true)
     setIsStreaming(true)
-    // 현재 탭 초기화
     const currentType = activeType
+    const currentDateStr = dateStr
     setAnalyses(prev => ({ ...prev, [currentType]: '' }))
 
     try {
@@ -131,8 +135,7 @@ export default function AiAnalysisPage() {
               setAnalyses(prev => ({ ...prev, [currentType]: (prev[currentType] || '') + data.text }))
             } else if (data.type === 'done') {
               setIsStreaming(false)
-              // 완료 시 DB에 저장
-              saveReport(currentType, fullContent, currentStats)
+              saveReport(currentType, fullContent, currentStats, currentDateStr)
             } else if (data.type === 'error') {
               setAnalyses(prev => ({ ...prev, [currentType]: '<p style="color:#ef4444">분석 중 오류가 발생했습니다.</p>' }))
               setIsStreaming(false)
@@ -150,9 +153,9 @@ export default function AiAnalysisPage() {
       setIsLoading(false)
       setIsStreaming(false)
     }
-  }, [activeType, saveReport])
+  }, [activeType, dateStr, saveReport])
 
-  const formatDate = (dateStr: string) => {
+  const formatDateLabel = (dateStr: string) => {
     if (!dateStr || dateStr === '-') return '-'
     const d = new Date(dateStr)
     const days = ['일', '월', '화', '수', '목', '금', '토']
@@ -177,7 +180,7 @@ export default function AiAnalysisPage() {
           <div className="grid grid-cols-3 gap-2 mb-4">
             <StatCard label="완료율" value={`${s.completionRate}%`} />
             <StatCard label="전주 대비" value={`${diff > 0 ? '+' : ''}${diff}%`} color={diff > 0 ? 'text-green-500' : diff < 0 ? 'text-red-500' : 'text-ink-muted'} />
-            <StatCard label="최고의 날" value={formatDate(s.bestDay)} color="text-ink" />
+            <StatCard label="최고의 날" value={formatDateLabel(s.bestDay)} color="text-ink" />
           </div>
         )
       }
@@ -238,9 +241,35 @@ export default function AiAnalysisPage() {
     <div className={`min-h-screen ${getBackgroundStyle()}`}>
       <div className="max-w-md mx-auto px-4 pt-6 pb-24">
         {/* 헤더 */}
-        <div className="flex items-center gap-2 mb-5">
+        <div className="flex items-center gap-2 mb-4">
           <Brain className="h-6 w-6 text-accent" />
           <h1 className="text-xl font-bold text-ink">AI 분석</h1>
+        </div>
+
+        {/* 날짜 네비게이션 */}
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <button
+            onClick={() => setSelectedDate(prev => subDays(prev, 1))}
+            className="p-1.5 rounded-lg text-ink-secondary active:bg-surface-hover"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => setSelectedDate(new Date())}
+            className="text-sm font-medium text-ink min-w-[120px] text-center"
+          >
+            {isToday(selectedDate)
+              ? `오늘 (${format(selectedDate, 'M/d')})`
+              : format(selectedDate, 'yyyy. M. d (EEE)', { locale: ko })
+            }
+          </button>
+          <button
+            onClick={() => setSelectedDate(prev => addDays(prev, 1))}
+            disabled={isToday(selectedDate)}
+            className="p-1.5 rounded-lg text-ink-secondary active:bg-surface-hover disabled:opacity-30"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
 
         {/* 상위 탭 */}
@@ -288,33 +317,35 @@ export default function AiAnalysisPage() {
         {/* 요약 카드 */}
         {renderStats()}
 
-        {/* 리포트 생성 버튼 */}
-        <button
-          onClick={handleGenerate}
-          disabled={isLoading || isStreaming}
-          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-colors mb-4 ${
-            isLoading || isStreaming
-              ? 'bg-accent/50 text-white/70 cursor-not-allowed'
-              : 'bg-accent text-white active:bg-accent/80'
-          }`}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              데이터 수집 중...
-            </>
-          ) : isStreaming ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              리포트 작성 중...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4" />
-              {analysis ? '다시 분석하기' : '리포트 생성'}
-            </>
-          )}
-        </button>
+        {/* 리포트 생성 버튼 - 오늘만 생성 가능 */}
+        {isToday(selectedDate) ? (
+          <button
+            onClick={handleGenerate}
+            disabled={isLoading || isStreaming}
+            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-colors mb-4 ${
+              isLoading || isStreaming
+                ? 'bg-accent/50 text-white/70 cursor-not-allowed'
+                : 'bg-accent text-white active:bg-accent/80'
+            }`}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                데이터 수집 중...
+              </>
+            ) : isStreaming ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                리포트 작성 중...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4" />
+                {analysis ? '다시 분석하기' : '리포트 생성'}
+              </>
+            )}
+          </button>
+        ) : null}
 
         {/* 분석 결과 (HTML 스트리밍 렌더링) */}
         {analysis && (
@@ -329,7 +360,10 @@ export default function AiAnalysisPage() {
           <div className={`${getCardStyle()} rounded-xl p-8 text-center`}>
             <Brain className="h-10 w-10 text-ink-muted mx-auto mb-3" />
             <p className="text-sm text-ink-muted">
-              리포트 생성 버튼을 눌러<br />AI 분석을 시작하세요
+              {isToday(selectedDate)
+                ? <>리포트 생성 버튼을 눌러<br />AI 분석을 시작하세요</>
+                : '이 날짜에 저장된 리포트가 없습니다'
+              }
             </p>
           </div>
         )}

@@ -1,11 +1,13 @@
 -- AI 리포트 저장 테이블
 CREATE TABLE IF NOT EXISTS ai_reports (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  type TEXT NOT NULL UNIQUE,  -- weekly, routine, trend, plans, priority, deadline
+  type TEXT NOT NULL,  -- weekly, routine, trend, plans, priority, deadline
+  report_date DATE NOT NULL DEFAULT CURRENT_DATE,
   content TEXT NOT NULL DEFAULT '',
   stats JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(type, report_date)
 );
 
 -- updated_at 자동 갱신 트리거

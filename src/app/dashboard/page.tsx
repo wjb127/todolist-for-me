@@ -462,18 +462,28 @@ export default function DashboardPage() {
       const lastYearSameDay = min([new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()), endOfMonth(lastYearDate)])
       const lastYearMonthEnd = format(lastYearSameDay, 'yyyy-MM-dd')
 
-      const [recentRes, lastYearRes] = await Promise.all([
+      const [recentRes, lastYearRes, plansRes] = await Promise.all([
         fetch(`/api/dashboard/stats?startDate=${lastMonthStart}&endDate=${thisMonthEnd}`),
-        fetch(`/api/dashboard/stats?startDate=${lastYearMonthStart}&endDate=${lastYearMonthEnd}`)
+        fetch(`/api/dashboard/stats?startDate=${lastYearMonthStart}&endDate=${lastYearMonthEnd}`),
+        fetch(`/api/dashboard/stats?startDate=${lastYearMonthStart}&endDate=${thisMonthEnd}`)
       ])
 
       const recentData = await recentRes.json()
       const lastYearData = await lastYearRes.json()
+      const plansData = await plansRes.json()
       const recentTodos = (recentData.todos || []) as Todo[]
       const lastYearTodos = (lastYearData.todos || []) as Todo[]
+      const allPlans = (plansData.plans || []) as Plan[]
 
       const countCompleted = (todos: Todo[], start: string, end: string) =>
         todos.filter(t => t.date && t.date >= start && t.date <= end && t.completed).length
+
+      // 계획: due_date 기준 완료율(%) 비교 (due_date 있는 것만)
+      const planCompletionRate = (start: string, end: string) => {
+        const inRange = allPlans.filter(p => p.due_date && p.due_date >= start && p.due_date <= end)
+        if (inRange.length === 0) return -1 // 데이터 없음 표시용
+        return Math.round((inRange.filter(p => p.completed).length / inRange.length) * 100)
+      }
 
       setTodoGrowth({
         dod: {
@@ -493,6 +503,13 @@ export default function DashboardPage() {
           previous: countCompleted(lastYearTodos, lastYearMonthStart, lastYearMonthEnd)
         }
       })
+
+      setPlanGrowth({
+        dod: { current: planCompletionRate(today, today), previous: planCompletionRate(yesterday, yesterday) },
+        wow: { current: planCompletionRate(thisWeekStart, thisWeekEnd), previous: planCompletionRate(lastWeekStart, lastWeekEnd) },
+        mom: { current: planCompletionRate(thisMonthStart, thisMonthEnd), previous: planCompletionRate(lastMonthStart, lastMonthEnd) },
+        yoy: { current: planCompletionRate(thisMonthStart, thisMonthEnd), previous: planCompletionRate(lastYearMonthStart, lastYearMonthEnd) }
+      })
     } catch (error) {
       console.error('Error fetching growth metrics:', error)
     }
@@ -502,50 +519,10 @@ export default function DashboardPage() {
     fetchGrowthMetrics()
   }, [fetchGrowthMetrics])
 
-  // 계획 성장 지표 (plans 상태에서 계산)
-  useEffect(() => {
-    if (plans.length === 0 && !planGrowth) return
-
-    const now = new Date()
-    const today = format(now, 'yyyy-MM-dd')
-    const yesterday = format(subDays(now, 1), 'yyyy-MM-dd')
-
-    const thisWeekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-    const thisWeekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-    const lastWeek = subWeeks(now, 1)
-    const lastWeekStart = format(startOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-    const lastWeekEnd = format(endOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-
-    // MTD 동기간 비교: 이번달 1일~오늘 vs 저번달 1일~같은 날짜
-    const thisMonthStart = format(startOfMonth(now), 'yyyy-MM-dd')
-    const thisMonthEnd = format(now, 'yyyy-MM-dd') // 오늘까지만
-    const lastMonth = subMonths(now, 1)
-    const lastMonthStart = format(startOfMonth(lastMonth), 'yyyy-MM-dd')
-    const lastMonthSameDay = min([new Date(lastMonth.getFullYear(), lastMonth.getMonth(), now.getDate()), endOfMonth(lastMonth)])
-    const lastMonthEnd = format(lastMonthSameDay, 'yyyy-MM-dd')
-
-    // YoY: 작년 같은달 1일~같은 날짜
-    const lastYearDate = new Date(now.getFullYear() - 1, now.getMonth(), 1)
-    const lastYearMonthStart = format(startOfMonth(lastYearDate), 'yyyy-MM-dd')
-    const lastYearSameDay = min([new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()), endOfMonth(lastYearDate)])
-    const lastYearMonthEnd = format(lastYearSameDay, 'yyyy-MM-dd')
-
-    const countPlanCompleted = (start: string, end: string) =>
-      plans.filter(p => {
-        if (!p.completed || !p.updated_at) return false
-        const d = p.updated_at.substring(0, 10)
-        return d >= start && d <= end
-      }).length
-
-    setPlanGrowth({
-      dod: { current: countPlanCompleted(today, today), previous: countPlanCompleted(yesterday, yesterday) },
-      wow: { current: countPlanCompleted(thisWeekStart, thisWeekEnd), previous: countPlanCompleted(lastWeekStart, lastWeekEnd) },
-      mom: { current: countPlanCompleted(thisMonthStart, thisMonthEnd), previous: countPlanCompleted(lastMonthStart, lastMonthEnd) },
-      yoy: { current: countPlanCompleted(thisMonthStart, thisMonthEnd), previous: countPlanCompleted(lastYearMonthStart, lastYearMonthEnd) }
-    })
-  }, [plans])
-
   const calcGrowthPercent = (m: GrowthMetric): number | null => {
+    // -1은 해당 기간 데이터 없음
+    if (m.current === -1 && m.previous === -1) return null
+    if (m.current === -1 || m.previous === -1) return null
     if (m.previous === 0 && m.current === 0) return null
     if (m.previous === 0) return 100
     return Math.round(((m.current - m.previous) / m.previous) * 100)
@@ -1158,7 +1135,10 @@ export default function DashboardPage() {
                           )}
                         </div>
                         <div className="text-[10px] text-ink-muted mt-0.5">
-                          {metric.previous}→{metric.current}
+                          {growthTab === 'plans'
+                            ? `${metric.previous === -1 ? '-' : metric.previous + '%'}→${metric.current === -1 ? '-' : metric.current + '%'}`
+                            : `${metric.previous}→${metric.current}`
+                          }
                         </div>
                       </div>
                     )
