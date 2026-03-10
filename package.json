@@ -24,6 +24,9 @@
     "react": "19.1.2",
     "react-dom": "19.1.2"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp"]
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
