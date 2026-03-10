@@ -6,7 +6,7 @@ import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import confetti from 'canvas-confetti'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { DndContext, DragOverlay, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent, type DraggableAttributes, type DraggableSyntheticListeners } from '@dnd-kit/core'
+import { DndContext, DragOverlay, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors, MeasuringStrategy, type DragEndEvent, type DragStartEvent, type DraggableAttributes, type DraggableSyntheticListeners } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -136,7 +136,7 @@ const PlanItem = memo(function PlanItem({
       {/* 하위 계획들 렌더링 */}
       {isExpanded && hasChildren && childrenPlans.length > 0 && (
         <div className="ml-4 mt-2 space-y-2">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
             <SortableContext items={childrenPlans.map(p => p.id)} strategy={verticalListSortingStrategy}>
               {childrenPlans.map((child) => {
                 const childPlans = getChildPlansFn(child.id)
@@ -1009,6 +1009,7 @@ export default function PlansPage() {
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
               onDragStart={(event: DragStartEvent) => setActiveId(String(event.active.id))}
               onDragEnd={handleDragEnd}
             >
