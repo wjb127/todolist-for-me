@@ -310,17 +310,6 @@ export default function PlansPage() {
     }
   }, [])
 
-  useEffect(() => {
-    if (!isModalOpen) return
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [isModalOpen])
-
   // 모달이 열릴 때 제목 입력 필드에 포커스
   useEffect(() => {
     if (isModalOpen && titleInputRef.current) {
