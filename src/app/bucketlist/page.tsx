@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react'
 import { Target, Plus, ChevronRight, ChevronLeft, ChevronDown, Trash2, Calendar, CheckCircle2, Circle, Star, Search, Edit2, X, Save } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
+import Portal from '@/components/ui/Portal'
 import { Database } from '@/lib/database.types'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -706,6 +707,7 @@ export default function BucketListPage() {
 
         {/* 편집/생성 모달 */}
         {isModalOpen && (
+          <Portal>
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
               <div className="p-4 border-b border-outline">
@@ -830,6 +832,7 @@ export default function BucketListPage() {
               </div>
             </div>
           </div>
+          </Portal>
         )}
       </div>
     </div>

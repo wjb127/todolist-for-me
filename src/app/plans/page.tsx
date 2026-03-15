@@ -12,6 +12,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { Database } from '@/lib/database.types'
 import { useTheme } from '@/lib/context/ThemeContext'
+import Portal from '@/components/ui/Portal'
 
 type Plan = Database['public']['Tables']['plans']['Row']
 type PlanInsert = Database['public']['Tables']['plans']['Insert']
@@ -188,11 +189,10 @@ function SortablePlanItem({ plan, ...props }: PlanItemProps) {
   )
 }
 
-// DragOverlay용 간단 컴포넌트
+// DragOverlay용 간단 컴포넌트 — backdrop-filter 미적용 (모바일 stacking context 이슈 방지)
 function PlanItemOverlay({ plan }: { plan: Plan }) {
-  const { getCardStyle } = useTheme()
   return (
-    <div className={`${getCardStyle()} opacity-90 shadow-xl`}>
+    <div className="bg-surface-card opacity-90 shadow-xl rounded-lg border border-outline">
       <div className="flex items-center space-x-2 p-2">
         <GripVertical className="h-4 w-4 text-ink-muted" />
         <span className="text-sm font-semibold text-ink">{plan.title}</span>
@@ -1046,6 +1046,7 @@ export default function PlansPage() {
         </div>
 
         {isModalOpen && (
+          <Portal>
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
               <div className="p-4 border-b border-outline">
@@ -1245,6 +1246,7 @@ export default function PlansPage() {
               </div>
             </div>
           </div>
+          </Portal>
         )}
       </div>
     </div>

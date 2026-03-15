@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit2, Save, Trash2, X, StickyNote } from 'lucide-react'
 import { Database } from '@/lib/database.types'
 import { useTheme } from '@/lib/context/ThemeContext'
+import Portal from '@/components/ui/Portal'
 
 type Note = Database['public']['Tables']['notes']['Row']
 type NoteInsert = Database['public']['Tables']['notes']['Insert']
@@ -213,62 +214,64 @@ export default function NotesPage() {
 
         {/* 편집 모달 */}
         {isModalOpen && editingNote && (
-          <div className={getModalBackdropStyle()}>
-            <div className={`${getModalStyle()} w-full max-w-md`}>
-              <div className="p-4 border-b border-outline">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">메모 편집</h2>
-                  <button onClick={closeModal} className="p-2 hover:bg-surface-hover rounded">
-                    <X className="h-4 w-4" />
-                  </button>
+          <Portal>
+            <div className={getModalBackdropStyle()}>
+              <div className={`${getModalStyle()} w-full max-w-md`}>
+                <div className="p-4 border-b border-outline">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">메모 편집</h2>
+                    <button onClick={closeModal} className="p-2 hover:bg-surface-hover rounded">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-4">
-                <textarea
-                  value={modalContent}
-                  onChange={(e) => setModalContent(e.target.value)}
-                  className={`w-full ${getInputStyle()} min-h-[120px] resize-none`}
-                  placeholder="메모 내용을 입력하세요..."
-                  autoFocus
-                />
-                <p className="text-xs text-ink-muted mt-2">
-                  작성: {formatDate(editingNote.created_at)}
-                  {editingNote.updated_at !== editingNote.created_at &&
-                    ` | 수정: ${formatDate(editingNote.updated_at)}`
-                  }
-                </p>
-              </div>
+                <div className="p-4">
+                  <textarea
+                    value={modalContent}
+                    onChange={(e) => setModalContent(e.target.value)}
+                    className={`w-full ${getInputStyle()} min-h-[120px] resize-none`}
+                    placeholder="메모 내용을 입력하세요..."
+                    autoFocus
+                  />
+                  <p className="text-xs text-ink-muted mt-2">
+                    작성: {formatDate(editingNote.created_at)}
+                    {editingNote.updated_at !== editingNote.created_at &&
+                      ` | 수정: ${formatDate(editingNote.updated_at)}`
+                    }
+                  </p>
+                </div>
 
-              <div className="p-4 border-t border-outline flex justify-between">
-                <button
-                  onClick={handleDeleteNote}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>삭제</span>
-                </button>
-                <div className="flex space-x-2">
+                <div className="p-4 border-t border-outline flex justify-between">
                   <button
-                    onClick={closeModal}
+                    onClick={handleDeleteNote}
                     disabled={isLoading}
-                    className={`px-4 py-2 rounded-lg ${getCardStyle()} hover:opacity-80 disabled:opacity-50`}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
-                    취소
+                    <Trash2 className="h-4 w-4" />
+                    <span>삭제</span>
                   </button>
-                  <button
-                    onClick={handleSaveEdit}
-                    disabled={!modalContent.trim() || isLoading}
-                    className={`px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 ${getButtonStyle()}`}
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>저장</span>
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={closeModal}
+                      disabled={isLoading}
+                      className={`px-4 py-2 rounded-lg ${getCardStyle()} hover:opacity-80 disabled:opacity-50`}
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleSaveEdit}
+                      disabled={!modalContent.trim() || isLoading}
+                      className={`px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 ${getButtonStyle()}`}
+                    >
+                      <Save className="h-4 w-4" />
+                      <span>저장</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </Portal>
         )}
       </div>
     </div>

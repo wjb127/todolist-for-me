@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { Database } from '@/lib/database.types'
 import NotionStyleEditor, { TemplateItem } from '@/components/templates/NotionStyleEditor'
+import Portal from '@/components/ui/Portal'
 
 type Template = Database['public']['Tables']['templates']['Row']
 type TemplateInsert = Database['public']['Tables']['templates']['Insert']
@@ -399,6 +400,7 @@ export default function TemplatesPage() {
         </div>
 
         {isModalOpen && (
+          <Portal>
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md shadow-2xl`}>
               <div className="p-4 border-b border-outline bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -494,6 +496,7 @@ export default function TemplatesPage() {
               </div>
             </div>
           </div>
+          </Portal>
         )}
 
         {/* 템플릿 미리보기 모달 */}

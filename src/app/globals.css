@@ -334,6 +334,26 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
+/* 모바일에서 glassmorphism backdrop-filter 축소 (stacking context 이슈 완화) */
+@media (max-width: 768px) {
+  [data-theme="glassmorphism"][data-mode="light"] .glassmorphism-bg {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  [data-theme="glassmorphism"][data-mode="light"] .glassmorphism-card {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  [data-theme="glassmorphism"][data-mode="light"] .glassmorphism-button,
+  [data-theme="glassmorphism"][data-mode="light"] .glassmorphism-button-active {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  [data-theme="glassmorphism"][data-mode="light"] .glassmorphism-input {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+}
 
 /* ===== Glassmorphism Dark ===== */
 [data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-card {
@@ -387,6 +407,25 @@ body {
     rgba(21, 128, 61, 0.15) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+}
+@media (max-width: 768px) {
+  [data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-bg {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  [data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-card {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  [data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-button,
+  [data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-button-active {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  [data-theme="glassmorphism"][data-mode="dark"] .glassmorphism-input {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
 }
 
 /* ===== Fallback: original neumorphism/glassmorphism classes (no data-theme) ===== */

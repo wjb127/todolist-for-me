@@ -17,7 +17,7 @@ export default function BottomNavigation() {
   const { getCardStyle, getButtonStyle } = useTheme()
 
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 border-t border-outline px-2 pt-2 pb-4 safe-area-pb ${getCardStyle()}`}>
+    <nav className={`fixed bottom-0 left-0 right-0 z-40 border-t border-outline px-2 pt-2 pb-4 safe-area-pb ${getCardStyle()}`}>
       <div className="flex">
         {navigation.map((item) => {
           const isActive = pathname.startsWith(item.href)
