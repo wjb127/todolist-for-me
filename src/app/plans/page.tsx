@@ -1060,13 +1060,11 @@ export default function PlansPage() {
                   ))}
                 </div>
               </SortableContext>
-              <Portal>
-                <DragOverlay zIndex={80}>
-                  {activeId && plans.find(p => p.id === activeId) ? (
-                    <PlanItemOverlay plan={plans.find(p => p.id === activeId)!} />
-                  ) : null}
-                </DragOverlay>
-              </Portal>
+              <DragOverlay>
+                {activeId && plans.find(p => p.id === activeId) ? (
+                  <PlanItemOverlay plan={plans.find(p => p.id === activeId)!} />
+                ) : null}
+              </DragOverlay>
             </DndContext>
           )}
         </div>
