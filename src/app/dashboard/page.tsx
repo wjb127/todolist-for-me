@@ -10,6 +10,7 @@ import YearlyContributionGraph from '@/components/dashboard/YearlyContributionGr
 import LevelCard from '@/components/dashboard/LevelCard'
 import WeeklyBarChart from '@/components/dashboard/WeeklyBarChart'
 import MonthlyLineChart from '@/components/dashboard/MonthlyLineChart'
+import Portal from '@/components/ui/Portal'
 import {
   getLevelInfo,
   todoDailyLevels,
@@ -1492,6 +1493,7 @@ export default function DashboardPage() {
 
         {/* 성취 모달 */}
         {selectedAchievement && (
+          <Portal>
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} max-w-sm w-full p-6`}>
               <div className="flex items-center justify-between mb-4">
@@ -1700,6 +1702,7 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
+          </Portal>
         )}
 
         {/* 성취 배지 */}
@@ -1895,6 +1898,7 @@ export default function DashboardPage() {
 
         {/* 메모 편집 모달 */}
         {isNoteModalOpen && editingNote && (
+          <Portal>
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
               <div className="p-4 border-b border-outline">
@@ -1951,10 +1955,12 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+          </Portal>
         )}
 
         {/* 레벨 상세 정보 모달 */}
         {selectedLevelSystem && (
+          <Portal>
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} max-w-md w-full p-6 max-h-[90vh] overflow-y-auto`}>
               <div className="flex items-center justify-between mb-4">
@@ -2095,6 +2101,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+          </Portal>
         )}
       </div>
     </div>

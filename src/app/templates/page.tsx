@@ -501,6 +501,7 @@ export default function TemplatesPage() {
 
         {/* 템플릿 미리보기 모달 */}
         {previewTemplate && (
+          <Portal>
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md shadow-2xl`}>
               <div className="p-4 border-b border-outline bg-gradient-to-r from-purple-50 to-blue-50">
@@ -622,6 +623,7 @@ export default function TemplatesPage() {
               </div>
             </div>
           </div>
+          </Portal>
         )}
       </div>
     </div>

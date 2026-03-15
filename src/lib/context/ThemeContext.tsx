@@ -139,13 +139,14 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }
 
   const getModalBackdropStyle = () => {
+    // 모든 테마에서 fixed + inset-0으로 viewport 전체를 덮고 중앙 정렬
     switch (theme) {
       case 'glassmorphism':
-        return 'fixed inset-0 bg-purple-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4'
+        return 'fixed inset-0 bg-purple-900/20 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto'
       case 'neumorphism':
-        return 'fixed inset-0 bg-gray-500/20 backdrop-blur-sm z-50 flex items-center justify-center p-4'
+        return 'fixed inset-0 bg-gray-500/20 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto'
       default:
-        return 'fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4'
+        return 'fixed inset-0 bg-black/20 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto'
     }
   }
 

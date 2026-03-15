@@ -5,6 +5,7 @@ import { Calendar, Plus, Clock, FileText, ChevronLeft, ChevronRight, List, Layou
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import NotionStyleEditor from '@/components/templates/NotionStyleEditor'
 import { TemplateItem } from '@/components/templates/NotionStyleEditor'
+import Portal from '@/components/ui/Portal'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -460,6 +461,7 @@ export default function TodosPage() {
         )}
 
         {isRoutineEditorOpen && (
+          <Portal>
           <div className={getModalBackdropStyle()}>
             <div className={`${getModalStyle()} w-full max-w-md`}>
               <div className="p-4 border-b border-outline">
@@ -496,6 +498,7 @@ export default function TodosPage() {
               </div>
             </div>
           </div>
+          </Portal>
         )}
       </div>
     </div>
