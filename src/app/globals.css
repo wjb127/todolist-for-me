@@ -194,6 +194,10 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+body:has(.mobile-sheet-backdrop) {
+  overflow: hidden;
+}
+
 /* ===== Animations ===== */
 @keyframes slide {
   0% { transform: translateX(-100%) skewX(-12deg); }
@@ -498,6 +502,43 @@ body {
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+.mobile-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.75rem 0.75rem 0;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.mobile-bottom-sheet {
+  width: 100%;
+  max-width: 48rem;
+  margin-top: auto;
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  max-height: calc(100dvh - env(safe-area-inset-top) - 0.75rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+  box-shadow: 0 -16px 40px rgba(15, 23, 42, 0.22);
+}
+
+.mobile-glass-sheet {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@supports not (height: 100dvh) {
+  .mobile-bottom-sheet {
+    max-height: calc(100vh - env(safe-area-inset-top) - 0.75rem);
   }
 }
 

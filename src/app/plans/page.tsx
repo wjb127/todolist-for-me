@@ -252,9 +252,10 @@ export default function PlansPage() {
   }> | null>(null)
   const [isApplyingSchedule, setIsApplyingSchedule] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const [isMobilePwa, setIsMobilePwa] = useState(false)
 
   // 테마 시스템 사용
-  const { getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
+  const { theme, getBackgroundStyle, getCardStyle, getButtonStyle, getInputStyle, getModalStyle, getModalBackdropStyle, getFilterButtonStyle } = useTheme()
 
   // DnD 센서 설정
   const mouseSensor = useSensor(MouseSensor, {
@@ -285,6 +286,40 @@ export default function PlansPage() {
   useEffect(() => {
     fetchPlans()
   }, [])
+
+  useEffect(() => {
+    const updateMobilePwaState = () => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches
+      const iosStandalone = 'standalone' in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+      const mobileViewport = window.matchMedia('(max-width: 768px)').matches
+
+      setIsMobilePwa((standalone || iosStandalone) && mobileViewport)
+    }
+
+    updateMobilePwaState()
+
+    const displayModeQuery = window.matchMedia('(display-mode: standalone)')
+    const mobileQuery = window.matchMedia('(max-width: 768px)')
+
+    displayModeQuery.addEventListener('change', updateMobilePwaState)
+    mobileQuery.addEventListener('change', updateMobilePwaState)
+
+    return () => {
+      displayModeQuery.removeEventListener('change', updateMobilePwaState)
+      mobileQuery.removeEventListener('change', updateMobilePwaState)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isModalOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isModalOpen])
 
   // 모달이 열릴 때 제목 입력 필드에 포커스
   useEffect(() => {
@@ -1036,19 +1071,27 @@ export default function PlansPage() {
                   ))}
                 </div>
               </SortableContext>
-              <DragOverlay>
-                {activeId && plans.find(p => p.id === activeId) ? (
-                  <PlanItemOverlay plan={plans.find(p => p.id === activeId)!} />
-                ) : null}
-              </DragOverlay>
+              <Portal>
+                <DragOverlay zIndex={80}>
+                  {activeId && plans.find(p => p.id === activeId) ? (
+                    <PlanItemOverlay plan={plans.find(p => p.id === activeId)!} />
+                  ) : null}
+                </DragOverlay>
+              </Portal>
             </DndContext>
           )}
         </div>
 
         {isModalOpen && (
           <Portal>
-          <div className={getModalBackdropStyle()}>
-            <div className={`${getModalStyle()} w-full max-w-md`}>
+          <div
+            className={isMobilePwa ? 'mobile-sheet-backdrop' : getModalBackdropStyle()}
+            onClick={closeModal}
+          >
+            <div
+              className={`${getModalStyle()} ${isMobilePwa ? `mobile-bottom-sheet ${theme === 'glassmorphism' ? 'mobile-glass-sheet' : ''}` : 'w-full max-w-md'}`}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="p-4 border-b border-outline">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">
@@ -1173,7 +1216,7 @@ export default function PlansPage() {
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                     className={getInputStyle()}
-                    style={{ width: '320px' }}
+                    style={{ width: isMobilePwa ? '100%' : '320px' }}
                   />
                 </div>
 
