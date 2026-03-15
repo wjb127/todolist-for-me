@@ -851,9 +851,11 @@ export default function PlansPage() {
         <Plus className="h-6 w-6" />
       </button>
     )}
-    <div className={getBackgroundStyle()}>
-      <div className="max-w-md mx-auto">
-        <div className="flex items-center justify-between mb-6">
+    <div className={getBackgroundStyle()} style={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 0 }}>
+      <div className="max-w-md mx-auto w-full flex flex-col" style={{ height: '100%' }}>
+        {/* 고정 헤더 영역 */}
+        <div className="flex-shrink-0 pt-4 px-0">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-ink">계획</h1>
           <div className="flex items-center space-x-2">
             <button
@@ -874,7 +876,7 @@ export default function PlansPage() {
           </div>
         </div>
 
-        <div className={`${getCardStyle()} mb-4`}>
+        <div className={`${getCardStyle()} mb-3`}>
           <div className="flex items-center space-x-2 mb-2">
             <Calendar className="h-5 w-5 text-ink-muted" />
             <label className="text-sm font-medium text-ink-secondary">날짜 선택</label>
@@ -914,7 +916,7 @@ export default function PlansPage() {
           </div>
         </div>
 
-        <div className={`${getCardStyle()} mb-6`}>
+        <div className={`${getCardStyle()} mb-3`}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-ink-secondary">이 날 한 일</span>
             <span className="text-sm text-ink-secondary">{dateCompletedCount}/{dateTotalCount}</span>
@@ -930,6 +932,10 @@ export default function PlansPage() {
             <span className="text-xs text-ink-muted">{completedCount}/{totalCount}</span>
           </div>
         </div>
+        </div>
+
+        {/* 스크롤 가능한 리스트 영역 */}
+        <div className="flex-1 overflow-y-auto overscroll-contain pb-20" style={{ minHeight: 0 }}>
 
         {/* 시간 배치 버튼 */}
         <div className="mb-4">
@@ -1068,6 +1074,7 @@ export default function PlansPage() {
             </DndContext>
           )}
         </div>
+        </div>{/* 스크롤 컨테이너 닫기 */}
 
         {isModalOpen && (
           <Portal>
