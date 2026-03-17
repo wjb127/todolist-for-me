@@ -312,11 +312,12 @@ export default function PlansPage() {
 
   // 모달이 열릴 때 제목 입력 필드에 포커스
   useEffect(() => {
-    if (isModalOpen && titleInputRef.current) {
-      // 약간의 딜레이 후 포커스 (모달 애니메이션 고려)
-      setTimeout(() => {
+    if (isModalOpen) {
+      // Portal 마운트 후 포커스 (createPortal 렌더링 대기)
+      const timer = setTimeout(() => {
         titleInputRef.current?.focus()
-      }, 50)
+      }, 150)
+      return () => clearTimeout(timer)
     }
   }, [isModalOpen])
 
