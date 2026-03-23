@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react'
-import { Plus, Trash2, Save, X, Clock, Sparkles, ChevronRight, ChevronDown, Calendar, ChevronLeft, RefreshCw, GripVertical } from 'lucide-react'
+import { Plus, Trash2, Save, X, Clock, Sparkles, ChevronRight, ChevronDown, Calendar, ChevronLeft, RefreshCw, GripVertical, Copy, Check } from 'lucide-react'
 import AnimatedCheckbox from '@/components/ui/AnimatedCheckbox'
 import confetti from 'canvas-confetti'
 import { format } from 'date-fns'
@@ -840,6 +840,21 @@ export default function PlansPage() {
   const datePlans = plans.filter(plan => plan.due_date === selectedDate)
   const dateCompletedCount = datePlans.filter(plan => plan.completed).length
   const dateTotalCount = datePlans.length
+  const [copied, setCopied] = useState(false)
+
+  // 해당일 계획을 텍스트로 복사
+  const handleCopyPlans = useCallback(async () => {
+    const sorted = [...datePlans].sort((a, b) => a.order_index - b.order_index)
+    const lines = sorted.map(p => {
+      const status = p.completed ? '✅' : '⬜'
+      const time = p.scheduled_start ? `${p.scheduled_start}~${p.scheduled_end} ` : ''
+      return `${status} ${time}${p.title}`
+    })
+    const text = `📋 ${selectedDate} 계획 (${dateCompletedCount}/${dateTotalCount} 완료)\n\n${lines.join('\n')}`
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }, [datePlans, selectedDate, dateCompletedCount, dateTotalCount])
 
   return (
     <>
@@ -859,6 +874,13 @@ export default function PlansPage() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-ink">계획</h1>
           <div className="flex items-center space-x-2">
+            <button
+              onClick={handleCopyPlans}
+              className={`p-2 rounded-lg ${getButtonStyle()}`}
+              title="계획 복사"
+            >
+              {copied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+            </button>
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
